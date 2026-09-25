@@ -1,0 +1,47 @@
+<section class="admin">
+  <h1>{{ editingId ? 'Edit transcript' : 'Add transcript' }}</h1>
+  <section>
+    <h2>Existing transcripts</h2>
+    @for (transcript of transcripts; track transcript.id) {
+      <article>
+        <a
+          [routerLink]="['/', transcript.category, transcript.parentId, transcript.id]"
+          [queryParams]="{ edit: 1 }"
+          >Open</a
+        ><span>{{ transcript.title }}</span
+        ><button type="button" (click)="edit(transcript)">Edit</button
+        ><button type="button" (click)="delete(transcript)">Delete</button>
+      </article>
+    }
+  </section>
+  <form #formRef="ngForm" (ngSubmit)="submit(formRef)">
+    <input name="title" [(ngModel)]="form.title" required placeholder="Transcript title" />
+    <select name="category" [(ngModel)]="form.category">
+      <option value="main-story">Main story</option>
+      <option value="event-story">Event story</option>
+      <option value="interrogation">Interrogation</option>
+      <option value="perspectra">Perspectra</option>
+    </select>
+    <input
+      name="parentLabel"
+      [(ngModel)]="form.parentLabel"
+      required
+      placeholder="Chapter, event, or character"
+    />
+    <input name="stageLabel" [(ngModel)]="form.stageLabel" required placeholder="Stage or part" />
+    <label
+      >Import CSV/TSV exported from Excel
+      <input
+        type="file"
+        accept=".csv,.tsv,text/csv,text/tab-separated-values"
+        (change)="importFile($event)"
+    /></label>
+    <p *ngIf="importMessage">{{ importMessage }}</p>
+    <app-node-editor [nodes]="nodes" />
+    <button type="submit" [disabled]="formRef.invalid || !nodes.length">
+      {{ editingId ? 'Save transcript' : 'Publish transcript' }}
+    </button>
+    <button *ngIf="editingId" type="button" (click)="cancelEdit()">Cancel</button>
+  </form>
+  <p *ngIf="published">Saved.</p>
+</section>

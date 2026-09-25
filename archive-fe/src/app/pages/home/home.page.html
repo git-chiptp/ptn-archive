@@ -1,0 +1,11 @@
+<section class="hero">
+  <h1>Archive</h1>
+  <a routerLink="/main-story">Main story</a>
+</section>
+<section class="cards">
+  @for (x of links; track x.path) {
+    <a [routerLink]="x.path"
+      ><h2>{{ x.name }}</h2></a
+    >
+  }
+</section>

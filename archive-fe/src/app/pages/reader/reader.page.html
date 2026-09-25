@@ -1,0 +1,42 @@
+<section class="reader" *ngIf="localizedTranscript as t; else missing">
+  <a [routerLink]="['/', t.category]">← Back to archive</a>
+  <div class="head">
+    <div>
+      <label>{{ t.parentLabel }} / {{ t.stageLabel }}</label>
+      <h1>{{ t.title }}</h1>
+      <p>{{ t.description }}</p>
+    </div>
+    <div class="gender">
+      <small>PROTAGONIST</small
+      ><button [class.active]="store.gender() === 'female'" (click)="setGender('female')">
+        ♀ Female</button
+      ><button [class.active]="store.gender() === 'male'" (click)="setGender('male')">
+        ♂ Male
+      </button>
+    </div>
+  </div>
+  @if (editMode) {
+    <section class="edit-panel">
+      <h2>Edit transcript</h2>
+      <input [(ngModel)]="editTitle" placeholder="Transcript title" />
+      <input [(ngModel)]="editParent" placeholder="Chapter, event, or character" />
+      <input [(ngModel)]="editStage" placeholder="Stage or part" />
+      <app-node-editor [nodes]="editNodes" />
+      <button type="button" (click)="save()">Save transcript</button>
+      <button type="button" (click)="remove()">Delete transcript</button>
+    </section>
+  } @else {
+    <app-node-list
+      [nodes]="t.nodes"
+      [gender]="store.gender()"
+      [selections]="selections"
+      (changed)="select($event)"
+    />
+  }
+</section>
+<ng-template #missing
+  ><section class="missing">
+    <h1>Transcript not found</h1>
+    <a routerLink="/">Return home</a>
+  </section></ng-template
+>

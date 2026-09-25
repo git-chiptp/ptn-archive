@@ -1,0 +1,20 @@
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="brand" routerLink="/">ARCHIVE</a>
+    <nav aria-label="Primary navigation">
+      <a routerLink="/main-story">{{ language.text('mainStory') }}</a>
+      <a routerLink="/event-story">{{ language.text('events') }}</a>
+      <a routerLink="/interrogation">{{ language.text('interrogation') }}</a>
+      <a routerLink="/admin">{{ language.text('admin') }}</a>
+    </nav>
+    <label class="language-picker">
+      <span class="sr-only">Language</span>
+      <select [ngModel]="language.current()" (ngModelChange)="setLanguage($event)" aria-label="Language">
+        @for (option of language.supportedLanguages; track option.code) {
+          <option [value]="option.code">{{ option.nativeLabel }}</option>
+        }
+      </select>
+    </label>
+  </div>
+</header>
+<main class="site-main"><router-outlet /></main>

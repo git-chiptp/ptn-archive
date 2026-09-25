@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: archive-postgres
+    environment:
+      POSTGRES_DB: archive_db
+      POSTGRES_USER: archive_user
+      POSTGRES_PASSWORD: change-this-password
+    ports:
+      - "5432:5432"
+    volumes:
+      - archive-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U archive_user -d archive_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  archive-postgres-data:

@@ -1,0 +1,77 @@
+<div class="node-editor">
+  @for (node of nodes; track node.id; let i = $index) {
+    @if (node.type === 'line') {
+      <fieldset>
+        <legend>Line {{ i + 1 }}</legend>
+        <input
+          [name]="'speaker-' + node.id"
+          [(ngModel)]="node.speaker"
+          [ngModelOptions]="{ standalone: true }"
+          placeholder="Speaker (blank for narration)"
+        />
+        <quill-editor
+          [(ngModel)]="node.text"
+          [ngModelOptions]="{ standalone: true }"
+          [name]="'text-' + node.id"
+          [modules]="modules"
+          format="html"
+          placeholder="Dialogue or narration"
+        ></quill-editor>
+        <label
+          >Male protagonist variant
+          <quill-editor
+            [(ngModel)]="node.male"
+            [ngModelOptions]="{ standalone: true }"
+            [name]="'male-' + node.id"
+            [modules]="modules"
+            format="html"
+          ></quill-editor
+        ></label>
+        <label
+          >Female protagonist variant
+          <quill-editor
+            [(ngModel)]="node.female"
+            [ngModelOptions]="{ standalone: true }"
+            [name]="'female-' + node.id"
+            [modules]="modules"
+            format="html"
+          ></quill-editor
+        ></label>
+        <button type="button" (click)="remove(i)">Delete line</button>
+      </fieldset>
+    } @else {
+      <fieldset>
+        <legend>Choice</legend>
+        <input
+          [name]="'prompt-' + node.id"
+          [(ngModel)]="node.prompt"
+          [ngModelOptions]="{ standalone: true }"
+          placeholder="Choice prompt"
+        />
+        @for (option of node.options; track option.id; let optionIndex = $index) {
+          <fieldset>
+            <legend>Option {{ optionIndex + 1 }}</legend>
+            <input
+              [name]="'label-' + option.id"
+              [(ngModel)]="option.label"
+              [ngModelOptions]="{ standalone: true }"
+              placeholder="Option label"
+            />
+            <app-node-editor [nodes]="option.nodes" />
+            <button
+              type="button"
+              (click)="removeOption(node, optionIndex)"
+              [disabled]="node.options.length === 1"
+            >
+              Delete option
+            </button>
+          </fieldset>
+        }
+        <button type="button" (click)="addOption(node)">Add option</button>
+        <button type="button" (click)="remove(i)">Delete choice</button>
+      </fieldset>
+    }
+  }
+  <button type="button" (click)="addLine()">Add line</button>
+  <button type="button" (click)="addChoice()">Add choice</button>
+</div>

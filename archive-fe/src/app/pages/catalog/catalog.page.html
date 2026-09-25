@@ -1,0 +1,18 @@
+<section class="catalog">
+  <label>{{ label }}</label>
+  <h1>{{ title }}</h1>
+  <input [(ngModel)]="query" placeholder="Search this archive" aria-label="Search this archive" />
+  @for (collection of filteredCollections; track collection.id) {
+    <article>
+      <strong>{{ collection.label }}</strong>
+      @for (stage of collection.stages; track stage.id) {
+        <a [routerLink]="['/', category, collection.id, stage.id]"
+          ><span>{{ stage.label }}</span
+          ><b>Read transcript ↗</b></a
+        >
+      }
+    </article>
+  } @empty {
+    <p>No entries match your search.</p>
+  }
+</section>

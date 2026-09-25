@@ -1,0 +1,2 @@
+ALTER TABLE archives ADD COLUMN category varchar(20) NOT NULL DEFAULT 'MAIN_STORY';
+ALTER TABLE archives ADD CONSTRAINT archives_category_check CHECK (category IN ('MAIN_STORY', 'EVENT_STORY', 'INTERROGATION', 'PERSPECTRA'));

@@ -1,0 +1,32 @@
+@for (node of nodes; track node.id) {
+  @if (node.type === 'line') {
+    <div class="line">
+      <span *ngIf="node.speaker" class="speaker">{{ node.speaker }}</span>
+      <span [innerHTML]="html(node)"></span>
+    </div>
+  } @else {
+    <div class="choice">
+      <strong>{{ node.prompt || 'Choose a response' }}</strong>
+      <div class="options" role="group" [attr.aria-label]="node.prompt || 'Choice options'">
+        @for (option of node.options; track option.id) {
+          <button
+            [class.active]="selections[node.id] === option.id"
+            (click)="changed.emit({ id: node.id, option: option.id })"
+          >
+            {{ option.label }} {{ selections[node.id] === option.id ? '✓' : '↗' }}
+          </button>
+        }
+      </div>
+      @if (selections[node.id]; as selected) {
+        <div class="branch">
+          <app-node-list
+            [nodes]="node.options.find((o) => o.id === selected)?.nodes || []"
+            [gender]="gender"
+            [selections]="selections"
+            (changed)="changed.emit($event)"
+          />
+        </div>
+      }
+    </div>
+  }
+}
