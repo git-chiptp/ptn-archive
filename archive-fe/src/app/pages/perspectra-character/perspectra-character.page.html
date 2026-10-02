@@ -1,0 +1,9 @@
+<section class="catalog"><a routerLink="/perspectra">← Back to characters</a>
+    <h1>{{ character }}</h1>
+    <p>Select a chapter.</p>@if (auth.user()) { <button type="button" (click)="editCharacter()">Edit
+        character</button><button type="button" (click)="deleteCharacter()">Delete character</button> }@if (auth.user())
+    { <a class="add-chapter-action" [routerLink]="['/add-transcript']"
+        [queryParams]="{ category: 'perspectra', parentLabel: character }">Add chapter</a> }<div class="stages">@for
+        (chapter of chapters; track chapter.id) { <a [routerLink]="['/perspectra', character, chapter.id]"><span>{{
+                chapter.label }}</span></a> } @empty { <p>No chapters found.</p> }</div>
+</section>

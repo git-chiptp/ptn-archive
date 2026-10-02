@@ -1,14 +1,11 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { ArchiveStore } from '../../services/archive.store';
-import { inject } from '@angular/core';
 @Component({
   standalone: true,
   imports: [RouterLink],
   templateUrl: './home.page.html',
 })
 export class HomePage {
-  readonly store = inject(ArchiveStore);
   links = [
     {
       path: '/main-story',

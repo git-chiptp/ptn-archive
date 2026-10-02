@@ -5,8 +5,10 @@ import jakarta.validation.constraints.Size;
 import java.time.Instant;
 
 public record ArchiveRequest(@NotBlank @Size(max = 255) String title,
-                             @Size(max = 10000) String description,
-                             String transcriptText,
-                             ArchiveStatus status,
-                             @Size(max = 1000) String sourceUrl,
-                             Instant recordedAt, ArchiveCategory category) {}
+        @Size(max = 10000) String description,
+        String transcriptText,
+        ArchiveStatus status,
+        @Size(max = 1000) String sourceUrl,
+        Instant recordedAt, ArchiveCategory category, String parentId, String parentLabel, String stageLabel,
+        String sourceLanguage) {
+}

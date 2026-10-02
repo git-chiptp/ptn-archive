@@ -1,42 +1,71 @@
-<section class="reader" *ngIf="localizedTranscript as t; else missing">
-  <a [routerLink]="['/', t.category]">← Back to archive</a>
+<section class="reader" *ngIf="localizedTranscript as t; else loadingOrMissing">
+  @if (store.statusMessage(); as message) { <p class="translation-status">{{ message }}</p> }
+  <a [routerLink]="backLink">← Back to stage selector</a>
   <div class="head">
     <div>
       <label>{{ t.parentLabel }} / {{ t.stageLabel }}</label>
-      <h1>{{ t.title }}</h1>
       <p>{{ t.description }}</p>
     </div>
     <div class="gender">
-      <small>PROTAGONIST</small
-      ><button [class.active]="store.gender() === 'female'" (click)="setGender('female')">
-        ♀ Female</button
-      ><button [class.active]="store.gender() === 'male'" (click)="setGender('male')">
+      <small>PROTAGONIST</small><button [class.active]="store.gender() === 'female'" (click)="setGender('female')">
+        ♀ Female</button><button [class.active]="store.gender() === 'male'" (click)="setGender('male')">
         ♂ Male
       </button>
     </div>
   </div>
   @if (editMode) {
-    <section class="edit-panel">
-      <h2>Edit transcript</h2>
-      <input [(ngModel)]="editTitle" placeholder="Transcript title" />
-      <input [(ngModel)]="editParent" placeholder="Chapter, event, or character" />
-      <input [(ngModel)]="editStage" placeholder="Stage or part" />
-      <app-node-editor [nodes]="editNodes" />
-      <button type="button" (click)="save()">Save transcript</button>
-      <button type="button" (click)="remove()">Delete transcript</button>
-    </section>
+  <section class="edit-panel">
+    <h2>Edit transcript</h2>
+    <label>Transcript language
+      <select [(ngModel)]="editLanguage" (ngModelChange)="editLanguageChanged($event)">
+        @for (option of language.supportedLanguages; track option.code) {
+        <option [value]="option.code">{{ option.nativeLabel }}</option>
+        }
+      </select>
+    </label>
+    <input [(ngModel)]="editParent" (ngModelChange)="markEditDirty()" placeholder="Chapter, event, or character" />
+    <input [(ngModel)]="editStage" (ngModelChange)="markEditDirty()" placeholder="Stage or part" />
+    <label>Import formatted XLSX
+      <input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        (change)="importFile($event)" />
+    </label>
+    @if (importLoading) { <p class="import-loading" role="status"><span class="loading-spinner"></span> {{ importMessage
+      }}</p> }
+    @if (importMessage && !importLoading) { <p class="import-message" [class.import-error]="importError">{{
+      importMessage }}</p> }
+    @if (pendingImportReady) {
+    <p>File loaded: {{ pendingImportName }}</p>
+    <button type="button" (click)="importPending()">Import</button>
+    }
+    <app-node-editor [nodes]="editNodes" (input)="markEditDirty()" (change)="markEditDirty()" />
+    <button type="button" (click)="save()">Save transcript</button>
+    <button type="button" (click)="remove()">Delete transcript</button>
+    @if (showLanguagePrompt) {
+    <div class="language-change-backdrop">
+      <section class="language-change-prompt" role="dialog" aria-modal="true" aria-labelledby="language-change-title">
+        <h3 id="language-change-title">Unsaved changes</h3>
+        <p>This transcript has unsaved changes. Choose how to continue before changing language.</p>
+        <div class="language-change-actions">
+          <button type="button" (click)="savePendingLanguageChange()">Save changes</button>
+          <button type="button" (click)="discardPendingLanguageChange()">Discard changes</button>
+          <button type="button" (click)="cancelPendingLanguageChange()">Cancel</button>
+        </div>
+      </section>
+    </div>
+    }
+  </section>
   } @else {
-    <app-node-list
-      [nodes]="t.nodes"
-      [gender]="store.gender()"
-      [selections]="selections"
-      (changed)="select($event)"
-    />
+  <app-node-list [nodes]="t.nodes" [gender]="store.gender()" [selections]="selections" (changed)="select($event)" />
   }
 </section>
-<ng-template #missing
-  ><section class="missing">
+<ng-template #loadingOrMissing>
+  <section class="missing" *ngIf="store.loading(); else missing">
+    <p>Loading transcript...</p>
+  </section>
+</ng-template>
+<ng-template #missing>
+  <section class="missing">
     <h1>Transcript not found</h1>
     <a routerLink="/">Return home</a>
-  </section></ng-template
->
+  </section>
+</ng-template>

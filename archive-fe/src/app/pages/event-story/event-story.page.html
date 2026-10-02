@@ -1,0 +1,27 @@
+<section class="catalog">
+  <a routerLink="/event-story">← Back to event stories</a>
+  @if (event; as collection) {
+  <label>THE EVENT STORY</label>
+  <h1>{{ collection.label }}</h1>
+  <p>Select a stage to read its transcript.</p>
+  <div class="stages">
+    @for (stage of collection.stages; track stage.id) {
+    <div class="stage-entry">
+      <span>{{ stage.label }}</span>
+      <div class="stage-actions">
+        <a [routerLink]="['/event-story', collection.id, stage.id]">Read transcript</a>
+        @if (isAdmin) {
+        <a [routerLink]="['/event-story', collection.id, stage.id]" [queryParams]="{ edit: 1 }">Edit transcript</a>
+        }
+      </div>
+    </div>
+    }
+  </div>
+  @if (isAdmin) {
+  <a class="add-chapter-action" [routerLink]="['/add-transcript']"
+    [queryParams]="{ eventName: collection.label, category: 'event-story' }">Add stage</a>
+  }
+  } @else {
+  <h1>Event not found</h1>
+  }
+</section>

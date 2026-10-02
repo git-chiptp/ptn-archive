@@ -1,0 +1,11 @@
+<section class="catalog"><a [routerLink]="['/perspectra', character]">← Back to chapters</a>
+    <h1>{{ chapter }}</h1>
+    <p>Select a part.</p>@if (auth.user()) { <button type="button" (click)="editChapter()">Edit chapter</button><button
+        type="button" (click)="deleteChapter()">Delete chapter</button> }@if (auth.user()) { <button type="button"
+        class="add-chapter-action" (click)="addPart()">Add part</button> }<div class="stages">@for (part of parts; track
+        part.id) { <div class="stage-entry"><a [routerLink]="['/perspectra', character, chapter, part.id]"><span>{{
+                    part.title || part.stageLabel }}</span></a>@if (auth.user()) { <a
+                [routerLink]="['/perspectra', character, chapter, part.id]" [queryParams]="{ edit: 1 }">Edit</a><button
+                type="button" (click)="deletePart(part.id)">Delete</button> }</div> } @empty { <p>No parts found.</p> }
+    </div>
+</section>

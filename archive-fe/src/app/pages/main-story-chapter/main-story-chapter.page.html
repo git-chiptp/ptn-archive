@@ -1,0 +1,28 @@
+<section class="catalog"
+  [style.background-image]="chapter?.backgroundImage ? 'url(' + chapter?.backgroundImage + ')' : null">
+  <a routerLink="/main-story">← Back to main story</a>
+  @if (chapter; as collection) {
+  <label>THE MAIN STORY</label>
+  <h1>{{ collection.label }}</h1>
+  <p>Select a stage to read its transcript.</p>
+  <div class="stages">
+    @for (stage of collection.stages; track stage.id) {
+    <div class="stage-entry">
+      <span>{{ stage.label }}</span>
+      <div class="stage-actions">
+        <a [routerLink]="['/main-story', collection.id, stage.id]">Read transcript</a>
+        @if (isAdmin) {
+        <a [routerLink]="['/main-story', collection.id, stage.id]" [queryParams]="{ edit: 1 }">Edit transcript</a>
+        }
+      </div>
+    </div>
+    }
+  </div>
+  @if (isAdmin) {
+  <a class="add-chapter-action" [routerLink]="['/add-transcript']" [queryParams]="{ chapterName: collection.label }">Add
+    stage</a>
+  }
+  } @else {
+  <h1>Chapter not found</h1>
+  }
+</section>

@@ -1,18 +1,45 @@
 <section class="catalog">
   <label>{{ label }}</label>
   <h1>{{ title }}</h1>
+  <p>{{ description }}</p>
   <input [(ngModel)]="query" placeholder="Search this archive" aria-label="Search this archive" />
+  @if (isAdmin && category === 'main-story') {
+  <a class="add-chapter-action" routerLink="/add-chapter">Add chapter</a>
+  }
+  @if (isAdmin && category === 'perspectra') {
+  <a class="add-chapter-action" [routerLink]="['/add-transcript']" [queryParams]="{ category: 'perspectra' }">Add
+    character</a>
+  }
+  @if (isAdmin && category === 'interrogation') {
+  <a class="add-chapter-action" [routerLink]="['/add-transcript']" [queryParams]="{ category: 'interrogation' }">Add
+    character</a>
+  }
+  @if (isAdmin && category === 'event-story') {
+  <a class="add-chapter-action" [routerLink]="['/add-chapter']" [queryParams]="{ category: 'event-story' }">Add
+    event</a>
+  }
+
   @for (collection of filteredCollections; track collection.id) {
-    <article>
-      <strong>{{ collection.label }}</strong>
+  <article class="chapter" [class.chapter-card]="category === 'main-story' || category === 'event-story'"
+    [style.background-image]="(category === 'main-story' || category === 'event-story') && collection.backgroundImage ? 'url(' + collection.backgroundImage + ')' : null">
+    @if (category === 'main-story' || category === 'event-story' || category === 'perspectra' || category ===
+    'interrogation') {
+    <h2><a [routerLink]="['/', category, collection.id]">{{ collection.label }}</a></h2>
+    } @else {
+    <h2>{{ collection.label }}</h2>
+    }
+    @if (category !== 'main-story' && category !== 'event-story' && category !== 'perspectra' && category !==
+    'interrogation') {
+    <div class="stages">
       @for (stage of collection.stages; track stage.id) {
-        <a [routerLink]="['/', category, collection.id, stage.id]"
-          ><span>{{ stage.label }}</span
-          ><b>Read transcript ↗</b></a
-        >
+      <a [routerLink]="['/', category, collection.id, stage.id]" [queryParams]="isAdmin ? { edit: 1 } : {}">
+        <span>{{ stage.label }}</span>
+      </a>
       }
-    </article>
+    </div>
+    }
+  </article>
   } @empty {
-    <p>No entries match your search.</p>
+  <p>No entries match your search.</p>
   }
 </section>

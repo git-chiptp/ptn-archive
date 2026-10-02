@@ -1,0 +1,11 @@
+<section class="catalog"><a routerLink="/interrogation">← Back to characters</a>
+    <h1>{{ character }}</h1>
+    <p>Select a part.</p>@if (auth.user()) { <button type="button" (click)="editCharacter()">Edit
+        character</button><button type="button" (click)="deleteCharacter()">Delete character</button><button
+        type="button" class="add-chapter-action" (click)="addPart()">Add part</button> }<div class="stages">@for (part
+        of parts; track part.id) { <div class="stage-entry"><a
+                [routerLink]="['/interrogation', character, part.id]"><span>{{ part.title || part.stageLabel
+                    }}</span></a>@if (auth.user()) { <a [routerLink]="['/interrogation', character, part.id]"
+                [queryParams]="{ edit: 1 }">Edit</a><button type="button" (click)="deletePart(part.id)">Delete</button>
+            }</div> } @empty { <p>No parts found.</p> }</div>
+</section>

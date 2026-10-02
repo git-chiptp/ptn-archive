@@ -1,42 +1,46 @@
 <section class="admin">
+  @if (store.statusMessage(); as message) { <p class="translation-status">{{ message }}</p> }
   <h1>{{ editingId ? 'Edit transcript' : 'Add transcript' }}</h1>
-  <section>
-    <h2>Existing transcripts</h2>
-    @for (transcript of transcripts; track transcript.id) {
-      <article>
-        <a
-          [routerLink]="['/', transcript.category, transcript.parentId, transcript.id]"
-          [queryParams]="{ edit: 1 }"
-          >Open</a
-        ><span>{{ transcript.title }}</span
-        ><button type="button" (click)="edit(transcript)">Edit</button
-        ><button type="button" (click)="delete(transcript)">Delete</button>
-      </article>
-    }
-  </section>
   <form #formRef="ngForm" (ngSubmit)="submit(formRef)">
-    <input name="title" [(ngModel)]="form.title" required placeholder="Transcript title" />
+    <label>Transcript language
+      <select name="language" [(ngModel)]="form.language">
+        @for (option of languages.supportedLanguages; track option.code) {
+        <option [value]="option.code">{{ option.nativeLabel }}</option>
+        }
+      </select>
+    </label>
     <select name="category" [(ngModel)]="form.category">
       <option value="main-story">Main story</option>
       <option value="event-story">Event story</option>
       <option value="interrogation">Interrogation</option>
       <option value="perspectra">Perspectra</option>
     </select>
-    <input
-      name="parentLabel"
-      [(ngModel)]="form.parentLabel"
-      required
-      placeholder="Chapter, event, or character"
-    />
+    @if (form.category === 'main-story' || form.category === 'event-story') {
+    <label>{{ form.category === 'main-story' ? 'Chapter' : 'Event' }}
+      <select name="parentLabel" [(ngModel)]="form.parentLabel" required>
+        <option value="" disabled>Select {{ form.category === 'main-story' ? 'chapter' : 'event' }}</option>
+        @for (parent of parentChoices; track parent.id + parent.name) {
+        <option [value]="parent.name">{{ parent.name }}</option>
+        }
+      </select>
+    </label>
+    } @else {
+    <input name="parentLabel" [(ngModel)]="form.parentLabel" required placeholder="Character or collection" />
+    }
     <input name="stageLabel" [(ngModel)]="form.stageLabel" required placeholder="Stage or part" />
-    <label
-      >Import CSV/TSV exported from Excel
-      <input
-        type="file"
-        accept=".csv,.tsv,text/csv,text/tab-separated-values"
-        (change)="importFile($event)"
-    /></label>
-    <p *ngIf="importMessage">{{ importMessage }}</p>
+    <label>Import formatted XLSX exported from Excel
+      <input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        (change)="importFile($event)" /></label>
+    <small>Use <code>&gt;</code> for a choice, <code>&gt;&gt;</code> for an option, and unmarked rows for option
+      lines.</small>
+    @if (importLoading) {
+    <p class="import-loading" role="status"><span class="loading-spinner"></span> {{ importMessage }}</p>
+    }
+    <p *ngIf="importMessage" class="import-message" [class.import-error]="importError">{{ importMessage }}</p>
+    @if (pendingImportReady) {
+    <p>File loaded: {{ pendingImportName }}</p>
+    <button type="button" (click)="importPending()" [disabled]="!pendingImportNodes.length">Import</button>
+    }
     <app-node-editor [nodes]="nodes" />
     <button type="submit" [disabled]="formRef.invalid || !nodes.length">
       {{ editingId ? 'Save transcript' : 'Publish transcript' }}

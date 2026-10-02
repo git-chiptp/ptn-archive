@@ -1,6 +1,6 @@
 export type Category = 'main-story' | 'event-story' | 'interrogation' | 'perspectra';
 export type Gender = 'male' | 'female';
-export type LanguageCode = 'en' | 'vi' | 'ja' | 'zh' | 'ko';
+export type LanguageCode = string;
 export interface TranscriptTranslation { title?: string; parentLabel?: string; stageLabel?: string; description?: string; nodes?: DialogueNode[]; }
 export type DialogueNode = LineNode | ChoiceNode;
 export interface LineNode {
@@ -32,11 +32,19 @@ export interface Transcript {
   stageLabel: string;
   description: string;
   nodes: DialogueNode[];
-  translations?: Partial<Record<LanguageCode, TranscriptTranslation>>;
+  sourceLanguage?: LanguageCode;
+  translations?: Record<string, TranscriptTranslation>;
 }
 export interface Collection {
   id: string;
   label: string;
   category: Category;
+  backgroundImage?: string;
   stages: { id: string; label: string }[];
+}
+export interface Chapter {
+  id: string;
+  category?: Category;
+  name: string;
+  backgroundImage?: string;
 }

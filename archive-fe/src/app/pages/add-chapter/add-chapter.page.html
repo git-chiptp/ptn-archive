@@ -1,0 +1,29 @@
+<section class="admin">
+  <a [routerLink]="isEvent ? '/event-story' : '/main-story'">← Back</a>
+  <h1>{{ chapterEditingId ? (isEvent ? 'Edit event' : 'Edit chapter') : (isEvent ? 'Add event' : 'Add chapter') }}</h1>
+  <section class="chapter-manager">
+    <h2>{{ isEvent ? 'Events' : 'Chapters' }}</h2>
+    @for (chapter of managedChapters; track chapter.id) {
+    <article>
+      <span>{{ chapter.name }}</span>
+      <button type="button" (click)="editChapter(chapter)">Edit</button>
+      <button type="button" (click)="deleteChapter(chapter)">Delete</button>
+    </article>
+    }
+    <form (ngSubmit)="submitChapter()">
+      <input name="chapterName" [(ngModel)]="chapterForm.name" required placeholder="Chapter name" />
+      <label>Background image file
+        <input type="file" accept="image/*" (change)="onChapterImage($event)" />
+      </label>
+      <label>Or image URL
+        <input name="chapterImageUrl" type="url" [(ngModel)]="chapterForm.backgroundImage"
+          placeholder="https://example.com/chapter.jpg" />
+      </label>
+      @if (chapterForm.backgroundImage) { <img class="chapter-preview" [src]="chapterForm.backgroundImage"
+        alt="Chapter background preview" /> }
+      <button type="submit">{{ chapterEditingId ? (isEvent ? 'Save event' : 'Save chapter') : (isEvent ? 'Add event' :
+        'Add chapter') }}</button>
+      @if (chapterEditingId) { <button type="button" (click)="cancelChapterEdit()">Cancel</button> }
+    </form>
+  </section>
+</section>

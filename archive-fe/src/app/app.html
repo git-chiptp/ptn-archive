@@ -5,13 +5,21 @@
       <a routerLink="/main-story">{{ language.text('mainStory') }}</a>
       <a routerLink="/event-story">{{ language.text('events') }}</a>
       <a routerLink="/interrogation">{{ language.text('interrogation') }}</a>
-      <a routerLink="/admin">{{ language.text('admin') }}</a>
     </nav>
+    <div class="session-status" aria-live="polite">
+      @if (auth.user(); as user) {
+      <span>Logged in: {{ user.username }}</span>
+      <button type="button" (click)="logout()">Log out</button>
+      } @else {
+      <span>Guest</span>
+      <a routerLink="/login">Log in</a>
+      }
+    </div>
     <label class="language-picker">
       <span class="sr-only">Language</span>
       <select [ngModel]="language.current()" (ngModelChange)="setLanguage($event)" aria-label="Language">
         @for (option of language.supportedLanguages; track option.code) {
-          <option [value]="option.code">{{ option.nativeLabel }}</option>
+        <option [value]="option.code">{{ option.nativeLabel }}</option>
         }
       </select>
     </label>

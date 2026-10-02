@@ -17,6 +17,7 @@
           format="html"
           placeholder="Dialogue or narration"
         ></quill-editor>
+        @defer (on idle) {
         <label
           >Male protagonist variant
           <quill-editor
@@ -37,6 +38,7 @@
             format="html"
           ></quill-editor
         ></label>
+        }
         <button type="button" (click)="remove(i)">Delete line</button>
       </fieldset>
     } @else {
