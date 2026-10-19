@@ -1,12 +1,19 @@
-export type Category = 'main-story' | 'event-story' | 'interrogation' | 'perspectra';
+export type Category = 'main-story' | 'eternal-nightmare' | 'event-story' | 'interrogation' | 'mirage' | 'perspectra';
 export type Gender = 'male' | 'female';
 export type LanguageCode = string;
-export interface TranscriptTranslation { title?: string; parentLabel?: string; stageLabel?: string; description?: string; nodes?: DialogueNode[]; }
-export type DialogueNode = LineNode | ChoiceNode;
+export interface TranscriptTranslation {
+  title?: string;
+  parentLabel?: string;
+  stageLabel?: string;
+  description?: string;
+  nodes?: DialogueNode[];
+}
+export type DialogueNode = LineNode | ChoiceNode | ImageNode;
 export interface LineNode {
   type: 'line';
   id: string;
   speaker?: string;
+  sprite?: string;
   text?: string;
   description?: string;
   format?: { bold?: boolean; italic?: boolean; color?: string };
@@ -22,6 +29,11 @@ export interface ChoiceNode {
   id: string;
   prompt?: string;
   options: ChoiceOption[];
+}
+export interface ImageNode {
+  type: 'image';
+  id: string;
+  src: string;
 }
 export interface Transcript {
   id: string;

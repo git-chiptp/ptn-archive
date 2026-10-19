@@ -1,0 +1,170 @@
+<section class="admin flex flex-col gap-6">
+  <p-breadcrumb [home]="breadcrumbHome" [model]="breadcrumbItems" styleClass="!p-0 mb-4" />
+  <p-confirmdialog key="admin-actions" [style]="{ width: 'min(28rem, calc(100vw - 2rem))' }" />
+  @if (store.statusMessage(); as message) {
+    <p class="translation-status" role="status">{{ message }}</p>
+  }
+  <h1 class="m-0 text-2xl font-semibold">{{ languages.text(editingId ? 'editTranscript' : 'addTranscript') }}</h1>
+  <form #formRef="ngForm" (ngSubmit)="submit(formRef)" class="flex min-w-0 flex-col gap-6">
+    <div class="flex flex-wrap items-center gap-2 border-b border-[var(--p-content-border-color)] pb-4">
+      <button pButton type="submit" [disabled]="formRef.invalid || !nodes.length">
+        <i class="pi pi-save" aria-hidden="true"></i>
+        <span>{{ languages.text(editingId ? 'saveTranscript' : 'publishTranscript') }}</span>
+      </button>
+      @if (editingId) {
+        <button pButton type="button" severity="secondary" (click)="cancelEdit()">
+          <i class="pi pi-times" aria-hidden="true"></i>
+          <span>{{ languages.text('cancel') }}</span>
+        </button>
+      }
+      <button
+        pButton
+        type="button"
+        severity="secondary"
+        (click)="openPreview()"
+        [disabled]="!nodes.length || importLoading"
+      >
+        <i class="pi pi-eye" aria-hidden="true"></i>
+        <span>{{ languages.text('previewTranscript') }}</span>
+      </button>
+    </div>
+    <div class="grid min-w-0 gap-4 md:grid-cols-2">
+      <div class="flex min-w-0 flex-col gap-2">
+        <label class="font-medium" for="transcript-language">{{ languages.text('transcriptLanguage') }}</label>
+        <p-select
+          inputId="transcript-language"
+          name="language"
+          [options]="languages.supportedLanguages"
+          optionLabel="nativeLabel"
+          optionValue="code"
+          [(ngModel)]="form.language"
+          [fluid]="true"
+        />
+      </div>
+      <div class="flex min-w-0 flex-col gap-2">
+        <label class="font-medium" for="transcript-category">{{ languages.text('transcriptType') }}</label>
+        <p-select
+          inputId="transcript-category"
+          name="category"
+          [options]="categoryOptions"
+          optionLabel="label"
+          optionValue="value"
+          [(ngModel)]="form.category"
+          [fluid]="true"
+        />
+      </div>
+      <div class="flex min-w-0 flex-col gap-2">
+        <label class="font-medium" for="transcript-parent">
+          {{ languages.text(form.category === 'main-story' || form.category === 'eternal-nightmare' ? 'chapter' : form.category === 'event-story' ? 'event' : 'character') }}
+        </label>
+        <p-select
+          inputId="transcript-parent"
+          name="parentLabel"
+          [options]="parentChoices"
+          optionLabel="name"
+          optionValue="name"
+          [(ngModel)]="form.parentLabel"
+          [placeholder]="languages.text(form.category === 'main-story' || form.category === 'eternal-nightmare' ? 'selectChapter' : form.category === 'event-story' ? 'selectEvent' : 'selectCharacter')"
+          [fluid]="true"
+          required
+        />
+      </div>
+      <div class="flex min-w-0 flex-col gap-2">
+        <label class="font-medium" for="transcript-stage">{{ languages.text('stageOrPart') }}</label>
+        <input
+          pInputText
+          id="transcript-stage"
+          name="stageLabel"
+          [(ngModel)]="form.stageLabel"
+          required
+          [placeholder]="languages.text('stageOrPart')"
+          class="w-full"
+        />
+      </div>
+    </div>
+    <p-fileupload
+      mode="basic"
+      name="transcript"
+      accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      [chooseLabel]="languages.text('chooseXlsx')"
+      chooseIcon="pi pi-file-excel"
+      [maxFileSize]="maxImportFileSize"
+      [auto]="false"
+      [customUpload]="true"
+      (onSelect)="importFile($event.files)"
+    />
+    @if (importLoading) {
+    <div class="import-loading flex min-w-0 flex-col gap-2" role="status">
+      <p-progressbar [value]="importProgress" [showValue]="true" />
+      <p class="m-0">{{ importMessage }}</p>
+    </div>
+    }
+    @if (importMessage && !importLoading) {
+      <p-message [severity]="importError ? 'error' : 'success'" variant="simple">
+        {{ importMessage }}
+      </p-message>
+    }
+    @if (pendingImportReady) {
+      <div class="flex flex-wrap items-center gap-3">
+        <p class="m-0 text-sm">{{ languages.text('fileLoaded', { name: pendingImportName }) }}</p>
+        <button pButton type="button" severity="secondary" (click)="importPending()" [disabled]="!pendingImportNodes.length">
+          <i class="pi pi-download" aria-hidden="true"></i>
+          <span>{{ languages.text('import') }}</span>
+        </button>
+      </div>
+    }
+    <app-transcript-editor [nodes]="nodes" [assetOwnerId]="assetOwnerId" />
+  </form>
+  <p-dialog
+    [header]="languages.text('transcriptPreview')"
+    [(visible)]="previewOpen"
+    [modal]="true"
+    [draggable]="false"
+    [dismissableMask]="true"
+    [style]="{ width: 'min(60rem, calc(100vw - 2rem))' }"
+    [contentStyle]="{ maxHeight: '70vh', overflowY: 'auto' }"
+  >
+    <div class="flex min-w-0 flex-col gap-5">
+      <div class="flex flex-wrap items-end gap-4">
+        <div class="flex min-w-0 flex-col gap-2">
+          <label class="font-medium" for="preview-chief-name">{{ languages.text('chiefName') }}</label>
+          <input
+            pInputText
+            id="preview-chief-name"
+            [(ngModel)]="previewChiefName"
+            [ngModelOptions]="{ standalone: true }"
+            maxlength="20"
+            autocomplete="off"
+            placeholder="A"
+          />
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <span id="preview-protagonist-label" class="font-medium">{{ languages.text('protagonist') }}</span>
+          <p-selectbutton
+            [options]="protagonistOptions"
+            optionLabel="label"
+            optionValue="value"
+            [(ngModel)]="previewGender"
+            [ngModelOptions]="{ standalone: true }"
+            [allowEmpty]="false"
+            ariaLabelledBy="preview-protagonist-label"
+          >
+            <ng-template #item let-option>
+              <p-image [src]="option.imageUrl" [alt]="option.alt" [preview]="false" imageClass="h-14 w-14 object-cover" />
+            </ng-template>
+          </p-selectbutton>
+        </div>
+      </div>
+      <app-node-list
+        [nodes]="previewNodes"
+        [gender]="previewGender"
+        [chiefName]="previewChiefName"
+        [selections]="previewSelections"
+        (changed)="selectPreview($event)"
+      />
+    </div>
+  </p-dialog>
+  @if (published) {
+    <p-message severity="success" variant="simple" role="status">{{ languages.text('saved') }}</p-message>
+  }
+</section>

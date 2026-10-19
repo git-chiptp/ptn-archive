@@ -1,10 +1,28 @@
-<section class="hero">
-  <h1>Archive</h1>
-</section>
-<section class="cards">
+<section class="cards grid gap-4 md:grid-cols-2">
   @for (x of links; track x.path) {
-    <a [routerLink]="x.path"
-      ><h2>{{ x.name }}</h2></a
-    >
+    <p-card styleClass="archive-category-card" (click)="navigate(x.path)">
+      <ng-template #header>
+        <div class="aspect-[16/9] w-full overflow-hidden">
+          <p-image
+            [src]="x.image"
+            [alt]="language.text(x.key)"
+            [preview]="false"
+            styleClass="block h-full w-full"
+            imageClass="h-full w-full object-cover"
+          />
+        </div>
+      </ng-template>
+      <ng-template #title>{{ language.text(x.key) }}</ng-template>
+      <ng-template #footer>
+        <p-button
+          [label]="language.text('openCategory', { name: language.text(x.key) })"
+          icon="pi pi-arrow-right"
+          iconPos="right"
+          [ariaLabel]="language.text('openCategory', { name: language.text(x.key) })"
+          styleClass="w-full"
+          (onClick)="navigate(x.path); $event.stopPropagation()"
+        />
+      </ng-template>
+    </p-card>
   }
 </section>

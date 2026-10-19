@@ -1,0 +1,73 @@
+<div class="min-h-screen">
+  <header class="flex min-h-12 items-center gap-2 border-b border-[var(--p-content-border-color)] bg-[var(--p-content-background)] px-3">
+    <p-button
+      icon="pi pi-bars"
+      [rounded]="true"
+      [text]="true"
+      severity="secondary"
+      [ariaLabel]="language.text('navigation')"
+      (onClick)="drawerOpen = true"
+    />
+    <button
+      type="button"
+      class="archive-brand cursor-pointer border-0 bg-transparent text-sm font-extrabold tracking-[0.16em] text-[var(--p-text-color)]"
+      (click)="navigate('/')"
+    >
+      ARCHIVE
+    </button>
+  </header>
+  <main class="min-h-screen min-w-0 px-5 pb-16 pt-8">
+    <div class="mx-auto w-full max-w-[76rem]">
+      <ng-content />
+    </div>
+  </main>
+</div>
+
+<p-drawer
+  [(visible)]="drawerOpen"
+  [position]="drawerPosition"
+  [style]="drawerPosition === 'top' ? { height: 'min(80dvh, 36rem)' } : { width: '18rem' }"
+  [header]="language.text('archive')"
+>
+  <p-menu [model]="navigationMenu" [ariaLabel]="language.text('navigation')" />
+  <div class="mt-4 flex flex-col gap-2 border-t border-[var(--p-content-border-color)] pt-4">
+    <label class="sr-only" for="drawer-language">{{ language.text('language') }}</label>
+    <p-select
+      inputId="drawer-language"
+      [options]="language.supportedLanguages"
+      optionLabel="nativeLabel"
+      optionValue="code"
+      [ngModel]="language.current()"
+      (ngModelChange)="setLanguage($event)"
+      [fluid]="true"
+    />
+    <p-button
+      [icon]="theme !== 'light' ? 'pi pi-sun' : 'pi pi-moon'"
+      [label]="theme !== 'light' ? language.text('light') : language.text('dark')"
+      severity="secondary"
+      [text]="true"
+      styleClass="w-full justify-start"
+      (onClick)="toggleTheme()"
+    />
+    @if (auth.user(); as user) {
+      <p-button
+        icon="pi pi-sign-out"
+        [label]="language.text('logOut')"
+        severity="secondary"
+        [text]="true"
+        styleClass="w-full justify-start"
+        [title]="language.text('loggedInAs', { name: user.username })"
+        (onClick)="logout()"
+      />
+    } @else {
+      <p-button
+        icon="pi pi-sign-in"
+        [label]="language.text('logIn')"
+        severity="secondary"
+        [text]="true"
+        styleClass="w-full justify-start"
+        (onClick)="navigate('/login')"
+      />
+    }
+  </div>
+</p-drawer>

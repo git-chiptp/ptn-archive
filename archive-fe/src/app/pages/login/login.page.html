@@ -1,9 +1,59 @@
-<section class="login">
-  <h1>Admin login</h1>
-  <form (ngSubmit)="submit()">
-    <label>Username <input name="username" [(ngModel)]="username" required /></label>
-    <label>Password <input name="password" type="password" [(ngModel)]="password" required /></label>
-    <p *ngIf="error">{{ error }}</p>
-    <button type="submit">Sign in</button>
-  </form>
-</section>
+<main class="flex min-h-0 items-center justify-center">
+  <p-card class="w-full max-w-sm">
+    <div class="mb-4 flex items-center justify-center gap-3">
+      <div
+        class="flex h-9 w-9 items-center justify-center rounded-full"
+        style="background: var(--p-primary-color); color: var(--p-primary-contrast-color)"
+        aria-hidden="true"
+      >
+        <i class="pi pi-lock"></i>
+      </div>
+      <h1 class="m-0 text-xl font-semibold">{{ language.text('adminLogin') }}</h1>
+    </div>
+
+    <form #loginForm="ngForm" class="flex flex-col gap-3" (ngSubmit)="submit()" novalidate>
+      <div class="flex flex-col gap-1">
+        <label class="font-medium" for="email">{{ language.text('email') }}</label>
+        <input
+          pInputText
+          id="email"
+          name="email"
+          type="email"
+          [(ngModel)]="email"
+          autocomplete="email"
+          required
+          fluid
+          [invalid]="loginForm.submitted && !email.trim()"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label class="font-medium" for="password">{{ language.text('password') }}</label>
+        <p-password
+          inputId="password"
+          name="password"
+          [(ngModel)]="password"
+          autocomplete="current-password"
+          [feedback]="false"
+          [toggleMask]="true"
+          [fluid]="true"
+          required
+        />
+      </div>
+
+      @if (error) {
+        <p-message severity="error" variant="simple">{{ error }}</p-message>
+      }
+
+      <button
+        pButton
+        type="submit"
+        [loading]="submitting"
+        [disabled]="submitting"
+      >
+        <i class="pi pi-sign-in" aria-hidden="true"></i>
+        <span>{{ language.text('signIn') }}</span>
+      </button>
+    </form>
+  </p-card>
+</main>

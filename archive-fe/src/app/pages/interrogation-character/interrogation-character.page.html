@@ -1,11 +1,64 @@
-<section class="catalog"><a routerLink="/interrogation">← Back to characters</a>
-    <h1>{{ character }}</h1>
-    <p>Select a part.</p>@if (auth.user()) { <button type="button" (click)="editCharacter()">Edit
-        character</button><button type="button" (click)="deleteCharacter()">Delete character</button><button
-        type="button" class="add-chapter-action" (click)="addPart()">Add part</button> }<div class="stages">@for (part
-        of parts; track part.id) { <div class="stage-entry"><a
-                [routerLink]="['/interrogation', character, part.id]"><span>{{ part.title || part.stageLabel
-                    }}</span></a>@if (auth.user()) { <a [routerLink]="['/interrogation', character, part.id]"
-                [queryParams]="{ edit: 1 }">Edit</a><button type="button" (click)="deletePart(part.id)">Delete</button>
-            }</div> } @empty { <p>No parts found.</p> }</div>
+<section class="catalog">
+  <p-breadcrumb [home]="breadcrumbHome" [model]="breadcrumbItems" />
+  <h1 class="mb-4 break-words text-3xl font-semibold [overflow-wrap:anywhere]">{{ characterName }}</h1>
+  @if (auth.user()) {
+    <p-confirmdialog [key]="actionKey" [style]="{ width: 'min(28rem, calc(100vw - 2rem))' }" />
+    <div class="flex flex-wrap gap-2">
+      <button pButton type="button" severity="secondary" (click)="editCharacter()">
+        <i class="pi pi-pencil" aria-hidden="true"></i>
+        <span>{{ language.text('editCharacter') }}</span>
+      </button>
+      <button pButton type="button" severity="danger" (click)="deleteCharacter()">
+        <i class="pi pi-trash" aria-hidden="true"></i>
+        <span>{{ language.text('deleteCharacter') }}</span>
+      </button>
+      <button pButton type="button" severity="secondary" (click)="addPart()">
+        <i class="pi pi-plus" aria-hidden="true"></i>
+        <span>{{ language.text('addPart') }}</span>
+      </button>
+    </div>
+  }
+  <p-dialog
+    [header]="language.text('renameCharacter')"
+    [(visible)]="renameDialogVisible"
+    [modal]="true"
+    [draggable]="false"
+    [style]="{ width: 'min(28rem, calc(100vw - 2rem))' }"
+  >
+    <div class="flex flex-col gap-4">
+      <label class="font-medium" [attr.for]="category + '-character-name'">{{ language.text('characterName') }}</label>
+      <input pInputText [id]="category + '-character-name'" [(ngModel)]="renameValue" class="w-full" />
+      <div class="flex justify-end gap-2">
+        <button pButton type="button" severity="secondary" (click)="cancelRename()">
+          <i class="pi pi-times" aria-hidden="true"></i>
+          <span>{{ language.text('cancel') }}</span>
+        </button>
+        <button pButton type="button" (click)="saveRename()">
+          <i class="pi pi-check" aria-hidden="true"></i>
+          <span>{{ language.text('save') }}</span>
+        </button>
+      </div>
+    </div>
+  </p-dialog>
+  <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+    @for (part of parts; track part.id) {
+      <div class="min-w-0">
+        <a
+          pButton
+          class="min-h-10 w-full !justify-start !text-left whitespace-normal px-3 py-2"
+          [routerLink]="['/', category, character, slug(part.title || part.stageLabel)]"
+        >
+          {{ part.title || part.stageLabel }}
+        </a>
+        @if (auth.user()) {
+          <button pButton type="button" severity="danger" size="small" (click)="deletePart(part.id)">
+            <i class="pi pi-trash" aria-hidden="true"></i>
+            <span>{{ language.text('delete') }}</span>
+          </button>
+        }
+      </div>
+    } @empty {
+      <p>{{ language.text('noParts') }}</p>
+    }
+  </div>
 </section>

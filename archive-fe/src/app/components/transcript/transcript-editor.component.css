@@ -1,0 +1,76 @@
+.collapsed-preview,
+.collapsed-preview-content {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.collapsed-preview-content,
+.collapsed-preview-content :where(p, span, strong, em, b, i, br) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.insertion-gap .insert-trigger {
+  position: relative;
+  z-index: 1;
+}
+
+.insert-actions {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.insertion-gap.insert-open .insert-actions,
+.insertion-gap:focus-within .insert-actions {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .insertion-gap:hover .insert-actions {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+:host ::ng-deep .ql-toolbar.ql-snow,
+:host ::ng-deep .ql-container.ql-snow {
+  border-color: var(--p-content-border-color);
+  background: var(--p-content-background);
+}
+
+:host ::ng-deep .ql-editor {
+  color: var(--p-text-color);
+  caret-color: var(--p-text-color);
+}
+
+:host ::ng-deep .ql-editor.ql-blank::before {
+  color: var(--p-text-muted-color);
+}
+
+.editor-node {
+  background: var(--p-content-background);
+  border-color: var(--p-content-border-color);
+  color: var(--p-text-color);
+}
+
+.collapsed-preview,
+.collapsed-preview-content {
+  color: var(--p-text-color);
+}
+
+.editor-node fieldset {
+  background: var(--p-content-background);
+  border-color: var(--p-content-border-color);
+}
+
+.editor-node legend {
+  color: var(--p-text-color);
+}

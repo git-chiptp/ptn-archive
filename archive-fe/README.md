@@ -36,6 +36,20 @@ ng build
 
 This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
 
+## Hosted static deployment
+
+The frontend is deployed as a static Angular application, not SSR. The `public/_redirects` file keeps client-side routes working on direct navigation and refresh.
+
+Set the hosted Supabase values only in the deployment environment, then build from `archive-fe`:
+
+```bash
+SUPABASE_URL='<hosted-project-url>' \
+SUPABASE_PUBLISHABLE_KEY='<publishable-or-anon-key>' \
+npm run build:hosted
+```
+
+`build:hosted` writes `public/runtime-config.js` before the production build. Only the hosted URL and publishable/anon key belong in this browser-visible file; never provide a service-role key, secret key, or database password. The hosted build fails if either required variable is missing or invalid.
+
 ## Running unit tests
 
 To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:

@@ -1,8 +1,10 @@
-import { HttpClient } from '@angular/common/http';
-import { Injectable, inject } from '@angular/core';
-import { map, timeout } from 'rxjs/operators';
+import { Injectable } from '@angular/core';
+import * as XLSX from 'xlsx';
+import { defer, from } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 export interface ImportedLine {
+  sprite?: string;
   speaker: string;
   text: string;
   description: string;
@@ -14,17 +16,178 @@ export interface ImportedLine {
 
 @Injectable({ providedIn: 'root' })
 export class TranscriptImportService {
-  private readonly http = inject(HttpClient);
-
-  private readonly importUrl = 'http://localhost:8080/api/transcripts/import';
-
-  public parseXlsx(file: File) {
-    const body = new FormData();
-    body.append('file', file, file.name);
-    return this.http.post<ImportedLine[] | { lines?: ImportedLine[] }>(this.importUrl, body).pipe(
-      timeout(15000),
-      map((response) => (Array.isArray(response) ? response : (response.lines ?? []))),
+  public parseXlsx(file: File, onProgress?: (progress: number) => void) {
+    return defer(() => {
+      onProgress?.(5);
+      return from(file.arrayBuffer());
+    }).pipe(
+      map((buffer) => {
+        onProgress?.(35);
+        const workbook = XLSX.read(buffer, { cellHTML: true, cellStyles: true, cellFormula: false });
+        const sheetName = workbook.SheetNames[0];
+        if (!sheetName) {
+          onProgress?.(100);
+          return [];
+        }
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+          header: 1,
+          defval: '',
+          raw: false,
+        });
+        const imported = this.parseRows(rows, sheet);
+        onProgress?.(100);
+        return imported;
+      }),
     );
+  }
+
+  private parseRows(rows: unknown[][], sheet: XLSX.WorkSheet): ImportedLine[] {
+    if (!rows.length) {
+      return [];
+    }
+    const first = rows[0].map((value) => this.cellText(value).trim().toLowerCase());
+    const hasSpriteColumn = first[0] === 'sprite' && first[1] === 'speaker';
+    const hasSpeakerHeader = first[0] === 'speaker';
+    const start = hasSpriteColumn || hasSpeakerHeader ? 1 : 0;
+    const imported: ImportedLine[] = [];
+    for (let index = start; index < rows.length; index += 1) {
+      const row = rows[index] ?? [];
+      const line = this.parseRow(row, index, sheet, hasSpriteColumn);
+      if (line.speaker.trim() || line.text.trim() || line.prompt?.trim() || line.option?.trim() || line.sprite?.trim()) {
+        imported.push(line);
+      }
+    }
+    return imported;
+  }
+
+  private parseRow(row: unknown[], rowIndex: number, sheet: XLSX.WorkSheet, hasSpriteColumn: boolean): ImportedLine {
+    const speakerColumn = hasSpriteColumn ? 1 : 0;
+    const rawSprite = hasSpriteColumn ? this.cellText(row[0]).trim() : '';
+    const sprite = this.validImageSource(rawSprite) ? rawSprite : '';
+    const speaker = this.cellText(row[speakerColumn]);
+    let firstContent = speakerColumn + 1;
+    while (firstContent < row.length && !this.cellText(row[firstContent]).trim()) {
+      firstContent += 1;
+    }
+    const cell = firstContent < row.length ? this.cellAt(sheet, firstContent, rowIndex) : undefined;
+    const raw = this.richText(cell, row[firstContent]);
+    const markerText = this.decodeEntities(raw);
+    const plain = this.stripTags(markerText).trim();
+    const depth = Math.max(0, firstContent - 1);
+    if (plain.startsWith('\\>')) {
+      return {
+        sprite,
+        speaker,
+        text: this.removeLiteralMarker(markerText),
+        description: '',
+        type: depth > 0 ? 'option-line' : 'line',
+        depth,
+      };
+    }
+    if (plain.startsWith('>>')) {
+      return {
+        sprite: '',
+        speaker: '',
+        text: '',
+        description: '',
+        type: 'option',
+        option: this.removeMarker(markerText, '>>'),
+        depth,
+      };
+    }
+    if (plain.startsWith('>')) {
+      return {
+        sprite: '',
+        speaker: '',
+        text: '',
+        description: '',
+        type: 'choice',
+        prompt: this.removeMarker(markerText, '>'),
+        depth,
+      };
+    }
+    return {
+      sprite,
+      speaker,
+      text: raw,
+      description: '',
+      type: depth > 0 ? 'option-line' : 'line',
+      depth,
+    };
+  }
+
+  private cellAt(sheet: XLSX.WorkSheet, column: number, row: number): XLSX.CellObject | undefined {
+    const address = XLSX.utils.encode_cell({ c: column, r: row });
+    return sheet[address];
+  }
+
+  private cellText(value: unknown): string {
+    return value == null ? '' : String(value);
+  }
+
+  private richText(cell: XLSX.CellObject | undefined, fallback: unknown): string {
+    const html = typeof cell?.h === 'string' ? cell.h : '';
+    return html ? this.sanitizeRichText(html) : this.escape(this.cellText(fallback));
+  }
+
+  private sanitizeRichText(value: string): string {
+    if (typeof DOMParser === 'undefined') {
+      return this.escape(this.stripTags(value));
+    }
+    const document = new DOMParser().parseFromString(value, 'text/html');
+    const allowedTags = new Set(['B', 'I', 'STRONG', 'EM', 'SPAN']);
+    document.body.querySelectorAll('*').forEach((element) => {
+      if (!allowedTags.has(element.tagName)) {
+        element.replaceWith(...Array.from(element.childNodes));
+        return;
+      }
+      Array.from(element.attributes).forEach((attribute) => {
+        if (element.tagName !== 'SPAN' || attribute.name !== 'style') {
+          element.removeAttribute(attribute.name);
+        }
+      });
+      if (element.tagName === 'SPAN' && element.hasAttribute('style')) {
+        const styles = element.getAttribute('style') ?? '';
+        const safeStyles = styles
+          .split(';')
+          .map((style) => style.trim())
+          .filter((style) => /^(font-weight\s*:\s*(bold|[1-9]00)|font-style\s*:\s*italic|color\s*:\s*#[0-9a-f]{6})$/i.test(style))
+          .join(';');
+        if (safeStyles) element.setAttribute('style', safeStyles);
+        else element.removeAttribute('style');
+      }
+    });
+    return document.body.innerHTML;
+  }
+
+  private decodeEntities(value: string): string {
+    return value
+      .replaceAll('&gt;', '>')
+      .replaceAll('&lt;', '<')
+      .replaceAll('&quot;', '"')
+      .replaceAll('&amp;', '&');
+  }
+
+  private stripTags(value: string): string {
+    return value.replace(/<[^>]+>/g, ' ').replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+  }
+
+  private removeMarker(value: string, marker: string): string {
+    const escaped = marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return value.replace(new RegExp(`^((?:<[^>]+>)*)\\s*${escaped}\\s*`), '$1');
+  }
+
+  private removeLiteralMarker(value: string): string {
+    return value.replace(/^((?:<[^>]+>)*)\s*\\>/, '$1>');
+  }
+
+  private escape(value: string): string {
+    return value
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;');
   }
 
   public toNodes(lines: ImportedLine[]): any[] {
@@ -75,6 +238,7 @@ export class TranscriptImportService {
         type: 'line',
         id: `imported-${index + 1}`,
         speaker: line.speaker,
+        sprite: this.validImageSource(line.sprite) ? line.sprite!.trim() : '',
         text: line.text || line.description,
         description: line.description || undefined,
       };
@@ -86,5 +250,9 @@ export class TranscriptImportService {
       }
     });
     return nodes;
+  }
+
+  private validImageSource(value?: string) {
+    return !!value && /^https?:\/\/.+|^data:image\/[a-z0-9.+-]+;base64,.+$/i.test(value.trim());
   }
 }

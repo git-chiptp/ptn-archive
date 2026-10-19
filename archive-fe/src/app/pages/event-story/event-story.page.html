@@ -1,27 +1,35 @@
 <section class="catalog">
-  <a routerLink="/event-story">← Back to event stories</a>
+  <p-breadcrumb
+    [home]="breadcrumbHome"
+    [model]="breadcrumbItems"
+    styleClass="!p-0 mb-4"
+  />
   @if (event; as collection) {
-  <label>THE EVENT STORY</label>
-  <h1>{{ collection.label }}</h1>
-  <p>Select a stage to read its transcript.</p>
-  <div class="stages">
-    @for (stage of collection.stages; track stage.id) {
-    <div class="stage-entry">
-      <span>{{ stage.label }}</span>
-      <div class="stage-actions">
-        <a [routerLink]="['/event-story', collection.id, stage.id]">Read transcript</a>
-        @if (isAdmin) {
-        <a [routerLink]="['/event-story', collection.id, stage.id]" [queryParams]="{ edit: 1 }">Edit transcript</a>
-        }
-      </div>
-    </div>
+    <h1 class="mb-4 break-words text-3xl font-semibold [overflow-wrap:anywhere]">{{ collection.label }}</h1>
+    @if (isAdmin) {
+      <a
+        pButton
+        severity="secondary"
+        class="my-4 w-fit"
+        [routerLink]="['/add-transcript']"
+        [queryParams]="{ eventName: collection.label, category: 'event-story' }"
+      >
+        <i class="pi pi-plus" aria-hidden="true"></i>
+        <span>{{ language.text('addStage') }}</span>
+      </a>
     }
-  </div>
-  @if (isAdmin) {
-  <a class="add-chapter-action" [routerLink]="['/add-transcript']"
-    [queryParams]="{ eventName: collection.label, category: 'event-story' }">Add stage</a>
-  }
+    <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      @for (stage of collection.stages; track stage.id) {
+        <a
+          pButton
+          class="min-h-10 w-full !justify-start !text-left whitespace-normal px-3 py-2"
+          [routerLink]="['/event-story', slug(collection.label), slug(stage.label)]"
+        >
+          {{ stage.label }}
+        </a>
+      }
+    </div>
   } @else {
-  <h1>Event not found</h1>
+    <h1 class="mb-4 break-words text-3xl font-semibold [overflow-wrap:anywhere]">{{ language.text('eventNotFound') }}</h1>
   }
 </section>

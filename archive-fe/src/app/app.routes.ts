@@ -1,93 +1,131 @@
 import { Routes } from '@angular/router';
-import { AdminPage } from './pages/admin/admin.page';
-import { AddChapterPage } from './pages/add-chapter/add-chapter.page';
-import { CatalogPage } from './pages/catalog/catalog.page';
-import { MainStoryChapterPage } from './pages/main-story-chapter/main-story-chapter.page';
-import { EventStoryPage } from './pages/event-story/event-story.page';
-import { PerspectraCharacterPage } from './pages/perspectra-character/perspectra-character.page';
-import { PerspectraChapterPage } from './pages/perspectra-chapter/perspectra-chapter.page';
-import { InterrogationCharacterPage } from './pages/interrogation-character/interrogation-character.page';
-import { HomePage } from './pages/home/home.page';
-import { ReaderPage } from './pages/reader/reader.page';
-import { LoginPage } from './pages/login/login.page';
 import { authGuard } from './guards/auth.guard';
 export const routes: Routes = [
   {
     path: '',
-    component: HomePage
+    loadComponent: () => import('./pages/home/home.page').then((page) => page.HomePage),
   },
   {
     path: 'main-story',
-    component: CatalogPage,
-    data: { category: 'main-story' }
+    loadComponent: () => import('./pages/catalog/catalog.page').then((page) => page.CatalogPage),
+    data: { category: 'main-story' },
   },
   {
     path: 'event-story',
-    component: CatalogPage,
-    data: { category: 'event-story' }
+    loadComponent: () => import('./pages/catalog/catalog.page').then((page) => page.CatalogPage),
+    data: { category: 'event-story' },
+  },
+  {
+    path: 'eternal-nightmare',
+    loadComponent: () => import('./pages/catalog/catalog.page').then((page) => page.CatalogPage),
+    data: { category: 'eternal-nightmare' },
   },
   {
     path: 'interrogation',
-    component: CatalogPage,
-    data: { category: 'interrogation' }
+    loadComponent: () => import('./pages/catalog/catalog.page').then((page) => page.CatalogPage),
+    data: { category: 'interrogation' },
+  },
+  {
+    path: 'mirage',
+    loadComponent: () => import('./pages/catalog/catalog.page').then((page) => page.CatalogPage),
+    data: { category: 'mirage' },
   },
   {
     path: 'perspectra',
-    component: CatalogPage,
-    data: { category: 'perspectra' }
+    loadComponent: () => import('./pages/catalog/catalog.page').then((page) => page.CatalogPage),
+    data: { category: 'perspectra' },
+  },
+  {
+    path: 'credits',
+    loadComponent: () => import('./pages/credits/credits.page').then((page) => page.CreditsPage),
   },
   {
     path: 'main-story/:chapterId',
-    component: MainStoryChapterPage
+    loadComponent: () => import('./pages/main-story-chapter/main-story-chapter.page').then((page) => page.MainStoryChapterPage),
   },
   {
     path: 'main-story/:chapterId/:stageId',
-    component: ReaderPage
+    loadComponent: () => import('./pages/reader/reader.page').then((page) => page.ReaderPage),
+  },
+  {
+    path: 'eternal-nightmare/:chapterId',
+    loadComponent: () => import('./pages/main-story-chapter/main-story-chapter.page').then((page) => page.MainStoryChapterPage),
+    data: { category: 'eternal-nightmare' },
+  },
+  {
+    path: 'eternal-nightmare/:chapterId/:stageId',
+    loadComponent: () => import('./pages/reader/reader.page').then((page) => page.ReaderPage),
   },
   {
     path: 'event-story/:eventId',
-    component: EventStoryPage
+    loadComponent: () => import('./pages/event-story/event-story.page').then((page) => page.EventStoryPage),
   },
   {
     path: 'event-story/:eventId/:stageId',
-    component: ReaderPage
+    loadComponent: () => import('./pages/reader/reader.page').then((page) => page.ReaderPage),
   },
   {
     path: 'interrogation/:characterId',
-    component: InterrogationCharacterPage
+    loadComponent: () =>
+      import('./pages/interrogation-character/interrogation-character.page').then(
+        (page) => page.InterrogationCharacterPage,
+      ),
+    data: { category: 'interrogation' },
   },
   {
     path: 'interrogation/:characterId/:partId',
-    component: ReaderPage
+    loadComponent: () => import('./pages/reader/reader.page').then((page) => page.ReaderPage),
+  },
+  {
+    path: 'mirage/:characterId',
+    loadComponent: () =>
+      import('./pages/interrogation-character/interrogation-character.page').then(
+        (page) => page.InterrogationCharacterPage,
+      ),
+    data: { category: 'mirage' },
+  },
+  {
+    path: 'mirage/:characterId/:partId',
+    loadComponent: () => import('./pages/reader/reader.page').then((page) => page.ReaderPage),
   },
   {
     path: 'perspectra/:characterId/:chapterId/:partId',
-    component: ReaderPage
+    loadComponent: () => import('./pages/reader/reader.page').then((page) => page.ReaderPage),
   },
   {
     path: 'perspectra/:characterId/:chapterId',
-    component: PerspectraChapterPage
+    loadComponent: () =>
+      import('./pages/perspectra-chapter/perspectra-chapter.page').then(
+        (page) => page.PerspectraChapterPage,
+      ),
   },
   {
     path: 'perspectra/:characterId',
-    component: PerspectraCharacterPage
+    loadComponent: () =>
+      import('./pages/perspectra-character/perspectra-character.page').then(
+        (page) => page.PerspectraCharacterPage,
+      ),
   },
   {
     path: 'login',
-    component: LoginPage
+    loadComponent: () => import('./pages/login/login.page').then((page) => page.LoginPage),
   },
   {
     path: 'add-transcript',
-    component: AdminPage,
-    canActivate: [authGuard]
+    loadComponent: () =>
+      import('./pages/add-transcript/add-transcript.page').then(
+        (page) => page.AddTranscriptPage,
+      ),
+    canActivate: [authGuard],
   },
   {
     path: 'add-chapter',
-    component: AddChapterPage,
-    canActivate: [authGuard]
+    loadComponent: () =>
+      import('./pages/add-chapter/add-chapter.page').then((page) => page.AddChapterPage),
+    canActivate: [authGuard],
   },
   {
     path: '**',
-    redirectTo: ''
+    redirectTo: '',
   },
 ];

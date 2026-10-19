@@ -1,71 +1,230 @@
-<section class="reader" *ngIf="localizedTranscript as t; else loadingOrMissing">
-  @if (store.statusMessage(); as message) { <p class="translation-status">{{ message }}</p> }
-  <a [routerLink]="backLink">← Back to stage selector</a>
-  <div class="head">
-    <div>
-      <label>{{ t.parentLabel }} / {{ t.stageLabel }}</label>
-      <p>{{ t.description }}</p>
+<section class="reader" *ngIf="!store.transcriptLoading() && localizedTranscript as t; else loadingOrMissing">
+  @if (store.statusMessage(); as message) {
+    <p class="translation-status">{{ message }}</p>
+  }
+  <p-breadcrumb [home]="breadcrumbHome" [model]="breadcrumbItems" />
+  <p-confirmdialog key="transcript-actions" [style]="{ width: 'min(28rem, calc(100vw - 2rem))' }" />
+  @if (!editMode) {
+    <div class="reader-controls flex w-full flex-wrap items-center gap-x-4 gap-y-3">
+      <div class="flex w-fit max-w-full min-w-0 flex-none flex-wrap items-center gap-2">
+        <label class="shrink-0 font-medium" for="chief-name">{{ language.text('chiefName') }}</label>
+        <input
+          pInputText
+          id="chief-name"
+          [(ngModel)]="chiefName"
+          placeholder="A"
+          autocomplete="off"
+          maxlength="20"
+          class="w-[20ch] max-w-full"
+        />
+      </div>
+      <div class="flex min-w-0 max-w-full flex-none flex-wrap items-center gap-2">
+        <span id="protagonist-label" class="shrink-0 font-medium">{{ language.text('protagonist') }}</span>
+        <p-selectbutton
+          [options]="protagonistOptions"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="store.gender()"
+          (ngModelChange)="setGender($event)"
+          [allowEmpty]="false"
+          ariaLabelledBy="protagonist-label"
+          styleClass="h-16 w-auto p-0"
+        >
+          <ng-template #item let-option>
+            <p-image [src]="option.imageUrl" [alt]="option.alt" [preview]="false" imageClass="h-14 w-14 object-cover" />
+          </ng-template>
+        </p-selectbutton>
+      </div>
+      @if (auth.user()) {
+        <button pButton type="button" (click)="openEditor()">
+          <i class="pi pi-pencil" aria-hidden="true"></i>
+          <span>{{ language.text('editTranscript') }}</span>
+        </button>
+      }
     </div>
-    <div class="gender">
-      <small>PROTAGONIST</small><button [class.active]="store.gender() === 'female'" (click)="setGender('female')">
-        ♀ Female</button><button [class.active]="store.gender() === 'male'" (click)="setGender('male')">
-        ♂ Male
-      </button>
-    </div>
-  </div>
+    <h1 class="mb-4 break-words text-3xl font-semibold [overflow-wrap:anywhere]">{{ t.parentLabel }} / {{ t.stageLabel }}</h1>
+  }
   @if (editMode) {
-  <section class="edit-panel">
-    <h2>Edit transcript</h2>
-    <label>Transcript language
-      <select [(ngModel)]="editLanguage" (ngModelChange)="editLanguageChanged($event)">
-        @for (option of language.supportedLanguages; track option.code) {
-        <option [value]="option.code">{{ option.nativeLabel }}</option>
-        }
-      </select>
-    </label>
-    <input [(ngModel)]="editParent" (ngModelChange)="markEditDirty()" placeholder="Chapter, event, or character" />
-    <input [(ngModel)]="editStage" (ngModelChange)="markEditDirty()" placeholder="Stage or part" />
-    <label>Import formatted XLSX
-      <input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        (change)="importFile($event)" />
-    </label>
-    @if (importLoading) { <p class="import-loading" role="status"><span class="loading-spinner"></span> {{ importMessage
-      }}</p> }
-    @if (importMessage && !importLoading) { <p class="import-message" [class.import-error]="importError">{{
-      importMessage }}</p> }
-    @if (pendingImportReady) {
-    <p>File loaded: {{ pendingImportName }}</p>
-    <button type="button" (click)="importPending()">Import</button>
-    }
-    <app-node-editor [nodes]="editNodes" (input)="markEditDirty()" (change)="markEditDirty()" />
-    <button type="button" (click)="save()">Save transcript</button>
-    <button type="button" (click)="remove()">Delete transcript</button>
-    @if (showLanguagePrompt) {
-    <div class="language-change-backdrop">
-      <section class="language-change-prompt" role="dialog" aria-modal="true" aria-labelledby="language-change-title">
-        <h3 id="language-change-title">Unsaved changes</h3>
-        <p>This transcript has unsaved changes. Choose how to continue before changing language.</p>
-        <div class="language-change-actions">
-          <button type="button" (click)="savePendingLanguageChange()">Save changes</button>
-          <button type="button" (click)="discardPendingLanguageChange()">Discard changes</button>
-          <button type="button" (click)="cancelPendingLanguageChange()">Cancel</button>
+    <section class="editor-page flex w-full min-w-0 flex-col gap-6">
+      <h1 class="m-0 break-words text-3xl font-semibold [overflow-wrap:anywhere]">{{ language.text('editTranscript') }}</h1>
+      <div class="flex flex-wrap items-center gap-2 border-b border-[var(--p-content-border-color)] pb-4">
+        <button pButton type="button" (click)="save()" [disabled]="saving || deleting || !editNodes.length">
+          <i class="pi pi-save" aria-hidden="true"></i>
+          <span>{{ language.text('saveTranscript') }}</span>
+        </button>
+        <button pButton type="button" severity="danger" (click)="remove()" [disabled]="saving || deleting">
+          <i class="pi pi-trash" aria-hidden="true"></i>
+          <span>{{ language.text('deleteTranscript') }}</span>
+        </button>
+        <button pButton type="button" severity="secondary" (click)="openPreview()" [disabled]="!editNodes.length || saving || deleting">
+          <i class="pi pi-eye" aria-hidden="true"></i>
+          <span>{{ language.text('previewTranscript') }}</span>
+        </button>
+      </div>
+      <div class="flex min-w-0 flex-col gap-6">
+        <div class="grid min-w-0 gap-4 md:grid-cols-2">
+          <div class="flex min-w-0 flex-col gap-2">
+            <label class="font-medium" for="edit-language">{{ language.text('transcriptLanguage') }}</label>
+            <p-select
+              inputId="edit-language"
+              [options]="language.supportedLanguages"
+              optionLabel="nativeLabel"
+              optionValue="code"
+              [(ngModel)]="editLanguage"
+              (ngModelChange)="editLanguageChanged($event)"
+              [fluid]="true"
+            />
+          </div>
+          <div class="flex min-w-0 flex-col gap-2">
+            <label class="font-medium" for="edit-parent">{{ editParentLabel }}</label>
+            <p-select
+              id="edit-parent"
+              inputId="edit-parent"
+              [options]="editParentOptions"
+              optionLabel="label"
+              optionValue="value"
+              [(ngModel)]="editParent"
+              (ngModelChange)="markEditDirty()"
+              [placeholder]="language.text(transcript?.category === 'main-story' || transcript?.category === 'eternal-nightmare' ? 'selectChapter' : transcript?.category === 'event-story' ? 'selectEvent' : 'selectCharacter')"
+              [filter]="true"
+              filterBy="label"
+              [fluid]="true"
+            />
+          </div>
+          <div class="flex min-w-0 flex-col gap-2">
+            <label class="font-medium" for="edit-stage">{{ language.text('stageOrPart') }}</label>
+            <input
+              pInputText
+              id="edit-stage"
+              class="w-full"
+              [(ngModel)]="editStage"
+              (ngModelChange)="markEditDirty()"
+              [placeholder]="language.text('stageOrPart')"
+            />
+          </div>
         </div>
-      </section>
-    </div>
-    }
-  </section>
+
+        <section class="flex min-w-0 flex-col gap-3 border border-[var(--p-content-border-color)] p-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <p-fileupload
+              mode="basic"
+              name="transcript"
+              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              [chooseLabel]="language.text('chooseXlsx')"
+              chooseIcon="pi pi-file-excel"
+              [maxFileSize]="maxImportFileSize"
+              [auto]="false"
+              [customUpload]="true"
+              (onSelect)="importFile($event.files)"
+            />
+          </div>
+          @if (importLoading) {
+            <p-message severity="info" variant="simple" role="status">
+              <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+              <span>{{ importMessage }}</span>
+            </p-message>
+            <p-progressbar [value]="importProgress" [showValue]="true" />
+          }
+          @if (importMessage && !importLoading) {
+            <p-message [severity]="importError ? 'error' : 'success'" variant="simple">
+              {{ importMessage }}
+            </p-message>
+          }
+          @if (pendingImportReady) {
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <span class="text-sm">{{ language.text('fileLoaded', { name: pendingImportName }) }}</span>
+              <button pButton type="button" severity="secondary" (click)="importPending()">
+                <i class="pi pi-download" aria-hidden="true"></i>
+                <span>{{ language.text('importIntoEditor') }}</span>
+              </button>
+            </div>
+          }
+        </section>
+
+        <app-transcript-editor
+          [nodes]="editNodes"
+          [assetOwnerId]="assetOwnerId"
+          (input)="markEditDirty()"
+          (change)="markEditDirty()"
+          (changed)="markEditDirty()"
+        />
+      </div>
+      <p-dialog
+        [header]="language.text('transcriptPreview')"
+        [(visible)]="previewOpen"
+        [modal]="true"
+        [draggable]="false"
+        [dismissableMask]="true"
+        [style]="{ width: 'min(60rem, calc(100vw - 2rem))' }"
+        [contentStyle]="{ maxHeight: '70vh', overflowY: 'auto' }"
+      >
+        <div class="flex min-w-0 flex-col gap-5">
+          <div class="flex flex-wrap items-center gap-2">
+            <span id="preview-protagonist-label" class="font-medium">{{ language.text('protagonist') }}</span>
+            <p-selectbutton
+              [options]="protagonistOptions"
+              optionLabel="label"
+              optionValue="value"
+              [(ngModel)]="previewGender"
+              [allowEmpty]="false"
+              ariaLabelledBy="preview-protagonist-label"
+            >
+              <ng-template #item let-option>
+                <p-image [src]="option.imageUrl" [alt]="option.alt" [preview]="false" imageClass="h-14 w-14 object-cover" />
+              </ng-template>
+            </p-selectbutton>
+          </div>
+          <app-node-list
+            [nodes]="previewNodes"
+            [gender]="previewGender"
+            [chiefName]="chiefName"
+            [selections]="previewSelections"
+            (changed)="selectPreview($event)"
+          />
+        </div>
+      </p-dialog>
+      <p-dialog
+        [(visible)]="showLanguagePrompt"
+        [modal]="true"
+        [draggable]="false"
+        [closable]="false"
+        [header]="language.text('unsavedChanges')"
+        [style]="{ width: 'min(32rem, calc(100vw - 2rem))' }"
+      >
+        <p class="text-muted-color">{{ language.text('unsavedLanguageMessage') }}</p>
+        <ng-template #footer>
+              <button pButton type="button" (click)="savePendingLanguageChange()">
+                <i class="pi pi-save" aria-hidden="true"></i>
+                <span>{{ language.text('saveChanges') }}</span>
+              </button>
+              <button pButton type="button" severity="secondary" (click)="discardPendingLanguageChange()">
+                <i class="pi pi-times" aria-hidden="true"></i>
+                {{ language.text('discardChanges') }}
+              </button>
+              <button pButton type="button" severity="contrast" (click)="cancelPendingLanguageChange()">
+                {{ language.text('cancel') }}
+              </button>
+        </ng-template>
+      </p-dialog>
+    </section>
   } @else {
-  <app-node-list [nodes]="t.nodes" [gender]="store.gender()" [selections]="selections" (changed)="select($event)" />
+    <app-node-list
+      [nodes]="t.nodes"
+      [gender]="store.gender()"
+      [chiefName]="chiefName"
+      [selections]="selections"
+      (changed)="select($event)"
+    />
   }
 </section>
 <ng-template #loadingOrMissing>
-  <section class="missing" *ngIf="store.loading(); else missing">
-    <p>Loading transcript...</p>
+  <section class="missing" *ngIf="store.loading() || store.transcriptLoading(); else missing">
+    <p>{{ language.text('loadingTranscript') }}</p>
   </section>
 </ng-template>
 <ng-template #missing>
   <section class="missing">
-    <h1>Transcript not found</h1>
-    <a routerLink="/">Return home</a>
+    <h1>{{ store.error() || language.text('transcriptNotFound') }}</h1>
+    <p-breadcrumb [home]="breadcrumbHome" [model]="missingBreadcrumbItems" />
   </section>
 </ng-template>

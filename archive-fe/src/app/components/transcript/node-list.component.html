@@ -1,32 +1,71 @@
 @for (node of nodes; track node.id) {
   @if (node.type === 'line') {
-    <div class="line">
-      <span *ngIf="node.speaker" class="speaker">{{ node.speaker }}</span>
-      <span [innerHTML]="html(node)"></span>
-    </div>
-  } @else {
-    <div class="choice">
-      <strong>{{ node.prompt || 'Choose a response' }}</strong>
-      <div class="options" role="group" [attr.aria-label]="node.prompt || 'Choice options'">
+      <div class="line min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
+      @if (node.sprite) {
+        <p-image
+          [src]="node.sprite"
+          alt="Narrator sprite"
+          [preview]="true"
+          imageClass="narrator-sprite block h-[100px] w-[100px] object-contain"
+        />
+      }
+      <span
+        *ngIf="node.speaker"
+        class="speaker max-w-full break-words text-[20px] [overflow-wrap:anywhere]"
+        >{{ displayText(node.speaker) }}</span
+      >
+      <span
+        class="block min-w-0 max-w-full break-words [overflow-wrap:anywhere] [&_img]:mx-auto [&_img]:block [&_img]:h-auto [&_img]:max-w-full"
+        [innerHTML]="html(node)"
+      ></span>
+      </div>
+    } @else if (node.type === 'choice') {
+      <div class="choice min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
+      <strong
+        class="block min-w-0 max-w-full break-words [overflow-wrap:anywhere]"
+        [innerHTML]="htmlText(node.prompt || 'Choose a response')"
+      ></strong>
+      <div
+        class="options flex max-w-full flex-wrap items-center justify-center gap-2"
+        role="group"
+        [attr.aria-label]="node.prompt || 'Choice options'"
+      >
         @for (option of node.options; track option.id) {
           <button
+            pButton
+            type="button"
+            severity="secondary"
+            class="choice-option min-w-0 max-w-full flex-[1_1_16rem] whitespace-normal break-words text-left [overflow-wrap:anywhere]"
             [class.active]="selections[node.id] === option.id"
             (click)="changed.emit({ id: node.id, option: option.id })"
           >
-            {{ option.label }} {{ selections[node.id] === option.id ? '✓' : '↗' }}
+            <span
+              class="block min-w-0 max-w-full break-words [overflow-wrap:anywhere] [&_img]:mx-auto [&_img]:block [&_img]:h-auto [&_img]:max-w-full"
+              [innerHTML]="htmlText(option.label)"
+            ></span>
           </button>
         }
       </div>
       @if (selections[node.id]; as selected) {
-        <div class="branch">
+        <div class="branch min-w-0 max-w-full">
           <app-node-list
             [nodes]="node.options.find((o) => o.id === selected)?.nodes || []"
             [gender]="gender"
+            [chiefName]="chiefName"
             [selections]="selections"
             (changed)="changed.emit($event)"
           />
         </div>
       }
-    </div>
-  }
+      </div>
+    } @else {
+      <div class="line transcript-image flex min-w-0 max-w-full justify-center overflow-hidden">
+        <p-image
+          [src]="image(node)"
+          alt="Transcript image"
+          [preview]="true"
+          imageClass="block h-auto max-w-full object-contain"
+        />
+      </div>
+    }
 }

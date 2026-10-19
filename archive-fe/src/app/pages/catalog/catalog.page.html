@@ -1,45 +1,123 @@
-<section class="catalog">
-  <label>{{ label }}</label>
-  <h1>{{ title }}</h1>
-  <p>{{ description }}</p>
-  <input [(ngModel)]="query" placeholder="Search this archive" aria-label="Search this archive" />
-  @if (isAdmin && category === 'main-story') {
-  <a class="add-chapter-action" routerLink="/add-chapter">Add chapter</a>
+<section>
+  <p-breadcrumb [home]="breadcrumbHome" [model]="breadcrumbItems" styleClass="!p-0 mb-4" />
+  <h1 class="mb-4 text-3xl font-semibold">{{ title }}</h1>
+  <input
+    pInputText
+    class="mb-6 w-full"
+    [(ngModel)]="query"
+    [placeholder]="language.text('searchArchive')"
+    [attr.aria-label]="language.text('searchArchive')"
+  />
+  @if (isAdmin && (category === 'main-story' || category === 'eternal-nightmare')) {
+    <a
+      pButton
+      severity="secondary"
+      class="my-4 w-fit"
+      routerLink="/add-chapter"
+      [queryParams]="category === 'eternal-nightmare' ? { category } : null"
+    >
+      <i class="pi pi-plus" aria-hidden="true"></i>
+      <span>{{ language.text('addChapter') }}</span>
+    </a>
   }
   @if (isAdmin && category === 'perspectra') {
-  <a class="add-chapter-action" [routerLink]="['/add-transcript']" [queryParams]="{ category: 'perspectra' }">Add
-    character</a>
+    <a
+      pButton
+      severity="secondary"
+      class="my-4 w-fit"
+      [routerLink]="['/add-chapter']"
+      [queryParams]="{ category: 'perspectra' }"
+    >
+      <i class="pi pi-plus" aria-hidden="true"></i>
+      <span>{{ language.text('addCharacter') }}</span>
+    </a>
   }
-  @if (isAdmin && category === 'interrogation') {
-  <a class="add-chapter-action" [routerLink]="['/add-transcript']" [queryParams]="{ category: 'interrogation' }">Add
-    character</a>
+  @if (isAdmin && (category === 'interrogation' || category === 'mirage')) {
+    <a
+      pButton
+      severity="secondary"
+      class="my-4 w-fit"
+      [routerLink]="['/add-chapter']"
+      [queryParams]="{ category }"
+    >
+      <i class="pi pi-plus" aria-hidden="true"></i>
+      <span>{{ language.text('addCharacter') }}</span>
+    </a>
   }
   @if (isAdmin && category === 'event-story') {
-  <a class="add-chapter-action" [routerLink]="['/add-chapter']" [queryParams]="{ category: 'event-story' }">Add
-    event</a>
+    <a
+      pButton
+      severity="secondary"
+      class="my-4 w-fit"
+      [routerLink]="['/add-chapter']"
+      [queryParams]="{ category: 'event-story' }"
+    >
+      <i class="pi pi-plus" aria-hidden="true"></i>
+      <span>{{ language.text('addEvent') }}</span>
+    </a>
   }
 
-  @for (collection of filteredCollections; track collection.id) {
-  <article class="chapter" [class.chapter-card]="category === 'main-story' || category === 'event-story'"
-    [style.background-image]="(category === 'main-story' || category === 'event-story') && collection.backgroundImage ? 'url(' + collection.backgroundImage + ')' : null">
-    @if (category === 'main-story' || category === 'event-story' || category === 'perspectra' || category ===
-    'interrogation') {
-    <h2><a [routerLink]="['/', category, collection.id]">{{ collection.label }}</a></h2>
-    } @else {
-    <h2>{{ collection.label }}</h2>
-    }
-    @if (category !== 'main-story' && category !== 'event-story' && category !== 'perspectra' && category !==
-    'interrogation') {
-    <div class="stages">
-      @for (stage of collection.stages; track stage.id) {
-      <a [routerLink]="['/', category, collection.id, stage.id]" [queryParams]="isAdmin ? { edit: 1 } : {}">
-        <span>{{ stage.label }}</span>
-      </a>
+  @if (filteredCollections.length) {
+    <div class="grid gap-4 sm:grid-cols-2">
+      @for (collection of filteredCollections; track collection.id) {
+        <article
+          class="group relative aspect-[16/9] overflow-hidden rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-surface-700)] shadow-sm"
+          [class.cursor-pointer]="collectionCardsAreLinks"
+          [attr.role]="collectionCardsAreLinks ? 'link' : null"
+          [attr.tabindex]="collectionCardsAreLinks ? 0 : null"
+          (click)="collectionCardsAreLinks && openCollection(collection.label, $event)"
+          (keydown.enter)="collectionCardsAreLinks && openCollection(collection.label)"
+        >
+          @if (collection.backgroundImage) {
+            <img
+              class="absolute inset-0 h-full w-full object-cover object-center"
+              [src]="collection.backgroundImage"
+              [alt]="collection.label"
+              loading="lazy"
+              decoding="async"
+            />
+          } @else {
+            <span
+              class="absolute inset-0 bg-[var(--p-surface-700)]"
+              aria-hidden="true"
+            ></span>
+          }
+          <span
+            class="absolute inset-0 bg-black/45 transition-colors duration-200 group-hover:bg-black/60"
+            aria-hidden="true"
+          ></span>
+          <div class="relative z-10 flex h-full min-h-0 flex-col p-4 text-white sm:p-5">
+            <h2 class="m-0 text-2xl font-semibold">
+              <a
+                pButton
+                text
+                severity="contrast"
+                class="!p-0 !text-2xl !font-semibold"
+                [routerLink]="['/', category, slug(collection.label)]"
+                >{{ collection.label }}</a
+              >
+            </h2>
+            @if (category !== 'main-story' && category !== 'eternal-nightmare' && category !== 'event-story') {
+              <div class="mt-auto flex min-h-0 flex-wrap gap-2 overflow-y-auto pt-4">
+                @for (stage of collection.stages; track stage.id) {
+                  <a
+                    pButton
+                    severity="contrast"
+                    size="small"
+                    class="!border-white/70 !bg-black/40 !text-white"
+                    [routerLink]="['/', category, slug(collection.label), slug(stage.label)]"
+                    [queryParams]="isAdmin ? { edit: 1 } : {}"
+                  >
+                    {{ stage.label }}
+                  </a>
+                }
+              </div>
+            }
+          </div>
+        </article>
       }
     </div>
-    }
-  </article>
-  } @empty {
-  <p>No entries match your search.</p>
+  } @else {
+    <p>{{ language.text('noMatches') }}</p>
   }
 </section>

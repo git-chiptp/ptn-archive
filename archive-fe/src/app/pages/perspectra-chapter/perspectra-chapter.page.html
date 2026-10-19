@@ -1,11 +1,64 @@
-<section class="catalog"><a [routerLink]="['/perspectra', character]">← Back to chapters</a>
-    <h1>{{ chapter }}</h1>
-    <p>Select a part.</p>@if (auth.user()) { <button type="button" (click)="editChapter()">Edit chapter</button><button
-        type="button" (click)="deleteChapter()">Delete chapter</button> }@if (auth.user()) { <button type="button"
-        class="add-chapter-action" (click)="addPart()">Add part</button> }<div class="stages">@for (part of parts; track
-        part.id) { <div class="stage-entry"><a [routerLink]="['/perspectra', character, chapter, part.id]"><span>{{
-                    part.title || part.stageLabel }}</span></a>@if (auth.user()) { <a
-                [routerLink]="['/perspectra', character, chapter, part.id]" [queryParams]="{ edit: 1 }">Edit</a><button
-                type="button" (click)="deletePart(part.id)">Delete</button> }</div> } @empty { <p>No parts found.</p> }
+<section class="catalog">
+  <p-breadcrumb [home]="breadcrumbHome" [model]="breadcrumbItems" />
+  <h1 class="mb-4 break-words text-3xl font-semibold [overflow-wrap:anywhere]">{{ chapterName }}</h1>
+  @if (auth.user()) {
+    <p-confirmdialog key="perspectra-chapter-actions" [style]="{ width: 'min(28rem, calc(100vw - 2rem))' }" />
+    <div class="flex flex-wrap gap-2">
+      <button pButton type="button" severity="secondary" (click)="editChapter()">
+        <i class="pi pi-pencil" aria-hidden="true"></i>
+        <span>{{ language.text('editChapter') }}</span>
+      </button>
+      <button pButton type="button" severity="danger" (click)="deleteChapter()">
+        <i class="pi pi-trash" aria-hidden="true"></i>
+        <span>{{ language.text('deleteChapter') }}</span>
+      </button>
+      <button pButton type="button" severity="secondary" (click)="addPart()">
+        <i class="pi pi-plus" aria-hidden="true"></i>
+        <span>{{ language.text('addPart') }}</span>
+      </button>
     </div>
+  }
+  <p-dialog
+    [header]="language.text('renameChapter')"
+    [(visible)]="renameDialogVisible"
+    [modal]="true"
+    [draggable]="false"
+    [style]="{ width: 'min(28rem, calc(100vw - 2rem))' }"
+  >
+    <div class="flex flex-col gap-4">
+      <label class="font-medium" for="perspectra-chapter-name">{{ language.text('chapterName') }}</label>
+      <input pInputText id="perspectra-chapter-name" [(ngModel)]="renameValue" class="w-full" />
+      <div class="flex justify-end gap-2">
+        <button pButton type="button" severity="secondary" (click)="cancelRename()">
+          <i class="pi pi-times" aria-hidden="true"></i>
+          <span>{{ language.text('cancel') }}</span>
+        </button>
+        <button pButton type="button" (click)="saveRename()">
+          <i class="pi pi-check" aria-hidden="true"></i>
+          <span>{{ language.text('save') }}</span>
+        </button>
+      </div>
+    </div>
+  </p-dialog>
+  <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+    @for (part of parts; track part.id) {
+      <div class="min-w-0">
+        <a
+          pButton
+          class="min-h-10 w-full !justify-start !text-left whitespace-normal px-3 py-2"
+          [routerLink]="['/perspectra', character, chapter, slug(part.title || part.stageLabel)]"
+        >
+          {{ part.title || part.stageLabel }}
+        </a>
+        @if (auth.user()) {
+          <button pButton type="button" severity="danger" size="small" (click)="deletePart(part.id)">
+            <i class="pi pi-trash" aria-hidden="true"></i>
+            <span>{{ language.text('delete') }}</span>
+          </button>
+        }
+      </div>
+    } @empty {
+      <p>{{ language.text('noParts') }}</p>
+    }
+  </div>
 </section>

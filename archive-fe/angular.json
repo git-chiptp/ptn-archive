@@ -24,24 +24,24 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.css", "node_modules/quill/dist/quill.snow.css"],
-            "server": "src/main.server.ts",
-            "outputMode": "server",
+            "styles": [
+              "src/styles.css",
+              "node_modules/primeicons/primeicons.css",
+              "node_modules/quill/dist/quill.snow.css"
+            ],
             "security": {
               "allowedHosts": []
-            },
-            "ssr": {
-              "entry": "src/server.ts"
             }
           },
           "configurations": {
             "production": {
-              "budgets": [
+              "fileReplacements": [
                 {
-                  "type": "initial",
-                  "maximumWarning": "500kB",
-                  "maximumError": "1MB"
-                },
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.production.ts"
+                }
+              ],
+              "budgets": [
                 {
                   "type": "anyComponentStyle",
                   "maximumWarning": "4kB",
