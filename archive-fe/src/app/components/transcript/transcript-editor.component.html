@@ -1,19 +1,23 @@
 <div class="transcript-editor flex w-full min-w-0 max-w-full flex-col">
-  @if (assetUploading) {
-    <p class="mb-3 text-sm text-[var(--p-text-muted-color)]" role="status" aria-live="polite">
-      {{ 'uploadingImage' | ui }}
-    </p>
-  }
-  @if (assetError) {
-    <p-message severity="error" variant="simple" role="alert">{{ assetError }}</p-message>
-  }
   @if (showCollapseControls && nodes.length) {
     <div class="mb-3 flex flex-wrap items-center gap-2">
-      <button pButton type="button" severity="secondary" size="small" (click)="setAllCollapsed(true)">
+      <button
+        pButton
+        type="button"
+        severity="secondary"
+        size="small"
+        (click)="setAllCollapsed(true)"
+      >
         <i class="pi pi-minus" aria-hidden="true"></i>
         <span>{{ 'collapseAll' | ui }}</span>
       </button>
-      <button pButton type="button" severity="secondary" size="small" (click)="setAllCollapsed(false)">
+      <button
+        pButton
+        type="button"
+        severity="secondary"
+        size="small"
+        (click)="setAllCollapsed(false)"
+      >
         <i class="pi pi-plus" aria-hidden="true"></i>
         <span>{{ 'expandAll' | ui }}</span>
       </button>
@@ -54,16 +58,15 @@
         >
           <strong [innerHTML]="summaryHtml(choiceSummary(treeNode))"></strong>
           @for (treeOption of treeNode.options; track treeOption.id) {
-            <div class="mt-2 min-w-0 max-w-full break-words whitespace-normal pl-4 [overflow-wrap:anywhere]">
+            <div
+              class="mt-2 min-w-0 max-w-full break-words whitespace-normal pl-4 [overflow-wrap:anywhere]"
+            >
               <span
                 class="collapsed-preview-content min-w-0 max-w-full break-words whitespace-normal [overflow-wrap:anywhere]"
                 [innerHTML]="summaryHtml(treeOption.label || ('emptyOption' | ui))"
               ></span>
               <ng-container
-                *ngTemplateOutlet="
-                  collapsedNodeTree;
-                  context: { $implicit: treeOption.nodes }
-                "
+                *ngTemplateOutlet="collapsedNodeTree; context: { $implicit: treeOption.nodes }"
               />
             </div>
           }
@@ -90,7 +93,9 @@
       (drop)="drop(index, $event)"
     >
       @if (isDragging) {
-        <div class="flex h-full w-full items-center justify-center border-2 border-dashed border-[var(--p-primary-color)] bg-[var(--p-highlight-background)] text-sm text-[var(--p-text-color)]">
+        <div
+          class="flex h-full w-full items-center justify-center border-2 border-dashed border-[var(--p-primary-color)] bg-[var(--p-highlight-background)] text-sm text-[var(--p-text-color)]"
+        >
           {{ 'dropHere' | ui }}
         </div>
       } @else {
@@ -107,16 +112,36 @@
         >
           <i class="pi pi-plus" aria-hidden="true"></i>
         </button>
-        <div class="insert-actions absolute left-1/2 top-full z-30 flex w-max max-w-full -translate-x-1/2 flex-wrap justify-center gap-1 rounded-md border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-1 shadow-lg">
-          <button pButton type="button" severity="secondary" size="small" (click)="insertLine(index, $event)">
+        <div
+          class="insert-actions absolute left-1/2 top-full z-30 flex w-max max-w-full -translate-x-1/2 flex-wrap justify-center gap-1 rounded-md border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-1 shadow-lg"
+        >
+          <button
+            pButton
+            type="button"
+            severity="secondary"
+            size="small"
+            (click)="insertLine(index, $event)"
+          >
             <i class="pi pi-align-left" aria-hidden="true"></i>
             <span>{{ 'line' | ui }}</span>
           </button>
-          <button pButton type="button" severity="secondary" size="small" (click)="insertChoice(index, $event)">
+          <button
+            pButton
+            type="button"
+            severity="secondary"
+            size="small"
+            (click)="insertChoice(index, $event)"
+          >
             <i class="pi pi-list" aria-hidden="true"></i>
             <span>{{ 'choice' | ui }}</span>
           </button>
-          <button pButton type="button" severity="secondary" size="small" (click)="insertImage(index, $event)">
+          <button
+            pButton
+            type="button"
+            severity="secondary"
+            size="small"
+            (click)="insertImage(index, $event)"
+          >
             <i class="pi pi-image" aria-hidden="true"></i>
             <span>{{ 'image' | ui }}</span>
           </button>
@@ -167,17 +192,23 @@
       </button>
       @if (isCollapsed(node)) {
         @if (node.type === 'line') {
-          <div class="collapsed-preview mt-4 block w-full min-w-0 max-w-full break-words whitespace-normal [overflow-wrap:anywhere]">
+          <div
+            class="collapsed-preview mt-4 block w-full min-w-0 max-w-full break-words whitespace-normal [overflow-wrap:anywhere]"
+          >
             <strong>{{ lineSummary(node) }}</strong>
             @if (node.male || node.female) {
-              <div class="min-w-0 max-w-full break-words whitespace-normal [overflow-wrap:anywhere]">
+              <div
+                class="min-w-0 max-w-full break-words whitespace-normal [overflow-wrap:anywhere]"
+              >
                 <strong>[F]</strong>
                 <span
                   class="collapsed-preview-content block min-w-0 max-w-full break-words whitespace-normal [overflow-wrap:anywhere]"
                   [innerHTML]="summaryHtml(node.female || node.text)"
                 ></span>
               </div>
-              <div class="min-w-0 max-w-full break-words whitespace-normal [overflow-wrap:anywhere]">
+              <div
+                class="min-w-0 max-w-full break-words whitespace-normal [overflow-wrap:anywhere]"
+              >
                 <strong>[M]</strong>
                 <span
                   class="collapsed-preview-content block min-w-0 max-w-full break-words whitespace-normal [overflow-wrap:anywhere]"
@@ -192,30 +223,33 @@
             }
           </div>
         } @else if (node.type === 'choice') {
-          <div class="collapsed-preview mt-4 min-w-0 max-w-full break-words whitespace-normal [overflow-wrap:anywhere]">
+          <div
+            class="collapsed-preview mt-4 min-w-0 max-w-full break-words whitespace-normal [overflow-wrap:anywhere]"
+          >
             <strong
               class="collapsed-preview-content block min-w-0 max-w-full break-words whitespace-normal [overflow-wrap:anywhere]"
               [innerHTML]="summaryHtml(choiceSummary(node))"
             ></strong>
             @for (option of node.options; track option.id) {
-              <div class="mt-2 min-w-0 max-w-full break-words whitespace-normal pl-4 [overflow-wrap:anywhere]">
+              <div
+                class="mt-2 min-w-0 max-w-full break-words whitespace-normal pl-4 [overflow-wrap:anywhere]"
+              >
                 <span
                   class="collapsed-preview-content block min-w-0 max-w-full break-words whitespace-normal [overflow-wrap:anywhere]"
                   [innerHTML]="summaryHtml(option.label || 'Empty option')"
                 ></span>
                 <ng-container
-                  *ngTemplateOutlet="
-                    collapsedNodeTree;
-                    context: { $implicit: option.nodes }
-                  "
+                  *ngTemplateOutlet="collapsedNodeTree; context: { $implicit: option.nodes }"
                 />
               </div>
             }
           </div>
         } @else {
-          <div class="collapsed-preview mt-4 min-w-0 max-w-full break-words whitespace-normal [overflow-wrap:anywhere]">
+          <div
+            class="collapsed-preview mt-4 min-w-0 max-w-full break-words whitespace-normal [overflow-wrap:anywhere]"
+          >
             <p-image
-              [src]="node.src"
+              [src]="imagePreviewUrl(node.src)"
               [alt]="'imagePreview' | ui"
               [preview]="true"
               imageClass="mt-2 block h-20 w-20 max-w-full border border-[var(--p-content-border-color)] object-contain"
@@ -223,7 +257,9 @@
           </div>
         }
       } @else if (node.type === 'line') {
-        <fieldset class="mt-4 flex min-w-0 flex-col gap-4 border border-[var(--p-content-border-color)] p-4">
+        <fieldset
+          class="mt-4 flex min-w-0 flex-col gap-4 border border-[var(--p-content-border-color)] p-4"
+        >
           <legend>{{ 'line' | ui }} {{ i + 1 }}</legend>
           <input
             pInputText
@@ -234,35 +270,19 @@
             [placeholder]="'speakerPlaceholder' | ui"
           />
           <div class="flex min-w-0 flex-wrap items-end gap-4">
-            <label class="flex min-w-0 flex-1 flex-col gap-2">
-              <span class="font-medium">{{ 'narratorSpriteUrl' | ui }}</span>
-              <input
-                pInputText
-                class="w-full"
-                [name]="'sprite-' + node.id"
-                [(ngModel)]="node.sprite"
-                [ngModelOptions]="{ standalone: true }"
-                (blur)="setSpriteUrl(node)"
-                [placeholder]="'urlPlaceholder' | ui"
-              />
-            </label>
-            <div class="flex flex-col gap-2">
-              <span class="font-medium">{{ 'uploadSprite' | ui }}</span>
-              <p-fileupload
-                mode="basic"
-                name="sprite"
-                accept="image/*"
-                [chooseLabel]="'chooseSprite' | ui"
-                chooseIcon="pi pi-image"
-                [auto]="false"
-                [customUpload]="true"
-                (onSelect)="replaceSpriteFile(node, $event.files)"
-              />
-            </div>
+            <button
+              pButton
+              type="button"
+              severity="secondary"
+              (click)="openMediaPicker('sprite', node)"
+            >
+              <i class="pi pi-images" aria-hidden="true"></i>
+              <span>{{ 'chooseFromLibrary' | ui }}</span>
+            </button>
             @if (node.sprite) {
               <img
                 class="h-16 w-16 border border-[var(--p-content-border-color)] object-cover"
-                [src]="node.sprite"
+                [src]="imagePreviewUrl(node.sprite)"
                 [alt]="'narratorSpritePreview' | ui"
               />
             }
@@ -306,7 +326,9 @@
           </button>
         </fieldset>
       } @else if (node.type === 'choice') {
-        <fieldset class="mt-4 flex min-w-0 flex-col gap-4 border border-[var(--p-content-border-color)] p-4">
+        <fieldset
+          class="mt-4 flex min-w-0 flex-col gap-4 border border-[var(--p-content-border-color)] p-4"
+        >
           <legend>{{ 'choice' | ui }}</legend>
           <quill-editor
             class="block w-full"
@@ -318,7 +340,9 @@
             [placeholder]="'choicePrompt' | ui"
           ></quill-editor>
           @for (option of node.options; track option.id; let optionIndex = $index) {
-            <fieldset class="flex min-w-0 flex-col gap-4 border border-[var(--p-content-border-color)] p-4">
+            <fieldset
+              class="flex min-w-0 flex-col gap-4 border border-[var(--p-content-border-color)] p-4"
+            >
               <legend>{{ 'option' | ui }} {{ optionIndex + 1 }}</legend>
               <quill-editor
                 class="block w-full"
@@ -360,39 +384,25 @@
           </div>
         </fieldset>
       } @else {
-        <fieldset class="mt-4 flex min-w-0 flex-col gap-4 border border-[var(--p-content-border-color)] p-4">
+        <fieldset
+          class="mt-4 flex min-w-0 flex-col gap-4 border border-[var(--p-content-border-color)] p-4"
+        >
           <legend>{{ 'image' | ui }}</legend>
           <div class="flex min-w-0 flex-wrap items-end gap-4">
-            <label class="flex min-w-0 flex-1 flex-col gap-2">
-              <span class="font-medium">{{ 'imageUrl' | ui }}</span>
-              <input
-                pInputText
-                class="w-full"
-                [name]="'image-' + node.id"
-                [(ngModel)]="node.src"
-                [ngModelOptions]="{ standalone: true }"
-                (blur)="setImageUrl(node)"
-                [placeholder]="'urlPlaceholder' | ui"
-              />
-            </label>
-            <div class="flex flex-col gap-2">
-              <span class="font-medium">{{ 'uploadImage' | ui }}</span>
-              <p-fileupload
-                mode="basic"
-                name="image"
-                accept="image/*"
-                [chooseLabel]="'chooseImage' | ui"
-                chooseIcon="pi pi-image"
-                [auto]="false"
-                [customUpload]="true"
-                (onSelect)="replaceImageFile(node, $event.files)"
-              />
-            </div>
+            <button
+              pButton
+              type="button"
+              severity="secondary"
+              (click)="openMediaPicker('image', node)"
+            >
+              <i class="pi pi-images" aria-hidden="true"></i>
+              <span>{{ 'chooseFromLibrary' | ui }}</span>
+            </button>
           </div>
           @if (node.src) {
             <div class="flex w-full min-w-0">
               <p-image
-                [src]="node.src"
+                [src]="imagePreviewUrl(node.src)"
                 [alt]="'imagePreview' | ui"
                 [preview]="true"
                 imageClass="block max-h-64 max-w-full border border-[var(--p-content-border-color)] object-contain"
@@ -407,5 +417,12 @@
       }
     </div>
   }
+  <app-media-picker
+    [visible]="pickerVisible"
+    (visibleChange)="pickerVisible = $event"
+    [value]="pickerValue"
+    [title]="'chooseMedia' | ui"
+    (selected)="mediaPicked($event)"
+  />
   <ng-container *ngTemplateOutlet="insertionGap; context: { $implicit: nodes.length }" />
 </div>

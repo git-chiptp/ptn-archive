@@ -14,3 +14,27 @@ body {
   background: var(--p-content-background);
   color: var(--p-text-color);
 }
+
+@media (max-width: 639px) {
+  .p-breadcrumb-list {
+    min-width: 0;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+
+  .p-breadcrumb-item {
+    min-width: 0;
+  }
+
+  .p-breadcrumb-item-link {
+    min-width: 0;
+    max-width: 10rem;
+  }
+
+  .p-breadcrumb-item-label {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

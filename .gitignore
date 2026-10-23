@@ -1,2 +1,14 @@
 # Dependencies installed for a project belong to that project directory.
 /node_modules/
+media-worker/node_modules/
+
+# Local Worker and Supabase state/secrets.
+media-worker/.wrangler/
+media-worker/.dev.vars
+/supabase/.temp/
+
+# Generated application output.
+/archive-fe/dist/
+
+# Temporary editor files.
+*.tmp.*

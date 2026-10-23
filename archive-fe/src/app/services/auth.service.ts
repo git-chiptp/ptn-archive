@@ -65,6 +65,12 @@ export class AuthService {
     const username = typeof user.user_metadata?.['username'] === 'string'
       ? user.user_metadata['username']
       : user.email ?? user.id;
-    return { id: user.id, username, authorities: ['ROLE_ADMIN'] };
+    const roles = Array.isArray(user.app_metadata?.['roles'])
+      ? user.app_metadata['roles'].filter((role): role is string => typeof role === 'string')
+      : [];
+    const authorities = user.app_metadata?.['role'] === 'admin' || roles.includes('admin')
+      ? ['ROLE_ADMIN']
+      : [];
+    return { id: user.id, username, authorities };
   }
 }

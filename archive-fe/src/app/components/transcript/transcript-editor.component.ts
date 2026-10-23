@@ -14,13 +14,15 @@ import { FormsModule } from '@angular/forms';
 import { DomSanitizer } from '@angular/platform-browser';
 import { QuillModule } from 'ngx-quill';
 import { ButtonModule } from 'primeng/button';
-import { FileUploadModule } from 'primeng/fileupload';
+import { MediaPickerComponent } from '../media-picker/media-picker.component';
 import { InputTextModule } from 'primeng/inputtext';
-import { MessageModule } from 'primeng/message';
 import { ImageModule } from 'primeng/image';
 import { ChoiceNode, DialogueNode, ImageNode, LineNode } from '../../models/transcript.models';
 import { LanguageService } from '../../services/language.service';
-import { ArchiveStorageService, isAllowedImageSource, isRenderableImageSource } from '../../services/archive-storage.service';
+import {
+  ArchiveStorageService,
+  isRenderableImageSource,
+} from '../../services/archive-storage.service';
 import { UiTextPipe } from '../../i18n/ui-text.pipe';
 
 type EditableNode = EditableLine | EditableChoice | EditableImage;
@@ -53,10 +55,9 @@ interface EditableImage {
     FormsModule,
     QuillModule,
     ButtonModule,
-    FileUploadModule,
     InputTextModule,
-    MessageModule,
     ImageModule,
+    MediaPickerComponent,
     UiTextPipe,
   ],
   templateUrl: './transcript-editor.component.html',
@@ -76,9 +77,13 @@ export class TranscriptEditorComponent implements OnChanges {
 
   @Output() changed = new EventEmitter<void>();
 
-  public assetError = '';
+  public pickerVisible = false;
 
-  public assetUploading = false;
+  public pickerValue = '';
+
+  public pickerTarget: 'sprite' | 'image' = 'image';
+
+  public pickerNode: EditableLine | EditableImage | null = null;
 
   constructor(
     @Optional() @Inject(DomSanitizer) private readonly sanitizer?: DomSanitizer,
@@ -129,62 +134,31 @@ export class TranscriptEditorComponent implements OnChanges {
     return node.speaker ? node.speaker + ':' : (this.language?.text('narration') ?? 'Narration:');
   }
 
+  public imagePreviewUrl(value?: string): string {
+    return value ? (this.storage?.toPublicUrl(value) ?? value) : '';
+  }
+
   public choiceSummary(node: EditableChoice) {
     return node.prompt || this.language?.text('choice') || 'Choice';
   }
 
-  public async replaceImageFile(image: EditableImage, input: File[] | FileList | Event) {
-    const file = this.fileFromInput(input);
-    if (!file || !this.storage || !this.assetOwnerId) {
-      return;
-    }
-    this.assetError = '';
-    this.assetUploading = true;
-    try {
-      const path = this.storage.imagePath(this.assetOwnerId, 'image', image.id, file);
-      const storedPath = await this.storage.uploadImage(file, path);
-      image.src = this.storage.toPublicUrl(storedPath) ?? storedPath;
-      this.changed.emit();
-    } catch (error) {
-      this.assetError = error instanceof Error ? error.message : 'Could not upload image.';
-    } finally {
-      this.assetUploading = false;
-    }
+  public openMediaPicker(target: 'sprite' | 'image', node: EditableLine | EditableImage) {
+    this.pickerTarget = target;
+    this.pickerNode = node;
+    this.pickerValue =
+      target === 'sprite' && node.type === 'line'
+        ? node.sprite
+        : node.type === 'image'
+          ? node.src
+          : '';
+    this.pickerVisible = true;
   }
 
-  public setImageUrl(image: EditableImage) {
-    const source = image.src.trim();
-    if (!source || !isAllowedImageSource(source)) {
-      image.src = '';
-      return;
-    }
-    this.changed.emit();
-  }
-
-  public async replaceSpriteFile(line: EditableLine, input: File[] | FileList | Event) {
-    const file = this.fileFromInput(input);
-    if (!file || !this.storage || !this.assetOwnerId) {
-      return;
-    }
-    this.assetError = '';
-    this.assetUploading = true;
-    try {
-      const path = this.storage.imagePath(this.assetOwnerId, 'sprite', line.id, file);
-      const storedPath = await this.storage.uploadImage(file, path);
-      line.sprite = this.storage.toPublicUrl(storedPath) ?? storedPath;
-      this.changed.emit();
-    } catch (error) {
-      this.assetError = error instanceof Error ? error.message : 'Could not upload sprite.';
-    } finally {
-      this.assetUploading = false;
-    }
-  }
-
-  public setSpriteUrl(line: EditableLine) {
-    const source = line.sprite.trim();
-    if (!source || !isAllowedImageSource(source)) {
-      line.sprite = '';
-      return;
+  public mediaPicked(value: string) {
+    if (this.pickerTarget === 'sprite' && this.pickerNode?.type === 'line') {
+      this.pickerNode.sprite = value;
+    } else if (this.pickerTarget === 'image' && this.pickerNode?.type === 'image') {
+      this.pickerNode.src = value;
     }
     this.changed.emit();
   }
@@ -204,11 +178,12 @@ export class TranscriptEditorComponent implements OnChanges {
         const safeStyles = styles
           .split(';')
           .map((style: string) => style.trim())
-          .filter((style: string) =>
-            /^(color\s*:\s*(#[0-9a-f]{3,8}|[a-z]+|rgba?\([^)]*\))|font-weight\s*:\s*(normal|bold|[1-9]00)|font-style\s*:\s*(normal|italic))$/i.test(
-              style,
-            ) &&
-            (!/^color\s*:/i.test(style) || !this.isThemeNeutralColor(style)),
+          .filter(
+            (style: string) =>
+              /^(color\s*:\s*(#[0-9a-f]{3,8}|[a-z]+|rgba?\([^)]*\))|font-weight\s*:\s*(normal|bold|[1-9]00)|font-style\s*:\s*(normal|italic))$/i.test(
+                style,
+              ) &&
+              (!/^color\s*:/i.test(style) || !this.isThemeNeutralColor(style)),
           )
           .join(';');
         return safeStyles ? ` style=${quote}${safeStyles}${quote}` : '';
@@ -235,14 +210,6 @@ export class TranscriptEditorComponent implements OnChanges {
       /^#(?:0{3}|0{6}|0{8}|f{3}|f{6}|f{8})$/i.test(color) ||
       /^rgba?\((?:0,0,0|255,255,255)(?:,[\d.]+)?\)$/i.test(color)
     );
-  }
-
-  private fileFromInput(input: File[] | FileList | Event): File | undefined {
-    return Array.isArray(input)
-      ? input[0]
-      : 'target' in input
-        ? (input.target as HTMLInputElement | null)?.files?.[0]
-        : input.item(0) ?? undefined;
   }
 
   public toggleInsert(index: number) {

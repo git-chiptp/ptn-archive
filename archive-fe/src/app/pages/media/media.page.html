@@ -1,0 +1,241 @@
+<section class="admin flex flex-col gap-6">
+  <p-confirmdialog
+    key="media-folder-actions"
+    [style]="{ width: 'min(28rem, calc(100vw - 2rem))' }"
+  />
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-semibold">{{ language.text('mediaLibrary') }}</h1>
+      <p class="m-0 text-[var(--p-text-muted-color)]">
+        {{ language.text('mediaLibraryDescription') }}
+      </p>
+    </div>
+    <p-fileupload
+      mode="basic"
+      name="media"
+      accept="image/*"
+      [chooseLabel]="language.text('uploadImage')"
+      chooseIcon="pi pi-upload"
+      [auto]="false"
+      [customUpload]="true"
+      (onSelect)="upload($event.files)"
+    />
+  </div>
+  <div class="flex flex-wrap items-end gap-3">
+    <label class="flex min-w-0 flex-1 flex-col gap-2">
+      <span class="font-medium">{{ language.text('searchMedia') }}</span>
+      <input
+        pInputText
+        type="search"
+        [(ngModel)]="search"
+        (ngModelChange)="searchChanged()"
+        [placeholder]="language.text('searchMediaPlaceholder')"
+      />
+    </label>
+    <label class="flex min-w-0 flex-1 flex-col gap-2">
+      <span class="font-medium">{{ language.text('importImageUrl') }}</span>
+      <input pInputText type="url" [(ngModel)]="importUrl" [placeholder]="'https://...'" />
+    </label>
+    <button
+      pButton
+      type="button"
+      severity="secondary"
+      [disabled]="!importUrl.trim()"
+      (click)="import()"
+    >
+      <i class="pi pi-cloud-download" aria-hidden="true"></i>
+      <span>{{ language.text('importImage') }}</span>
+    </button>
+  </div>
+  <div class="flex flex-wrap items-end gap-3">
+    <label class="flex min-w-0 flex-1 flex-col gap-2">
+      <span class="font-medium">{{ language.text('newFolder') }}</span>
+      <input
+        pInputText
+        [(ngModel)]="folderName"
+        [placeholder]="language.text('folderName')"
+        (keydown.enter)="createFolder()"
+      />
+    </label>
+    <button
+      pButton
+      type="button"
+      severity="secondary"
+      [disabled]="!folderName.trim()"
+      (click)="createFolder()"
+    >
+      <i class="pi pi-folder-plus" aria-hidden="true"></i>
+      <span>{{ language.text('createFolder') }}</span>
+    </button>
+  </div>
+  <div class="flex flex-wrap items-center gap-2">
+    @if (selectedFolderId) {
+      <button pButton type="button" severity="secondary" (click)="showRoot()">
+        <i class="pi pi-arrow-left" aria-hidden="true"></i>
+        <span>{{ language.text('allImages') }}</span>
+      </button>
+      <span class="font-medium">/ {{ currentFolderName }}</span>
+    } @else {
+      <span class="font-medium">{{ language.text('unfiledImages') }}</span>
+    }
+  </div>
+  @if (!selectedFolderId && folders.length) {
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      @for (folder of folders; track folder.id) {
+        <div
+          class="flex min-w-0 items-center gap-2 rounded border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-3"
+        >
+          <button
+            pButton
+            type="button"
+            text
+            class="min-w-0 flex-1 !justify-start"
+            [title]="folder.name"
+            (click)="openFolder(folder.id)"
+          >
+            <i class="pi pi-folder" aria-hidden="true"></i>
+            <span class="truncate">{{ folder.name }}</span>
+          </button>
+          <button
+            pButton
+            type="button"
+            text
+            size="small"
+            [attr.aria-label]="language.text('renameFolder')"
+            (click)="startRenameFolder(folder)"
+          >
+            <i class="pi pi-pencil" aria-hidden="true"></i>
+          </button>
+          <button
+            pButton
+            type="button"
+            text
+            severity="danger"
+            size="small"
+            [attr.aria-label]="language.text('deleteFolder')"
+            (click)="removeFolder(folder)"
+          >
+            <i class="pi pi-trash" aria-hidden="true"></i>
+          </button>
+        </div>
+      }
+    </div>
+  }
+  @if (editingFolder) {
+    <div class="flex flex-wrap items-end gap-2">
+      <input
+        pInputText
+        [(ngModel)]="editingFolderName"
+        [attr.aria-label]="language.text('folderName')"
+      />
+      <button pButton type="button" size="small" (click)="saveRenameFolder()">
+        {{ language.text('save') }}
+      </button>
+      <button
+        pButton
+        type="button"
+        size="small"
+        severity="secondary"
+        (click)="editingFolder = null"
+      >
+        {{ language.text('cancel') }}
+      </button>
+    </div>
+  }
+  @if (status) {
+    <p-message severity="success" variant="simple" role="status">{{ status }}</p-message>
+  }
+  @if (error) {
+    <p-message severity="error" variant="simple" role="alert">{{ error }}</p-message>
+  }
+  @if (loading) {
+    <p class="py-8 text-center text-[var(--p-text-muted-color)]" role="status">
+      {{ language.text('loadingMedia') }}
+    </p>
+  } @else if (!assets.length) {
+    <p class="py-8 text-center text-[var(--p-text-muted-color)]">{{ language.text('noMedia') }}</p>
+  } @else {
+    <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+      @for (asset of assets; track asset.id) {
+        <article
+          class="flex min-w-0 flex-col gap-3 rounded border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-3"
+        >
+          <p-image
+            [src]="imageUrl(asset)"
+            [alt]="asset.displayName"
+            [preview]="true"
+            imageClass="aspect-square w-full object-contain"
+          />
+          @if (editing?.id === asset.id) {
+            <input
+              pInputText
+              [(ngModel)]="editingName"
+              [attr.aria-label]="language.text('mediaName')"
+            />
+            <div class="flex gap-2">
+              <button pButton type="button" size="small" (click)="saveRename()">
+                {{ language.text('save') }}
+              </button>
+              <button
+                pButton
+                type="button"
+                size="small"
+                severity="secondary"
+                (click)="editing = null"
+              >
+                {{ language.text('cancel') }}
+              </button>
+            </div>
+          } @else {
+            <span class="truncate font-medium" [title]="asset.displayName">{{
+              asset.displayName
+            }}</span>
+            <select
+              class="h-9 w-full rounded border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] px-2 text-sm"
+              [ngModel]="asset.folderId ?? ''"
+              (ngModelChange)="moveAsset(asset, $event)"
+              [attr.aria-label]="language.text('folder')"
+            >
+              <option value="">{{ language.text('unfiledImages') }}</option>
+              @for (folder of folders; track folder.id) {
+                <option [value]="folder.id">{{ folder.name }}</option>
+              }
+            </select>
+            <div class="flex flex-wrap gap-2">
+              <button
+                pButton
+                type="button"
+                size="small"
+                severity="secondary"
+                (click)="startRename(asset)"
+              >
+                <i class="pi pi-pencil" aria-hidden="true"></i>
+                <span>{{ language.text('rename') }}</span>
+              </button>
+              <p-fileupload
+                mode="basic"
+                name="replace"
+                accept="image/*"
+                [chooseLabel]="language.text('replace')"
+                [auto]="false"
+                [customUpload]="true"
+                (onSelect)="replace(asset, $event.files)"
+              />
+              <button pButton type="button" size="small" severity="danger" (click)="remove(asset)">
+                <i class="pi pi-trash" aria-hidden="true"></i>
+                <span>{{ language.text('delete') }}</span>
+              </button>
+            </div>
+          }
+        </article>
+      }
+    </div>
+    <p-paginator
+      [rows]="24"
+      [totalRecords]="total"
+      [first]="page * 24"
+      [alwaysShow]="false"
+      (onPageChange)="pageChanged($event)"
+    />
+  }
+</section>

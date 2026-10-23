@@ -113,7 +113,9 @@ export class ArchiveStore {
       for (let offset = 0; ; offset += pageSize) {
         const { data, error } = await this.supabase
           .from('archives')
-          .select('id,title,description,category,parent_id,parent_label,stage_label,source_language')
+          .select(
+            'id,title,description,category,parent_id,parent_label,stage_label,source_language',
+          )
           .eq('status', 'PUBLISHED')
           .order('created_at', { ascending: true })
           .order('id', { ascending: true })
@@ -123,14 +125,16 @@ export class ArchiveStore {
         if (!data || data.length < pageSize) break;
       }
       const previous = new Map(this.transcripts().map((item) => [item.id, item]));
-      this.transcripts.set(rows.map((row) => {
-        const cached = previous.get(row.id);
-        return {
-          ...this.fromApi(this.archiveFromRow(row)),
-          nodes: cached?.nodes ?? [],
-          translations: cached?.translations,
-        };
-      }));
+      this.transcripts.set(
+        rows.map((row) => {
+          const cached = previous.get(row.id);
+          return {
+            ...this.fromApi(this.archiveFromRow(row)),
+            nodes: cached?.nodes ?? [],
+            translations: cached?.translations,
+          };
+        }),
+      );
     } catch {
       this.error.set('Could not load transcripts from Supabase.');
     } finally {
@@ -138,15 +142,20 @@ export class ArchiveStore {
     }
   }
   public async loadChapters() {
-    const { data, error } = await this.supabase
-      .from('chapters')
-      .select('id,name,background_image,category')
-      .order('created_at', { ascending: true });
-    if (error) {
+    try {
+      const { data, error } = await this.supabase
+        .from('chapters')
+        .select('id,name,background_image,category')
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      const rows = (data ?? []) as ChapterRow[];
+      await this.storage
+        .resolveMediaReferences(rows.map((item) => item.background_image))
+        .catch(() => this.error.set('Could not load chapter images.'));
+      this.chapters.set(rows.map((item) => this.chapterFromRow(item)));
+    } catch {
       this.error.set('Could not load chapters from Supabase.');
-      return;
     }
-    this.chapters.set((data ?? []).map((item) => this.chapterFromRow(item as ChapterRow)));
   }
   public async loadTranscript(id: string) {
     if (this.loadedTranscriptIds.has(id) || this.pendingTranscriptIds.has(id)) return;
@@ -161,11 +170,15 @@ export class ArchiveStore {
         .eq('status', 'PUBLISHED')
         .single();
       if (error) throw error;
-      this.transcripts.update((records) => records.map((record) =>
-        record.id === id
-          ? { ...record, nodes: this.storage.toPublicNodes(this.parseNodes(data.transcript_text ?? undefined)) }
-          : record,
-      ));
+      const nodes = this.parseNodes(data.transcript_text ?? undefined);
+      await this.storage
+        .resolveMediaReferences(this.storage.mediaReferences(nodes))
+        .catch(() => this.error.set('Could not load transcript images.'));
+      this.transcripts.update((records) =>
+        records.map((record) =>
+          record.id === id ? { ...record, nodes: this.storage.toPublicNodes(nodes) } : record,
+        ),
+      );
       this.loadedTranscriptIds.add(id);
     } catch {
       this.transcriptUnavailable.set(id);
@@ -175,24 +188,10 @@ export class ArchiveStore {
       if (this.transcriptLoading() === id) this.transcriptLoading.set(null);
     }
   }
-  public async addChapter(
-    chapter: Chapter,
-    backgroundFile?: File,
-    onSuccess?: () => void,
-    onError?: () => void,
-  ) {
-    let uploadedPath: string | undefined;
+  public async addChapter(chapter: Chapter, onSuccess?: () => void, onError?: () => void) {
     const chapterId = chapter.id || crypto.randomUUID();
     try {
-      const backgroundPath = backgroundFile
-        ? await this.storage.uploadImage(
-            backgroundFile,
-            this.storage.imagePath(chapterId, 'background', chapterId, backgroundFile),
-          )
-        : this.storage.toStoragePath(chapter.backgroundImage);
-      if (backgroundFile) {
-        uploadedPath = backgroundPath;
-      }
+      const backgroundPath = this.storage.toStoredValue(chapter.backgroundImage);
       const { data, error } = await this.supabase
         .from('chapters')
         .insert({
@@ -205,36 +204,20 @@ export class ArchiveStore {
         .single();
       if (error) throw error;
       const saved = data as ChapterRow;
+      await this.storage.resolveMediaReferences([saved.background_image]).catch(() => undefined);
       this.chapters.update((items) => [...items, this.chapterFromRow(saved)]);
       onSuccess?.();
     } catch {
-      if (uploadedPath) {
-        void this.storage.removePaths([uploadedPath]).catch(() => undefined);
-      }
       this.error.set('Could not save chapter.');
       onError?.();
     }
   }
-  public async updateChapter(
-    chapter: Chapter,
-    onSuccess?: () => void,
-    backgroundFile?: File,
-    onError?: () => void,
-  ) {
+  public async updateChapter(chapter: Chapter, onSuccess?: () => void, onError?: () => void) {
     const previous = this.chapters().find((item) => item.id === chapter.id);
-    const previousPath = this.storage.toStoragePath(previous?.backgroundImage);
-    let uploadedPath: string | undefined;
+    const previousPath = this.storage.toLegacyStoragePath(previous?.backgroundImage);
     let backgroundPath: string | undefined;
     try {
-      backgroundPath = backgroundFile
-        ? await this.storage.uploadImage(
-            backgroundFile,
-            this.storage.imagePath(chapter.id, 'background', chapter.id, backgroundFile),
-          )
-        : this.storage.toStoragePath(chapter.backgroundImage);
-      if (backgroundFile) {
-        uploadedPath = backgroundPath;
-      }
+      backgroundPath = this.storage.toStoredValue(chapter.backgroundImage);
       const { data, error } = await this.supabase
         .from('chapters')
         .update({
@@ -247,27 +230,22 @@ export class ArchiveStore {
         .single();
       if (error) throw error;
       const saved = data as ChapterRow;
+      await this.storage.resolveMediaReferences([saved.background_image]).catch(() => undefined);
       this.chapters.update((items) =>
-        items.map((item) => item.id === chapter.id ? this.chapterFromRow(saved) : item),
+        items.map((item) => (item.id === chapter.id ? this.chapterFromRow(saved) : item)),
       );
       if (previousPath && previousPath !== backgroundPath) {
         void this.storage.removePaths([previousPath]).catch(() => undefined);
       }
       onSuccess?.();
     } catch {
-      if (uploadedPath && uploadedPath !== previousPath) {
-        void this.storage.removePaths([uploadedPath]).catch(() => undefined);
-      }
       this.error.set('Could not update chapter.');
       onError?.();
     }
   }
   public async removeChapter(id: string, onSuccess?: () => void) {
     try {
-      const { error } = await this.supabase
-        .from('chapters')
-        .delete()
-        .eq('id', id);
+      const { error } = await this.supabase.from('chapters').delete().eq('id', id);
       if (error) throw error;
       this.chapters.update((items) => items.filter((item) => item.id !== id));
       void this.storage.removeOwnerAssets(`chapters/${id}`).catch(() => undefined);
@@ -276,7 +254,10 @@ export class ArchiveStore {
       this.error.set('Could not delete chapter.');
     }
   }
-  public async searchTranscripts(query: string, resultLimit = 50): Promise<TranscriptSearchResult[]> {
+  public async searchTranscripts(
+    query: string,
+    resultLimit = 50,
+  ): Promise<TranscriptSearchResult[]> {
     const normalizedQuery = query.trim();
     if (!normalizedQuery) {
       return [];
@@ -302,23 +283,34 @@ export class ArchiveStore {
       this.error.set('Could not load translations from Supabase.');
       return;
     }
-    this.transcripts.update((records) => records.map((record) => record.id === id
-      ? {
-          ...record,
-          translations: Object.fromEntries((data as TranslationRow[]).map((item) => [
-            item.language_code,
-            this.translationFromApi({
-              languageCode: item.language_code,
-              title: item.title,
-              description: item.description ?? undefined,
-              transcriptText: item.transcript_text ?? undefined,
-              parentLabel: item.parent_label ?? undefined,
-              stageLabel: item.stage_label ?? undefined,
-            }),
-          ])),
-        }
-      : record,
-    ));
+    const rows = (data ?? []) as TranslationRow[];
+    await this.storage
+      .resolveMediaReferences(
+        rows.flatMap((item) => this.storage.mediaReferences(this.parseNodes(item.transcript_text))),
+      )
+      .catch(() => this.error.set('Could not load translation images.'));
+    this.transcripts.update((records) =>
+      records.map((record) =>
+        record.id === id
+          ? {
+              ...record,
+              translations: Object.fromEntries(
+                rows.map((item) => [
+                  item.language_code,
+                  this.translationFromApi({
+                    languageCode: item.language_code,
+                    title: item.title,
+                    description: item.description ?? undefined,
+                    transcriptText: item.transcript_text ?? undefined,
+                    parentLabel: item.parent_label ?? undefined,
+                    stageLabel: item.stage_label ?? undefined,
+                  }),
+                ]),
+              ),
+            }
+          : record,
+      ),
+    );
     onLoaded?.();
   }
   public saveTranslation(
@@ -329,25 +321,35 @@ export class ArchiveStore {
     onError?: () => void,
   ) {
     this.statusMessage.set(null);
-    const previous = this.transcripts().find((record) => record.id === id)?.translations?.[language];
+    const previous = this.transcripts().find((record) => record.id === id)?.translations?.[
+      language
+    ];
     const previousPaths = previous ? this.storage.collectPaths(previous.nodes ?? []) : [];
     this.supabase
       .from('archive_translations')
-      .upsert({
-        archive_id: id,
-        language_code: language.toLowerCase(),
-        title: translation.title ?? '',
-        parent_label: translation.parentLabel ?? null,
-        stage_label: translation.stageLabel ?? null,
-        description: translation.description ?? null,
-        transcript_text: this.storage.toStorageNodes(translation.nodes ?? []),
-        translation_status: 'PUBLISHED',
-      }, { onConflict: 'archive_id,language_code' })
+      .upsert(
+        {
+          archive_id: id,
+          language_code: language.toLowerCase(),
+          title: translation.title ?? '',
+          parent_label: translation.parentLabel ?? null,
+          stage_label: translation.stageLabel ?? null,
+          description: translation.description ?? null,
+          transcript_text: this.storage.toStorageNodes(translation.nodes ?? []),
+          translation_status: 'PUBLISHED',
+        },
+        { onConflict: 'archive_id,language_code' },
+      )
       .select('language_code,title,description,transcript_text,parent_label,stage_label')
       .single()
-      .then(({ data, error }) => {
+      .then(async ({ data, error }) => {
         if (error) throw error;
         const saved = data as TranslationRow;
+        await this.storage
+          .resolveMediaReferences(
+            this.storage.mediaReferences(this.parseNodes(saved.transcript_text)),
+          )
+          .catch(() => undefined);
         const savedTranslation = this.translationFromApi({
           languageCode: saved.language_code,
           title: saved.title,
@@ -356,19 +358,28 @@ export class ArchiveStore {
           parentLabel: saved.parent_label ?? undefined,
           stageLabel: saved.stage_label ?? undefined,
         });
-        this.transcripts.update((records) => records.map((record) =>
-          record.id === id
-            ? { ...record, translations: { ...record.translations, [language]: savedTranslation } }
-            : record,
-        ));
+        this.transcripts.update((records) =>
+          records.map((record) =>
+            record.id === id
+              ? {
+                  ...record,
+                  translations: { ...record.translations, [language]: savedTranslation },
+                }
+              : record,
+          ),
+        );
         const nextPaths = this.storage.collectPaths(savedTranslation.nodes ?? []);
-        void this.storage.removePaths(previousPaths.filter((path) => !nextPaths.includes(path))).catch(() => undefined);
+        void this.storage
+          .removePaths(previousPaths.filter((path) => !nextPaths.includes(path)))
+          .catch(() => undefined);
         this.statusMessage.set('Translation saved successfully.');
         onSuccess?.();
       })
       .then(undefined, () => {
         const nextPaths = this.storage.collectPaths(translation.nodes ?? []);
-        void this.storage.removePaths(nextPaths.filter((path) => !previousPaths.includes(path))).catch(() => undefined);
+        void this.storage
+          .removePaths(nextPaths.filter((path) => !previousPaths.includes(path)))
+          .catch(() => undefined);
         this.statusMessage.set('Could not save translation. Please try again.');
         onError?.();
       });
@@ -379,10 +390,17 @@ export class ArchiveStore {
     this.supabase
       .from('archives')
       .insert(this.toRow(transcript))
-      .select('id,title,description,category,parent_id,parent_label,stage_label,source_language,transcript_text')
+      .select(
+        'id,title,description,category,parent_id,parent_label,stage_label,source_language,transcript_text',
+      )
       .single()
-      .then(({ data, error }) => {
+      .then(async ({ data, error }) => {
         if (error) throw error;
+        await this.storage
+          .resolveMediaReferences(
+            this.storage.mediaReferences(this.parseNodes((data as ArchiveRow).transcript_text)),
+          )
+          .catch(() => undefined);
         const created = this.fromRow(data as ArchiveRow);
         this.transcripts.update((items) => [...items, created]);
         this.statusMessage.set('Transcript saved successfully.');
@@ -406,10 +424,17 @@ export class ArchiveStore {
       .from('archives')
       .update(this.toRow(transcript))
       .eq('id', transcript.id)
-      .select('id,title,description,category,parent_id,parent_label,stage_label,source_language,transcript_text')
+      .select(
+        'id,title,description,category,parent_id,parent_label,stage_label,source_language,transcript_text',
+      )
       .single()
-      .then(({ data, error }) => {
+      .then(async ({ data, error }) => {
         if (error) throw error;
+        await this.storage
+          .resolveMediaReferences(
+            this.storage.mediaReferences(this.parseNodes((data as ArchiveRow).transcript_text)),
+          )
+          .catch(() => undefined);
         const saved = this.fromRow(data as ArchiveRow);
         const updated = { ...saved, translations: transcript.translations };
         this.transcripts.update((items) =>
@@ -417,12 +442,16 @@ export class ArchiveStore {
         );
         this.loadedTranscriptIds.add(transcript.id);
         const nextPaths = this.storage.collectPaths(saved.nodes);
-        void this.storage.removePaths(previousPaths.filter((path) => !nextPaths.includes(path))).catch(() => undefined);
+        void this.storage
+          .removePaths(previousPaths.filter((path) => !nextPaths.includes(path)))
+          .catch(() => undefined);
         this.statusMessage.set('Transcript saved successfully.');
         onSuccess?.(updated);
       })
       .then(undefined, () => {
-        void this.storage.removePaths(nextPaths.filter((path) => !previousPaths.includes(path))).catch(() => undefined);
+        void this.storage
+          .removePaths(nextPaths.filter((path) => !previousPaths.includes(path)))
+          .catch(() => undefined);
         this.statusMessage.set('Could not save transcript. Please try again.');
         onError?.();
       });

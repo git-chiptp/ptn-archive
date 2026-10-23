@@ -39,10 +39,14 @@ export class AppNavigationComponent {
     { icon: 'eye', label: 'mirage', path: '/mirage' },
     { icon: 'chart-line', label: 'perspectra', path: '/perspectra' },
     { icon: 'info-circle', label: 'credits', path: '/credits' },
+    { icon: 'images', label: 'mediaLibrary', path: '/media' },
   ] as const;
 
   public get navigationMenu(): MenuItem[] {
-    return this.navItems.map((item) => ({
+    const visibleItems = this.auth.user()
+      ? this.navItems
+      : this.navItems.filter((item) => item.path !== '/media');
+    return visibleItems.map((item) => ({
       label: this.language.text(item.label),
       title: this.language.text(item.label),
       icon: `pi pi-${item.icon}`,

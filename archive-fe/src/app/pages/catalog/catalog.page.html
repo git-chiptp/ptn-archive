@@ -59,7 +59,7 @@
 
   @if (filteredCollections.length) {
     <div class="grid gap-4 sm:grid-cols-2">
-      @for (collection of filteredCollections; track collection.id) {
+      @for (collection of filteredCollections; track collection.id; let collectionIndex = $index) {
         <article
           class="group relative aspect-[16/9] overflow-hidden rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-surface-700)] shadow-sm"
           [class.cursor-pointer]="collectionCardsAreLinks"
@@ -73,7 +73,7 @@
               class="absolute inset-0 h-full w-full object-cover object-center"
               [src]="collection.backgroundImage"
               [alt]="collection.label"
-              loading="lazy"
+              [attr.loading]="collectionIndex === 0 ? 'eager' : 'lazy'"
               decoding="async"
             />
           } @else {

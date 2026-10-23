@@ -1,0 +1,33 @@
+name = "archive-media-worker"
+main = "src/index.ts"
+compatibility_date = "2026-10-23"
+
+[vars]
+APP_ORIGINS = "http://localhost:4200,http://127.0.0.1:4200"
+SUPABASE_URL = "http://127.0.0.1:54321"
+SUPABASE_ANON_KEY = ""
+R2_PUBLIC_URL = ""
+
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "archive-media-staging"
+preview_bucket_name = "archive-media-staging"
+
+[env.production]
+name = "archive-media-worker-production"
+
+[env.production.vars]
+APP_ORIGINS = ""
+SUPABASE_URL = ""
+SUPABASE_ANON_KEY = ""
+R2_PUBLIC_URL = ""
+
+[[env.production.r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "archive-media-production"
+
+[dev]
+local_protocol = "http"
+
+# Set these with `wrangler secret put`; never commit them.
+# SUPABASE_SERVICE_ROLE_KEY

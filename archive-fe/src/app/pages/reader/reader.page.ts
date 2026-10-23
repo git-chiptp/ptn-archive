@@ -30,6 +30,7 @@ import {
 } from '../../components/transcript/transcript-editor.component';
 import { NodeListComponent } from '../../components/transcript/node-list.component';
 import { ArchiveStore } from '../../services/archive.store';
+import { ArchiveStorageService } from '../../services/archive-storage.service';
 import { AuthService } from '../../services/auth.service';
 import { LanguageCode, LanguageService } from '../../services/language.service';
 import { TranscriptImportService } from '../../services/transcript-import.service';
@@ -67,6 +68,8 @@ export class ReaderPage {
   private router = inject(Router);
 
   private importer = inject(TranscriptImportService);
+
+  private readonly storage = inject(ArchiveStorageService);
 
   private cdr = inject(ChangeDetectorRef);
 
@@ -599,12 +602,22 @@ export class ReaderPage {
     ) {
       return;
     }
-    this.editNodes = this.pendingImportNodes;
+    void this.applyPendingImport();
+  }
+
+  private async applyPendingImport() {
+    const helper = new TranscriptEditorComponent();
+    helper.nodes = this.pendingImportNodes;
+    const result = await this.storage.importRemoteMediaReferences(helper.serialize());
+    this.editNodes = this.toEditable(result.nodes);
     this.pendingImportNodes = [];
     this.pendingImportName = '';
     this.pendingImportReady = false;
     this.editDirty = true;
-    this.importMessage = 'Imported transcript lines into the editor.';
+    this.importError = result.unresolved > 0;
+    this.importMessage = result.unresolved > 0
+      ? this.language.text('importedWithUnresolvedImages', { count: String(result.unresolved) })
+      : this.language.text('importedTranscript');
   }
   public save() {
     if (!this.transcript || !this.editNodes.length || this.saving) {

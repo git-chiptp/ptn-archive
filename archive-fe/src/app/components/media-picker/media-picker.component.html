@@ -1,0 +1,132 @@
+<p-dialog
+  [header]="title || language.text('chooseMedia')"
+  [visible]="visible"
+  (visibleChange)="visibleChange.emit($event)"
+  [modal]="true"
+  [draggable]="false"
+  [dismissableMask]="true"
+  [style]="{ width: 'min(64rem, calc(100vw - 2rem))' }"
+>
+  <div class="flex flex-col gap-4">
+    <div class="flex flex-wrap items-end gap-3">
+      <label class="flex min-w-0 flex-1 flex-col gap-2">
+        <span class="font-medium">{{ language.text('searchMedia') }}</span>
+        <input
+          pInputText
+          type="search"
+          [(ngModel)]="search"
+          (ngModelChange)="searchChanged()"
+          [placeholder]="language.text('searchMediaPlaceholder')"
+        />
+      </label>
+      <p-fileupload
+        mode="basic"
+        name="media"
+        accept="image/*"
+        [chooseLabel]="language.text('uploadImage')"
+        chooseIcon="pi pi-upload"
+        [auto]="false"
+        [customUpload]="true"
+        [disabled]="saving"
+        (onSelect)="upload($event.files)"
+      />
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      @if (selectedFolderId) {
+        <button pButton type="button" severity="secondary" (click)="folderChanged('')">
+          <i class="pi pi-arrow-left" aria-hidden="true"></i>
+          <span>{{ language.text('allImages') }}</span>
+        </button>
+        <span class="font-medium">/ {{ currentFolderName }}</span>
+      } @else {
+        <span class="font-medium">{{ language.text('unfiledImages') }}</span>
+      }
+    </div>
+    @if (!selectedFolderId && folders.length) {
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+        @for (folder of folders; track folder.id) {
+          <button
+            pButton
+            type="button"
+            text
+            class="!justify-start"
+            [title]="folder.name"
+            (click)="folderChanged(folder.id)"
+          >
+            <i class="pi pi-folder" aria-hidden="true"></i>
+            <span class="truncate">{{ folder.name }}</span>
+          </button>
+        }
+      </div>
+    }
+    <div class="flex flex-wrap items-end gap-3">
+      <label class="flex min-w-0 flex-1 flex-col gap-2">
+        <span class="font-medium">{{ language.text('importImageUrl') }}</span>
+        <input pInputText type="url" [(ngModel)]="importUrl" [placeholder]="'https://...'" />
+      </label>
+      <button
+        pButton
+        type="button"
+        severity="secondary"
+        [disabled]="saving || !importUrl.trim()"
+        (click)="import()"
+      >
+        <i class="pi pi-cloud-download" aria-hidden="true"></i>
+        <span>{{ language.text('importImage') }}</span>
+      </button>
+    </div>
+    @if (error) {
+      <p-message severity="error" variant="simple" role="alert">{{ error }}</p-message>
+    }
+    @if (loading) {
+      <p class="py-6 text-center text-[var(--p-text-muted-color)]" role="status">
+        {{ language.text('loadingMedia') }}
+      </p>
+    } @else if (!assets.length) {
+      <p class="py-6 text-center text-[var(--p-text-muted-color)]">
+        {{ language.text('noMedia') }}
+      </p>
+    } @else {
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+        @for (asset of assets; track asset.id) {
+          <button
+            type="button"
+            class="flex min-w-0 flex-col gap-2 rounded border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-2 text-left transition hover:border-[var(--p-primary-color)]"
+            [class.border-[var(--p-primary-color)]]="
+              value === imageUrl(asset) || value === 'media:' + asset.id
+            "
+            (click)="choose(asset)"
+          >
+            <span
+              class="flex aspect-square items-center justify-center overflow-hidden bg-[var(--p-content-hover-background)]"
+            >
+              <img
+                class="h-full w-full object-contain"
+                [src]="imageUrl(asset)"
+                [alt]="asset.displayName"
+              />
+            </span>
+            <span class="truncate text-sm" [title]="asset.displayName">{{
+              asset.displayName
+            }}</span>
+          </button>
+        }
+      </div>
+      <p-paginator
+        [rows]="24"
+        [totalRecords]="total"
+        [first]="page * 24"
+        [alwaysShow]="false"
+        (onPageChange)="pageChanged($event)"
+      />
+    }
+    <div class="flex justify-between gap-2">
+      <button pButton type="button" severity="secondary" [text]="true" (click)="clear()">
+        {{ language.text('clearImage') }}
+      </button>
+      <button pButton type="button" severity="secondary" (click)="close()">
+        {{ language.text('cancel') }}
+      </button>
+    </div>
+  </div>
+</p-dialog>

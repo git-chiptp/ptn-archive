@@ -7,14 +7,13 @@ import { BreadcrumbModule } from 'primeng/breadcrumb';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ButtonModule } from 'primeng/button';
 import { DataViewModule } from 'primeng/dataview';
-import { FileUploadModule } from 'primeng/fileupload';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { ImageModule } from 'primeng/image';
 import { Category, Chapter } from '../../models/transcript.models';
 import { ArchiveStore } from '../../services/archive.store';
 import { LanguageService } from '../../services/language.service';
-import { ArchiveStorageService } from '../../services/archive-storage.service';
+import { MediaPickerComponent } from '../../components/media-picker/media-picker.component';
 
 @Component({
   standalone: true,
@@ -25,10 +24,10 @@ import { ArchiveStorageService } from '../../services/archive-storage.service';
     ConfirmDialogModule,
     ButtonModule,
     DataViewModule,
-    FileUploadModule,
     InputTextModule,
     MessageModule,
     ImageModule,
+    MediaPickerComponent,
   ],
   templateUrl: './add-chapter.page.html',
 })
@@ -47,25 +46,31 @@ export class AddChapterPage {
 
   public firstChapter = 0;
 
-  public backgroundFile?: File;
-
-  public backgroundPreviewUrl = '';
-
   public chapterSaving = false;
 
   public chapterError = '';
+
+  public mediaPickerVisible = false;
 
   public readonly breadcrumbHome: MenuItem = { icon: 'pi pi-home', routerLink: '/' };
 
   public get category(): Category {
     const category = this.route.snapshot.queryParamMap.get('category');
-    return category === 'eternal-nightmare' || category === 'event-story' || category === 'interrogation' || category === 'mirage' || category === 'perspectra'
+    return category === 'eternal-nightmare' ||
+      category === 'event-story' ||
+      category === 'interrogation' ||
+      category === 'mirage' ||
+      category === 'perspectra'
       ? category
       : 'main-story';
   }
 
   public get isCharacter() {
-    return this.category === 'interrogation' || this.category === 'mirage' || this.category === 'perspectra';
+    return (
+      this.category === 'interrogation' ||
+      this.category === 'mirage' ||
+      this.category === 'perspectra'
+    );
   }
 
   public get itemName() {
@@ -87,7 +92,13 @@ export class AddChapterPage {
   public get breadcrumbItems(): MenuItem[] {
     return [
       { label: this.categoryName, routerLink: '/' + this.category },
-      { label: this.language.text(this.chapterEditingId ? 'edit' : 'add' + this.itemName.charAt(0).toUpperCase() + this.itemName.slice(1)) },
+      {
+        label: this.language.text(
+          this.chapterEditingId
+            ? 'edit'
+            : 'add' + this.itemName.charAt(0).toUpperCase() + this.itemName.slice(1),
+        ),
+      },
     ];
   }
 
@@ -95,7 +106,7 @@ export class AddChapterPage {
     id: '',
     name: '',
     backgroundImage: '',
-    category: 'main-story'
+    category: 'main-story',
   };
 
   public get isEvent() {
@@ -103,7 +114,9 @@ export class AddChapterPage {
   }
 
   public get managedChapters() {
-    return this.store.chapters().filter((item) => (item.category ?? 'main-story') === this.category);
+    return this.store
+      .chapters()
+      .filter((item) => (item.category ?? 'main-story') === this.category);
   }
 
   public get filteredChapters(): Chapter[] {
@@ -118,46 +131,29 @@ export class AddChapterPage {
   }
 
   public editChapter(chapter: Chapter) {
-    this.clearSelectedChapterImage();
     this.chapterError = '';
     this.chapterEditingId = chapter.id;
     this.chapterForm = { ...chapter };
-    this.backgroundPreviewUrl = chapter.backgroundImage ?? '';
   }
 
   public cancelChapterEdit() {
-    this.clearSelectedChapterImage();
     this.chapterError = '';
     this.chapterEditingId = null;
     this.chapterForm = {
       id: '',
       name: '',
       backgroundImage: '',
-      category: this.category
+      category: this.category,
     };
   }
 
-  public onChapterImage(input: File[] | FileList | Event) {
-    const file = Array.isArray(input)
-      ? input[0]
-      : 'target' in input
-        ? (input.target as HTMLInputElement | null)?.files?.[0]
-        : input.item(0) ?? undefined;
-    if (!file) {
-      return;
-    }
-    this.clearSelectedChapterImage();
-    this.chapterError = '';
-    this.backgroundFile = file;
-    this.backgroundPreviewUrl = URL.createObjectURL(file);
+  public openMediaPicker() {
+    this.mediaPickerVisible = true;
   }
 
-  public clearSelectedChapterImage() {
-    if (this.backgroundPreviewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(this.backgroundPreviewUrl);
-    }
-    this.backgroundFile = undefined;
-    this.backgroundPreviewUrl = '';
+  public mediaPicked(value: string) {
+    this.chapterForm.backgroundImage = value;
+    this.mediaPickerVisible = false;
   }
 
   public async submitChapter() {
@@ -180,33 +176,44 @@ export class AddChapterPage {
     };
     if (this.chapterEditingId) {
       const previous = this.managedChapters.find((item) => item.id === this.chapterEditingId);
-      await this.store.updateChapter(chapter, () => {
-        if (this.isCharacter && previous && previous.name !== chapter.name) {
-          this.characterTranscripts(previous).forEach((transcript) =>
-            this.store.update({ ...transcript, parentLabel: chapter.name }),
-          );
-        }
-        done();
-      }, this.backgroundFile, failed);
+      await this.store.updateChapter(
+        chapter,
+        () => {
+          if (this.isCharacter && previous && previous.name !== chapter.name) {
+            this.characterTranscripts(previous).forEach((transcript) =>
+              this.store.update({ ...transcript, parentLabel: chapter.name }),
+            );
+          }
+          done();
+        },
+        failed,
+      );
     } else {
-      await this.store.addChapter(chapter, this.backgroundFile, done, failed);
+      await this.store.addChapter(chapter, done, failed);
     }
   }
 
   public deleteChapter(chapter: Chapter) {
     this.confirmation.confirm({
       key: 'chapter-actions',
-      header: this.language.text('delete' + this.itemName.charAt(0).toUpperCase() + this.itemName.slice(1)) + '?',
+      header:
+        this.language.text(
+          'delete' + this.itemName.charAt(0).toUpperCase() + this.itemName.slice(1),
+        ) + '?',
       message: this.language.text('deleteNamed', { name: chapter.name }),
       icon: 'pi pi-trash',
-      acceptLabel: this.language.text('delete' + this.itemName.charAt(0).toUpperCase() + this.itemName.slice(1)),
+      acceptLabel: this.language.text(
+        'delete' + this.itemName.charAt(0).toUpperCase() + this.itemName.slice(1),
+      ),
       rejectLabel: this.language.text('cancel'),
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
         this.firstChapter = 0;
         this.store.removeChapter(chapter.id, () => {
           if (this.isCharacter) {
-            this.characterTranscripts(chapter).forEach((transcript) => this.store.remove(transcript.id));
+            this.characterTranscripts(chapter).forEach((transcript) =>
+              this.store.remove(transcript.id),
+            );
           }
         });
       },
@@ -214,10 +221,12 @@ export class AddChapterPage {
   }
 
   private characterTranscripts(chapter: Chapter) {
-    return this.store.transcripts().filter(
-      (transcript) =>
-        transcript.category === this.category &&
-        (transcript.parentId === chapter.id || transcript.parentLabel === chapter.name),
-    );
+    return this.store
+      .transcripts()
+      .filter(
+        (transcript) =>
+          transcript.category === this.category &&
+          (transcript.parentId === chapter.id || transcript.parentLabel === chapter.name),
+      );
   }
 }

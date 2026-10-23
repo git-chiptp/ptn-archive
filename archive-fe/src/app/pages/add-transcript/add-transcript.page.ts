@@ -31,6 +31,7 @@ import {
 import { NodeListComponent } from '../../components/transcript/node-list.component';
 import { ArchiveStore } from '../../services/archive.store';
 import { LanguageCode, LanguageService } from '../../services/language.service';
+import { ArchiveStorageService } from '../../services/archive-storage.service';
 import { ImportedLine, TranscriptImportService } from '../../services/transcript-import.service';
 
 @Component({
@@ -60,6 +61,8 @@ export class AddTranscriptPage {
   private cdr = inject(ChangeDetectorRef);
 
   private importer = inject(TranscriptImportService);
+
+  private readonly storage = inject(ArchiveStorageService);
 
   private route = inject(ActivatedRoute);
 
@@ -391,12 +394,18 @@ export class AddTranscriptPage {
     this.applyPendingImport();
   }
 
-  private applyPendingImport() {
-    this.nodes = this.pendingImportNodes;
+  private async applyPendingImport() {
+    const helper = new TranscriptEditorComponent();
+    helper.nodes = this.pendingImportNodes;
+    const result = await this.storage.importRemoteMediaReferences(helper.serialize());
+    this.nodes = this.toEditable(result.nodes);
     this.pendingImportNodes = [];
     this.pendingImportReady = false;
     this.pendingImportName = '';
-    this.importMessage = 'Imported ' + this.nodes.length + ' lines into the editor.';
+    this.importError = result.unresolved > 0;
+    this.importMessage = result.unresolved > 0
+      ? this.languages.text('importedWithUnresolvedImages', { count: String(result.unresolved) })
+      : this.languages.text('importedLines', { count: String(this.nodes.length) });
   }
   private editorHasContent() {
     return this.nodes.some((node) =>

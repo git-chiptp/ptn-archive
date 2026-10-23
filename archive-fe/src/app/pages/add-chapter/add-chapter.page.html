@@ -1,7 +1,13 @@
 <section class="admin">
   <p-breadcrumb [home]="breadcrumbHome" [model]="breadcrumbItems" />
   <p-confirmdialog key="chapter-actions" [style]="{ width: 'min(28rem, calc(100vw - 2rem))' }" />
-  <h1 class="text-xl">{{ language.text(isCharacter ? 'characterManagement' : isEvent ? 'eventManagement' : 'chapterManagement') }}</h1>
+  <h1 class="text-xl">
+    {{
+      language.text(
+        isCharacter ? 'characterManagement' : isEvent ? 'eventManagement' : 'chapterManagement'
+      )
+    }}
+  </h1>
   <section class="chapter-manager">
     <div class="flex justify-end">
       <label class="mb-4 flex max-w-md flex-col gap-2">
@@ -11,18 +17,37 @@
           type="search"
           [(ngModel)]="chapterSearch"
           (ngModelChange)="firstChapter = 0"
-          [placeholder]="language.text(isCharacter ? 'searchCharacters' : isEvent ? 'searchEvents' : 'searchChapters')"
+          [placeholder]="
+            language.text(
+              isCharacter ? 'searchCharacters' : isEvent ? 'searchEvents' : 'searchChapters'
+            )
+          "
         />
       </label>
     </div>
-    <p-dataview [value]="filteredChapters" [paginator]="true" [rows]="8" [(first)]="firstChapter" [alwaysShowPaginator]="false">
+    <p-dataview
+      [value]="filteredChapters"
+      [paginator]="true"
+      [rows]="8"
+      [(first)]="firstChapter"
+      [alwaysShowPaginator]="false"
+    >
       <ng-template #list let-chapters>
-        <div class="divide-y divide-[var(--p-content-border-color)] border-y border-[var(--p-content-border-color)]">
+        <div
+          class="divide-y divide-[var(--p-content-border-color)] border-y border-[var(--p-content-border-color)]"
+        >
           @for (chapter of chapters; track chapter.id) {
             <article class="flex min-w-0 flex-wrap items-center gap-3 py-3 sm:flex-nowrap">
-              <div class="flex h-[54px] w-24 shrink-0 items-center justify-center overflow-hidden bg-[var(--p-content-hover-background)] text-[var(--p-text-muted-color)]">
+              <div
+                class="flex h-[54px] w-24 shrink-0 items-center justify-center overflow-hidden bg-[var(--p-content-hover-background)] text-[var(--p-text-muted-color)]"
+              >
                 @if (chapter.backgroundImage) {
-                  <p-image [src]="chapter.backgroundImage" [alt]="chapter.name + ' background'" [preview]="true" imageClass="h-full w-full object-cover" />
+                  <p-image
+                    [src]="chapter.backgroundImage"
+                    [alt]="chapter.name + ' background'"
+                    [preview]="true"
+                    imageClass="h-full w-full object-cover"
+                  />
                 } @else {
                   <i class="pi pi-image" aria-hidden="true"></i>
                 }
@@ -43,7 +68,15 @@
         </div>
       </ng-template>
       <ng-template #emptymessage>
-        <p class="py-4">{{ chapterSearch.trim() ? language.text('noMatchingEntries') : language.text(isCharacter ? 'noCharactersYet' : isEvent ? 'noEventsYet' : 'noChaptersYet') }}</p>
+        <p class="py-4">
+          {{
+            chapterSearch.trim()
+              ? language.text('noMatchingEntries')
+              : language.text(
+                  isCharacter ? 'noCharactersYet' : isEvent ? 'noEventsYet' : 'noChaptersYet'
+                )
+          }}
+        </p>
       </ng-template>
     </p-dataview>
     <form class="mt-8 flex flex-col gap-6" (ngSubmit)="submitChapter()">
@@ -53,37 +86,14 @@
         name="chapterName"
         [(ngModel)]="chapterForm.name"
         required
-        [placeholder]="language.text(isCharacter ? 'characterName' : isEvent ? 'event' : 'chapterName')"
+        [placeholder]="
+          language.text(isCharacter ? 'characterName' : isEvent ? 'event' : 'chapterName')
+        "
       />
-      <div class="flex flex-wrap items-end gap-4">
-        <div class="flex flex-col gap-2">
-          <label>{{ language.text('backgroundImageFile') }}</label>
-          <p-fileupload
-            mode="basic"
-            name="chapterImage"
-            accept="image/*"
-            [chooseLabel]="language.text('chooseImage')"
-            chooseIcon="pi pi-image"
-            [auto]="false"
-            [customUpload]="true"
-            (onSelect)="onChapterImage($event.files)"
-          />
-        </div>
-        <label class="flex min-w-0 flex-[1_1_16rem] flex-col gap-2">{{ language.text('orImageUrl') }}
-          <input
-            pInputText
-            class="w-full"
-            name="chapterImageUrl"
-            type="url"
-            [(ngModel)]="chapterForm.backgroundImage"
-            (ngModelChange)="clearSelectedChapterImage()"
-            placeholder="https://example.com/chapter.jpg"
-          />
-        </label>
-      </div>
-      @if (backgroundPreviewUrl || chapterForm.backgroundImage) {
-        <p-image [src]="backgroundPreviewUrl || chapterForm.backgroundImage" [alt]="language.text('backgroundPreview')" [preview]="true" imageClass="chapter-preview" />
-      }
+      <button pButton type="button" severity="secondary" (click)="openMediaPicker()">
+        <i class="pi pi-images" aria-hidden="true"></i>
+        <span>{{ language.text('chooseFromLibrary') }}</span>
+      </button>
       @if (chapterSaving) {
         <p class="text-sm text-[var(--p-text-muted-color)]" role="status" aria-live="polite">
           {{ language.text('savingChapter') }}
@@ -95,7 +105,17 @@
       <div class="flex flex-wrap gap-2">
         <button pButton type="submit" [disabled]="chapterSaving">
           <i class="pi pi-save" aria-hidden="true"></i>
-          <span>{{ chapterEditingId ? language.text('save') + ' ' + itemName : language.text(itemName === 'chapter' ? 'addChapter' : itemName === 'event' ? 'addEvent' : 'addCharacter') }}</span>
+          <span>{{
+            chapterEditingId
+              ? language.text('save') + ' ' + itemName
+              : language.text(
+                  itemName === 'chapter'
+                    ? 'addChapter'
+                    : itemName === 'event'
+                      ? 'addEvent'
+                      : 'addCharacter'
+                )
+          }}</span>
         </button>
         @if (chapterEditingId) {
           <button pButton type="button" severity="secondary" (click)="cancelChapterEdit()">
@@ -106,4 +126,11 @@
       </div>
     </form>
   </section>
+  <app-media-picker
+    [visible]="mediaPickerVisible"
+    (visibleChange)="mediaPickerVisible = $event"
+    [value]="chapterForm.backgroundImage ?? ''"
+    [title]="language.text('chooseMedia')"
+    (selected)="mediaPicked($event)"
+  />
 </section>
