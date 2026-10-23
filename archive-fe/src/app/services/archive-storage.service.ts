@@ -517,8 +517,11 @@ export class ArchiveStorageService {
     const unresolved = new Set<string>();
     const resolve = (value?: string): Promise<string | undefined> => {
       const source = value?.trim();
-      if (!source || !isRemoteImageUrl(source)) {
-        return Promise.resolve(value);
+      if (!source || isMediaReference(source)) {
+        return Promise.resolve(source || undefined);
+      }
+      if (!isRemoteImageUrl(source)) {
+        return Promise.resolve(source);
       }
       const existing = imported.get(source);
       if (existing) {
@@ -533,11 +536,41 @@ export class ArchiveStorageService {
       imported.set(source, pending);
       return pending;
     };
+    const spriteReferences = new Map<string, Promise<string | undefined>>();
+    let folderIds: Map<string, string> | undefined;
+    const resolveSprite = async (value?: string): Promise<string> => {
+      const source = value?.trim() ?? '';
+      if (!source) {
+        return '';
+      }
+      if (isMediaReference(source) || isRemoteImageUrl(source)) {
+        return (await resolve(source)) ?? '';
+      }
+      const existing = spriteReferences.get(source);
+      if (existing) {
+        return (await existing) ?? '';
+      }
+      const pending = (async () => {
+        folderIds ??= new Map(
+          (await this.listMediaFolders()).map((folder) => [
+            folder.name.trim().toLowerCase(),
+            folder.id,
+          ]),
+        );
+        return this.findMediaReference(source, folderIds);
+      })();
+      spriteReferences.set(source, pending);
+      const reference = await pending;
+      if (!reference) {
+        unresolved.add(source);
+      }
+      return reference ?? '';
+    };
     const transform = async (items: DialogueNode[]): Promise<DialogueNode[]> =>
       Promise.all(
         items.map(async (node) => {
           if (node.type === 'line') {
-            return { ...node, sprite: await resolve(node.sprite) };
+            return { ...node, sprite: await resolveSprite(node.sprite) };
           }
           if (node.type === 'choice') {
             return {
@@ -554,6 +587,50 @@ export class ArchiveStorageService {
         }),
       );
     return { nodes: await transform(nodes), unresolved: unresolved.size };
+  }
+
+  private async findMediaReference(
+    value: string,
+    folders: Map<string, string>,
+  ): Promise<string | undefined> {
+    const segments = value
+      .split('/')
+      .map((segment) => segment.trim())
+      .filter(Boolean);
+    if (segments.length > 2 || !segments.length) {
+      return undefined;
+    }
+    const fileName = segments.at(-1) ?? '';
+    const folderName = segments.length === 2 ? segments[0] : undefined;
+    const normalizedFileName = fileName.replace(/\.[a-z0-9]+$/i, '').toLowerCase();
+    const folderId = folderName ? folders.get(folderName.toLowerCase()) : undefined;
+    if (folderName && !folderId) {
+      return undefined;
+    }
+    let query = this.supabase
+      .from('media_assets')
+      .select(
+        'id,display_name,object_key,provider,mime_type,byte_size,folder_id,original_url,attribution',
+      )
+      .limit(1000);
+    query = folderId ? query.eq('folder_id', folderId) : query.is('folder_id', null);
+    const { data, error } = await query;
+    if (error) {
+      throw error;
+    }
+    const asset = ((data as MediaAssetRow[] | null) ?? []).find(
+      (row) =>
+        row.display_name
+          .replace(/\.[a-z0-9]+$/i, '')
+          .trim()
+          .toLowerCase() === normalizedFileName,
+    );
+    if (!asset) {
+      return undefined;
+    }
+    const media = this.mediaAssetFromRow(asset);
+    this.rememberMediaAsset(media);
+    return mediaReference(media.id);
   }
 
   public async resolveMediaReferences(values: Iterable<string | null | undefined>): Promise<void> {

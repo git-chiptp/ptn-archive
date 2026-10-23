@@ -23,7 +23,11 @@ export class TranscriptImportService {
     }).pipe(
       map((buffer) => {
         onProgress?.(35);
-        const workbook = XLSX.read(buffer, { cellHTML: true, cellStyles: true, cellFormula: false });
+        const workbook = XLSX.read(buffer, {
+          cellHTML: true,
+          cellStyles: true,
+          cellFormula: false,
+        });
         const sheetName = workbook.SheetNames[0];
         if (!sheetName) {
           onProgress?.(100);
@@ -54,17 +58,27 @@ export class TranscriptImportService {
     for (let index = start; index < rows.length; index += 1) {
       const row = rows[index] ?? [];
       const line = this.parseRow(row, index, sheet, hasSpriteColumn);
-      if (line.speaker.trim() || line.text.trim() || line.prompt?.trim() || line.option?.trim() || line.sprite?.trim()) {
+      if (
+        line.speaker.trim() ||
+        line.text.trim() ||
+        line.prompt?.trim() ||
+        line.option?.trim() ||
+        line.sprite?.trim()
+      ) {
         imported.push(line);
       }
     }
     return imported;
   }
 
-  private parseRow(row: unknown[], rowIndex: number, sheet: XLSX.WorkSheet, hasSpriteColumn: boolean): ImportedLine {
+  private parseRow(
+    row: unknown[],
+    rowIndex: number,
+    sheet: XLSX.WorkSheet,
+    hasSpriteColumn: boolean,
+  ): ImportedLine {
     const speakerColumn = hasSpriteColumn ? 1 : 0;
-    const rawSprite = hasSpriteColumn ? this.cellText(row[0]).trim() : '';
-    const sprite = this.validImageSource(rawSprite) ? rawSprite : '';
+    const sprite = hasSpriteColumn ? this.cellText(row[0]).trim() : '';
     const speaker = this.cellText(row[speakerColumn]);
     let firstContent = speakerColumn + 1;
     while (firstContent < row.length && !this.cellText(row[firstContent]).trim()) {
@@ -152,7 +166,11 @@ export class TranscriptImportService {
         const safeStyles = styles
           .split(';')
           .map((style) => style.trim())
-          .filter((style) => /^(font-weight\s*:\s*(bold|[1-9]00)|font-style\s*:\s*italic|color\s*:\s*#[0-9a-f]{6})$/i.test(style))
+          .filter((style) =>
+            /^(font-weight\s*:\s*(bold|[1-9]00)|font-style\s*:\s*italic|color\s*:\s*#[0-9a-f]{6})$/i.test(
+              style,
+            ),
+          )
           .join(';');
         if (safeStyles) element.setAttribute('style', safeStyles);
         else element.removeAttribute('style');
@@ -170,7 +188,13 @@ export class TranscriptImportService {
   }
 
   private stripTags(value: string): string {
-    return value.replace(/<[^>]+>/g, ' ').replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+    return value
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&gt;/g, '>')
+      .replace(/&lt;/g, '<')
+      .replace(/&amp;/g, '&')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   private removeMarker(value: string, marker: string): string {
@@ -238,7 +262,7 @@ export class TranscriptImportService {
         type: 'line',
         id: `imported-${index + 1}`,
         speaker: line.speaker,
-        sprite: this.validImageSource(line.sprite) ? line.sprite!.trim() : '',
+        sprite: line.sprite?.trim() ?? '',
         text: line.text || line.description,
         description: line.description || undefined,
       };
@@ -250,9 +274,5 @@ export class TranscriptImportService {
       }
     });
     return nodes;
-  }
-
-  private validImageSource(value?: string) {
-    return !!value && /^https?:\/\/.+|^data:image\/[a-z0-9.+-]+;base64,.+$/i.test(value.trim());
   }
 }
