@@ -12,7 +12,7 @@ import { AuthService } from '../../services/auth.service';
 import { LanguageService } from '../../services/language.service';
 import { archiveBluePreset, archiveGreyPreset, archiveLightPreset } from '../../archive.theme';
 
-type Theme = 'light' | 'dark-blue' | 'dark-grey';
+type Theme = 'light' | 'dark-blue' | 'dark';
 
 @Component({
   standalone: true,
@@ -60,7 +60,12 @@ export class AppNavigationComponent {
     this.updateDrawerPosition();
     if (typeof localStorage !== 'undefined') {
       const storedTheme = localStorage.getItem('archive-theme');
-      this.theme = storedTheme === 'dark' ? 'dark-blue' : storedTheme === 'dark-grey' ? 'dark-grey' : 'light';
+      this.theme =
+        storedTheme === 'dark-blue'
+          ? 'dark-blue'
+          : storedTheme === 'dark' || storedTheme === 'dark-grey'
+            ? 'dark'
+            : 'light';
     }
     this.applyTheme();
   }
@@ -76,7 +81,7 @@ export class AppNavigationComponent {
     usePreset(
       this.theme === 'light'
         ? archiveLightPreset
-        : this.theme === 'dark-grey'
+        : this.theme === 'dark'
           ? archiveGreyPreset
           : archiveBluePreset,
     );
@@ -87,11 +92,18 @@ export class AppNavigationComponent {
     this.router.navigateByUrl(path);
   }
 
-  public toggleTheme() {
-    this.theme =
-      this.theme === 'light' ? 'dark-blue' : this.theme === 'dark-blue' ? 'dark-grey' : 'light';
+  public get themeOptions(): { value: Theme; label: string }[] {
+    return [
+      { value: 'light', label: this.language.text('light') },
+      { value: 'dark-blue', label: this.language.text('darkBlue') },
+      { value: 'dark', label: this.language.text('dark') },
+    ];
+  }
+
+  public setTheme(theme: Theme) {
+    this.theme = theme;
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('archive-theme', this.theme);
+      localStorage.setItem('archive-theme', theme);
     }
     this.applyTheme();
   }
