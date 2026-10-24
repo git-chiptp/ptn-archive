@@ -17,10 +17,10 @@ preview_bucket_name = "archive-media-staging"
 name = "ptn-archive"
 
 [env.production.vars]
-APP_ORIGINS = ""
-SUPABASE_URL = ""
-SUPABASE_ANON_KEY = ""
-R2_PUBLIC_URL = ""
+APP_ORIGINS = "https://distionary.pages.dev"
+SUPABASE_URL = "https://pub-d1a6f09f7eb444e38399b91d9183008c.r2.dev"
+SUPABASE_ANON_KEY = "sb_publishable_IoT31QScdSYlaOv1Z6Kh3w_aJojHKri"
+R2_PUBLIC_URL = "https://ryxhjxusnvqlqjccdtup.supabase.co"
 
 [[env.production.r2_buckets]]
 binding = "MEDIA_BUCKET"
