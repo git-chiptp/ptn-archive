@@ -1,11 +1,10 @@
 import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LanguageService } from '../../services/language.service';
-import { CardModule } from 'primeng/card';
 import { ImageModule } from 'primeng/image';
 @Component({
   standalone: true,
-  imports: [CardModule, ImageModule, RouterLink],
+  imports: [ImageModule, RouterLink],
   templateUrl: './home.page.html',
 })
 export class HomePage {
@@ -43,5 +42,4 @@ export class HomePage {
       image: '/img/menu/perspectra.png',
     },
   ];
-
 }

@@ -8,6 +8,8 @@ export interface ImportedLine {
   src?: string;
   speaker: string;
   text: string;
+  male?: string;
+  female?: string;
   description: string;
   type?: string;
   prompt?: string;
@@ -90,6 +92,7 @@ export class TranscriptImportService {
     const raw = this.richText(cell, row[firstContent]);
     const markerText = this.decodeEntities(raw);
     const plain = this.stripTags(markerText).trim();
+    const variants = this.parseVariants(plain);
     const depth = Math.max(0, firstContent - 1);
     if (hasSpriteColumn && sprite && !speaker.trim() && !plain) {
       return {
@@ -99,6 +102,18 @@ export class TranscriptImportService {
         text: '',
         description: '',
         type: 'image',
+        depth,
+      };
+    }
+    if (variants) {
+      return {
+        sprite,
+        speaker,
+        text: variants.male ?? variants.female ?? '',
+        male: variants.male,
+        female: variants.female,
+        description: '',
+        type: depth > 0 ? 'option-line' : 'line',
         depth,
       };
     }
@@ -144,6 +159,30 @@ export class TranscriptImportService {
     };
   }
 
+  private parseVariants(value: string): { male?: string; female?: string } | undefined {
+    const lines = value
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (!lines.length || lines.some((line) => !/^(male|female)\s*:/i.test(line))) {
+      return undefined;
+    }
+
+    const variants: { male?: string; female?: string } = {};
+    for (const line of lines) {
+      const match = /^(male|female)\s*:\s*(.*)$/i.exec(line);
+      if (!match) {
+        return undefined;
+      }
+      const key = match[1].toLowerCase() as 'male' | 'female';
+      const text = match[2].trim();
+      if (text) {
+        variants[key] = text;
+      }
+    }
+    return variants.male || variants.female ? variants : undefined;
+  }
+
   private cellAt(sheet: XLSX.WorkSheet, column: number, row: number): XLSX.CellObject | undefined {
     const address = XLSX.utils.encode_cell({ c: column, r: row });
     return sheet[address];
@@ -163,6 +202,9 @@ export class TranscriptImportService {
       return this.escape(this.stripTags(value));
     }
     const document = new DOMParser().parseFromString(value, 'text/html');
+    document.body.querySelectorAll('br').forEach((element) => {
+      element.replaceWith(document.createTextNode('\n'));
+    });
     const allowedTags = new Set(['B', 'I', 'STRONG', 'EM', 'SPAN']);
     document.body.querySelectorAll('*').forEach((element) => {
       if (!allowedTags.has(element.tagName)) {
@@ -202,17 +244,19 @@ export class TranscriptImportService {
 
   private stripTags(value: string): string {
     return value
+      .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<[^>]+>/g, ' ')
       .replace(/&gt;/g, '>')
       .replace(/&lt;/g, '<')
       .replace(/&amp;/g, '&')
-      .replace(/\s+/g, ' ')
+      .replace(/[ \t\f\v]+/g, ' ')
+      .replace(/ *\n */g, '\n')
       .trim();
   }
 
   private removeMarker(value: string, marker: string): string {
     const escaped = marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return value.replace(new RegExp(`^((?:<[^>]+>)*)\\s*${escaped}\\s*`), '$1');
+    return value.replace(new RegExp(`^((?:<[^>]+>)*)\s*${escaped}\s*`), '$1');
   }
 
   private removeLiteralMarker(value: string): string {
@@ -285,14 +329,21 @@ export class TranscriptImportService {
         options.push({ depth, node: option });
         return;
       }
-      const node = {
+      const text = line.text || line.description;
+      const node: any = {
         type: 'line',
         id: `imported-${index + 1}`,
         speaker: line.speaker,
         sprite: line.sprite?.trim() ?? '',
-        text: line.text || line.description,
+        text,
         description: line.description || undefined,
       };
+      if (line.male || line.female) {
+        node.variants = {
+          male: line.male || text,
+          female: line.female || text,
+        };
+      }
       const parentOption = [...options].reverse().find((item) => item.depth <= depth);
       if (parentOption && line.type === 'option-line') {
         parentOption.node.nodes.push(node);
