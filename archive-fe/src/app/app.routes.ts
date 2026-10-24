@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
-import { adminGuard } from './guards/admin.guard';
 export const routes: Routes = [
   {
     path: '',
@@ -125,7 +124,8 @@ export const routes: Routes = [
   {
     path: 'media',
     loadComponent: () => import('./pages/media/media.page').then((page) => page.MediaPage),
-    canActivate: [adminGuard],
+    canMatch: [authGuard],
+    canActivate: [authGuard],
   },
   {
     path: 'add-transcript',

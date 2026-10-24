@@ -12,6 +12,11 @@ export class HomePage {
 
   links = [
     {
+      path: '/glossary',
+      key: 'glossary',
+      image: '/img/menu/glossary.jpg',
+    },
+    {
       path: '/main-story',
       key: 'mainStory',
       image: '/img/menu/main-story.png',
@@ -40,11 +45,6 @@ export class HomePage {
       path: '/perspectra',
       key: 'perspectra',
       image: '/img/menu/perspectra.png',
-    },
-    {
-      path: '/glossary',
-      key: 'glossary',
-      image: '/img/menu/glossary.jpg',
     },
   ];
 }

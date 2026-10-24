@@ -818,7 +818,7 @@ export class ArchiveStorageService {
     }
     const { data, error } = await this.supabase.auth.getSession();
     if (error || !data.session?.access_token) {
-      throw new Error('Sign in as an administrator to manage media.');
+      throw new Error('Sign in to manage media.');
     }
     const headers = new Headers(init.headers);
     headers.set('authorization', `Bearer ${data.session.access_token}`);

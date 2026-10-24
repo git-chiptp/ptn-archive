@@ -1,5 +1,8 @@
 <div class="min-h-screen">
-  <header class="flex min-h-12 items-center gap-2 border-b border-[var(--p-content-border-color)] bg-[var(--p-content-background)] px-3">
+  <header
+    class="sticky top-0 z-40 flex min-h-12 items-center gap-2 border-b border-[var(--p-content-border-color)] bg-[var(--p-content-background)] px-3 transition-transform duration-200"
+    [class.-translate-y-full]="headerHidden"
+  >
     <p-button
       icon="pi pi-bars"
       [rounded]="true"

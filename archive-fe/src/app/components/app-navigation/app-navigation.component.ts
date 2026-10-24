@@ -30,6 +30,9 @@ export class AppNavigationComponent {
   public theme: Theme = 'light';
   public drawerOpen = false;
   public drawerPosition: 'top' | 'left' = 'left';
+  public headerHidden = false;
+
+  private lastScrollY = 0;
 
   public readonly navItems = [
     { icon: 'book', label: 'mainStory', path: '/main-story' },
@@ -38,8 +41,8 @@ export class AppNavigationComponent {
     { icon: 'comments', label: 'interrogation', path: '/interrogation' },
     { icon: 'eye', label: 'mirage', path: '/mirage' },
     { icon: 'chart-line', label: 'perspectra', path: '/perspectra' },
-    { icon: 'info-circle', label: 'credits', path: '/credits' },
     { icon: 'language', label: 'glossary', path: '/glossary' },
+    { icon: 'info-circle', label: 'credits', path: '/credits' },
     { icon: 'images', label: 'mediaLibrary', path: '/media' },
   ] as const;
 
@@ -74,6 +77,21 @@ export class AppNavigationComponent {
   @HostListener('window:resize')
   public updateDrawerPosition() {
     this.drawerPosition = (this.document.defaultView?.innerWidth ?? 1024) < 1024 ? 'top' : 'left';
+    if (this.drawerPosition === 'left') this.headerHidden = false;
+  }
+
+  @HostListener('window:scroll')
+  public updateHeaderVisibility() {
+    const window = this.document.defaultView;
+    if (!window || this.drawerPosition === 'left') {
+      this.headerHidden = false;
+      return;
+    }
+
+    const scrollY = Math.max(window.scrollY, 0);
+    const scrollingDown = scrollY > this.lastScrollY;
+    this.headerHidden = scrollingDown && scrollY > 48;
+    this.lastScrollY = scrollY;
   }
 
   private applyTheme() {
