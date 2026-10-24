@@ -536,9 +536,9 @@ export class ArchiveStorageService {
       imported.set(source, pending);
       return pending;
     };
-    const spriteReferences = new Map<string, Promise<string | undefined>>();
+    const libraryReferences = new Map<string, Promise<string | undefined>>();
     let folderIds: Map<string, string> | undefined;
-    const resolveSprite = async (value?: string): Promise<string> => {
+    const resolveLibraryReference = async (value?: string): Promise<string> => {
       const source = value?.trim() ?? '';
       if (!source) {
         return '';
@@ -546,7 +546,7 @@ export class ArchiveStorageService {
       if (isMediaReference(source) || isRemoteImageUrl(source)) {
         return (await resolve(source)) ?? '';
       }
-      const existing = spriteReferences.get(source);
+      const existing = libraryReferences.get(source);
       if (existing) {
         return (await existing) ?? '';
       }
@@ -559,12 +559,23 @@ export class ArchiveStorageService {
         );
         return this.findMediaReference(source, folderIds);
       })();
-      spriteReferences.set(source, pending);
+      libraryReferences.set(source, pending);
       const reference = await pending;
       if (!reference) {
         unresolved.add(source);
       }
       return reference ?? '';
+    };
+    const resolveSprite = (value?: string) => resolveLibraryReference(value);
+    const resolveImage = async (value?: string): Promise<string> => {
+      const source = value?.trim() ?? '';
+      if (!source) {
+        return '';
+      }
+      if (isMediaReference(source) || isRemoteImageUrl(source)) {
+        return (await resolve(source)) ?? '';
+      }
+      return resolveLibraryReference(source);
     };
     const transform = async (items: DialogueNode[]): Promise<DialogueNode[]> =>
       Promise.all(
@@ -583,7 +594,7 @@ export class ArchiveStorageService {
               ),
             };
           }
-          return { ...node, src: (await resolve(node.src)) ?? '' };
+          return { ...node, src: (await resolveImage(node.src)) ?? '' };
         }),
       );
     return { nodes: await transform(nodes), unresolved: unresolved.size };

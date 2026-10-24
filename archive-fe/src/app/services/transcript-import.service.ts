@@ -5,6 +5,7 @@ import { map } from 'rxjs/operators';
 
 export interface ImportedLine {
   sprite?: string;
+  src?: string;
   speaker: string;
   text: string;
   description: string;
@@ -63,7 +64,8 @@ export class TranscriptImportService {
         line.text.trim() ||
         line.prompt?.trim() ||
         line.option?.trim() ||
-        line.sprite?.trim()
+        line.sprite?.trim() ||
+        line.src?.trim()
       ) {
         imported.push(line);
       }
@@ -89,6 +91,17 @@ export class TranscriptImportService {
     const markerText = this.decodeEntities(raw);
     const plain = this.stripTags(markerText).trim();
     const depth = Math.max(0, firstContent - 1);
+    if (hasSpriteColumn && sprite && !speaker.trim() && !plain) {
+      return {
+        sprite: '',
+        src: sprite,
+        speaker: '',
+        text: '',
+        description: '',
+        type: 'image',
+        depth,
+      };
+    }
     if (plain.startsWith('\\>')) {
       return {
         sprite,
@@ -242,6 +255,20 @@ export class TranscriptImportService {
           nodes.push(node);
         }
         choices.push({ depth, node });
+        return;
+      }
+      if (line.type === 'image') {
+        const node = {
+          type: 'image',
+          id: `imported-image-${index + 1}`,
+          src: line.src ?? '',
+        };
+        const parentOption = [...options].reverse().find((item) => item.depth <= depth);
+        if (parentOption) {
+          parentOption.node.nodes.push(node);
+        } else {
+          nodes.push(node);
+        }
         return;
       }
       if (line.type === 'option') {
