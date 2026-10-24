@@ -42,13 +42,15 @@
         (ngModelChange)="setLanguage($event)"
         [fluid]="true"
       />
-      <p-button
-        [icon]="theme !== 'light' ? 'pi pi-sun' : 'pi pi-moon'"
-        [label]="theme !== 'light' ? language.text('light') : language.text('dark')"
-        severity="secondary"
-        [text]="true"
-        styleClass="w-full justify-start"
-        (onClick)="toggleTheme()"
+      <label class="sr-only" for="drawer-theme">{{ language.text('theme') }}</label>
+      <p-select
+        inputId="drawer-theme"
+        [options]="themeOptions"
+        optionLabel="label"
+        optionValue="value"
+        [ngModel]="theme"
+        (ngModelChange)="setTheme($event)"
+        [fluid]="true"
       />
       @if (auth.user(); as user) {
         <p-button
