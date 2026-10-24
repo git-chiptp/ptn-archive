@@ -14,7 +14,7 @@ bucket_name = "archive-media-staging"
 preview_bucket_name = "archive-media-staging"
 
 [env.production]
-name = "archive-media-worker-production"
+name = "ptn-archive"
 
 [env.production.vars]
 APP_ORIGINS = ""
