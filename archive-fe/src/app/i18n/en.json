@@ -220,5 +220,22 @@
   "readyToImport": "{count} lines ready to import.",
   "importedLines": "Imported {count} lines into the editor.",
   "importedTranscript": "Imported transcript lines into the editor.",
-  "importedWithUnresolvedImages": "Imported the transcript, but {count} image URL(s) could not be stored and were cleared for review."
+  "importedWithUnresolvedImages": "Imported the transcript, but {count} image URL(s) could not be stored and were cleared for review.",
+  "glossary": "Glossary",
+  "glossaryDescription": "Reference terms in English, Chinese, and Vietnamese.",
+  "addGlossaryTerm": "Add term",
+  "addGlossaryEntry": "Add glossary entry",
+  "english": "English",
+  "chinese": "Chinese",
+  "vietnamese": "Vietnamese",
+  "detail": "Detail",
+  "note": "Note",
+  "glossaryRequired": "Enter English and Vietnamese before saving.",
+  "glossaryLoading": "Loading glossary...",
+  "glossaryEmpty": "No glossary terms yet.",
+  "glossaryLoadFailed": "Could not load the glossary.",
+  "glossarySaveFailed": "Could not save the glossary term.",
+  "glossarySaved": "Glossary term added.",
+  "glossaryNoDetail": "No detail provided.",
+  "glossaryNoNote": "No note provided."
 }

@@ -220,5 +220,22 @@
   "readyToImport": "{count} dòng sẵn sàng để nhập.",
   "importedLines": "Đã nhập {count} dòng vào trình biên tập.",
   "importedTranscript": "Đã nhập các dòng bản chép lời vào trình biên tập.",
-  "importedWithUnresolvedImages": "Đã nhập transcript, nhưng không thể lưu {count} URL ảnh và đã xóa để bạn kiểm tra."
+  "importedWithUnresolvedImages": "Đã nhập transcript, nhưng không thể lưu {count} URL ảnh và đã xóa để bạn kiểm tra.",
+  "glossary": "Từ điển",
+  "glossaryDescription": "Tra cứu thuật ngữ bằng tiếng Anh, tiếng Trung và tiếng Việt.",
+  "addGlossaryTerm": "Thêm thuật ngữ",
+  "addGlossaryEntry": "Thêm mục từ",
+  "english": "Tiếng Anh",
+  "chinese": "Tiếng Trung",
+  "vietnamese": "Tiếng Việt",
+  "detail": "Chi tiết",
+  "note": "Ghi chú",
+  "glossaryRequired": "Vui lòng điền tiếng Anh và tiếng Việt.",
+  "glossaryLoading": "Đang tải từ điển...",
+  "glossaryEmpty": "Chưa có thuật ngữ nào.",
+  "glossaryLoadFailed": "Không thể tải từ điển.",
+  "glossarySaveFailed": "Không thể lưu thuật ngữ.",
+  "glossarySaved": "Đã thêm thuật ngữ.",
+  "glossaryNoDetail": "Chưa có chi tiết.",
+  "glossaryNoNote": "Chưa có ghi chú."
 }

@@ -41,5 +41,10 @@ export class HomePage {
       key: 'perspectra',
       image: '/img/menu/perspectra.png',
     },
+    {
+      path: '/glossary',
+      key: 'glossary',
+      image: '/img/menu/glossary.jpg',
+    },
   ];
 }

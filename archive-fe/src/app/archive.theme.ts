@@ -31,10 +31,10 @@ const redPrimary = {
   800: '{red.800}',
   900: '{red.900}',
   950: '{red.950}',
-  color: 'light-dark({red.800}, {red.500})',
+  color: 'light-dark({red.900}, {red.600})',
   contrastColor: 'light-dark(#ffffff, {surface.950})',
-  hoverColor: 'light-dark({red.900}, {red.400})',
-  activeColor: 'light-dark({red.950}, {red.300})',
+  hoverColor: 'light-dark({red.950}, {red.500})',
+  activeColor: 'light-dark({red.950}, {red.700})',
 };
 
 export const archiveLightPreset = definePreset(Aura, {
@@ -66,10 +66,10 @@ export const archiveGreyPreset = definePreset(Aura, {
   semantic: {
     primary: {
       ...redPrimary,
-      color: 'light-dark({red.800}, {red.600})',
+      color: 'light-dark({red.900}, {red.700})',
       contrastColor: '#ffffff',
-      hoverColor: 'light-dark({red.900}, {red.500})',
-      activeColor: 'light-dark({red.950}, {red.700})',
+      hoverColor: 'light-dark({red.950}, {red.600})',
+      activeColor: 'light-dark({red.950}, {red.800})',
     },
     surface: {
       50: 'light-dark({slate.50}, {neutral.50})',
