@@ -30,8 +30,16 @@
   [(visible)]="drawerOpen"
   [position]="drawerPosition"
   [style]="drawerPosition === 'top' ? { height: 'min(80dvh, 36rem)' } : { width: '18rem' }"
-  header="DISTIONARY"
 >
+  <ng-template #header>
+    <button
+      type="button"
+      class="archive-brand cursor-pointer border-0 bg-transparent p-0 text-sm font-extrabold tracking-[0.16em] text-[var(--p-text-color)]"
+      (click)="navigate('/')"
+    >
+      DISTIONARY
+    </button>
+  </ng-template>
   <p-menu [model]="navigationMenu" [ariaLabel]="language.text('navigation')" />
   <ng-template #footer>
     <div class="flex flex-col gap-2 border-t border-[var(--p-content-border-color)] pt-4">
