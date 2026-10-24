@@ -312,7 +312,14 @@ function bearer(request: Request): string {
   return value;
 }
 
-async function assertAdmin(request: Request, env: Env): Promise<void> {
+type AuthenticatedUser = {
+  app_metadata?: { role?: unknown; roles?: unknown };
+};
+
+async function authenticatedUser(
+  request: Request,
+  env: Env,
+): Promise<AuthenticatedUser> {
   const authorization = bearer(request);
   const response = await withTimeout(
     fetch(`${env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1/user`, {
@@ -320,10 +327,16 @@ async function assertAdmin(request: Request, env: Env): Promise<void> {
     }),
     "Authentication request timed out.",
   );
-  if (!response.ok) throw new Error("Administrator access required.");
-  const user = (await response.json()) as {
-    app_metadata?: { role?: unknown; roles?: unknown };
-  };
+  if (!response.ok) throw new Error("Authentication required.");
+  return (await response.json()) as AuthenticatedUser;
+}
+
+async function assertAuthenticated(request: Request, env: Env): Promise<void> {
+  await authenticatedUser(request, env);
+}
+
+async function assertAdmin(request: Request, env: Env): Promise<void> {
+  const user = await authenticatedUser(request, env);
   const roles = Array.isArray(user.app_metadata?.roles)
     ? user.app_metadata.roles
     : [];
@@ -561,18 +574,22 @@ export default {
     if (!origins(env).has(request.headers.get("origin") ?? ""))
       return errorResponse(request, env, "Origin not allowed.", 403);
     try {
-      await assertAdmin(request, env);
       const url = new URL(request.url);
       const match = url.pathname.match(
         /^\/media(?:\/(upload|import|replace|delete))?(?:\/([0-9a-f-]+))?$/,
       );
-      if (request.method === "POST" && match?.[1] === "upload")
+      if (!match || !match[1])
+        return errorResponse(request, env, "Not found.", 404);
+      if (match[1] === "upload" || match[1] === "import")
+        await assertAuthenticated(request, env);
+      else await assertAdmin(request, env);
+      if (request.method === "POST" && match[1] === "upload")
         return json(request, env, await handleUpload(request, env), 201);
-      if (request.method === "POST" && match?.[1] === "import")
+      if (request.method === "POST" && match[1] === "import")
         return json(request, env, await handleImport(request, env), 201);
-      if (request.method === "POST" && match?.[1] === "replace" && match[2])
+      if (request.method === "POST" && match[1] === "replace" && match[2])
         return json(request, env, await handleReplace(request, env, match[2]));
-      if (request.method === "DELETE" && match?.[1] === "delete" && match[2]) {
+      if (request.method === "DELETE" && match[1] === "delete" && match[2]) {
         await handleDelete(request, env, match[2]);
         return json(request, env, {});
       }

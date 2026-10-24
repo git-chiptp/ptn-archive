@@ -47,27 +47,29 @@
       <span>{{ language.text('importImage') }}</span>
     </button>
   </div>
-  <div class="flex flex-wrap items-end gap-3">
-    <label class="flex min-w-0 flex-1 flex-col gap-2">
-      <span class="font-medium">{{ language.text('newFolder') }}</span>
-      <input
-        pInputText
-        [(ngModel)]="folderName"
-        [placeholder]="language.text('folderName')"
-        (keydown.enter)="createFolder()"
-      />
-    </label>
-    <button
-      pButton
-      type="button"
-      severity="secondary"
-      [disabled]="!folderName.trim()"
-      (click)="createFolder()"
-    >
-      <i class="pi pi-folder-plus" aria-hidden="true"></i>
-      <span>{{ language.text('createFolder') }}</span>
-    </button>
-  </div>
+  @if (isAdmin) {
+    <div class="flex flex-wrap items-end gap-3">
+      <label class="flex min-w-0 flex-1 flex-col gap-2">
+        <span class="font-medium">{{ language.text('newFolder') }}</span>
+        <input
+          pInputText
+          [(ngModel)]="folderName"
+          [placeholder]="language.text('folderName')"
+          (keydown.enter)="createFolder()"
+        />
+      </label>
+      <button
+        pButton
+        type="button"
+        severity="secondary"
+        [disabled]="!folderName.trim()"
+        (click)="createFolder()"
+      >
+        <i class="pi pi-folder-plus" aria-hidden="true"></i>
+        <span>{{ language.text('createFolder') }}</span>
+      </button>
+    </div>
+  }
   <div class="flex flex-wrap items-center gap-2">
     @if (selectedFolderId) {
       <button pButton type="button" severity="secondary" (click)="showRoot()">
@@ -96,32 +98,34 @@
             <i class="pi pi-folder" aria-hidden="true"></i>
             <span class="truncate">{{ folder.name }}</span>
           </button>
-          <button
-            pButton
-            type="button"
-            text
-            size="small"
-            [attr.aria-label]="language.text('renameFolder')"
-            (click)="startRenameFolder(folder)"
-          >
-            <i class="pi pi-pencil" aria-hidden="true"></i>
-          </button>
-          <button
-            pButton
-            type="button"
-            text
-            severity="danger"
-            size="small"
-            [attr.aria-label]="language.text('deleteFolder')"
-            (click)="removeFolder(folder)"
-          >
-            <i class="pi pi-trash" aria-hidden="true"></i>
-          </button>
+          @if (isAdmin) {
+            <button
+              pButton
+              type="button"
+              text
+              size="small"
+              [attr.aria-label]="language.text('renameFolder')"
+              (click)="startRenameFolder(folder)"
+            >
+              <i class="pi pi-pencil" aria-hidden="true"></i>
+            </button>
+            <button
+              pButton
+              type="button"
+              text
+              severity="danger"
+              size="small"
+              [attr.aria-label]="language.text('deleteFolder')"
+              (click)="removeFolder(folder)"
+            >
+              <i class="pi pi-trash" aria-hidden="true"></i>
+            </button>
+          }
         </div>
       }
     </div>
   }
-  @if (editingFolder) {
+  @if (isAdmin && editingFolder) {
     <div class="flex flex-wrap items-end gap-2">
       <input
         pInputText
@@ -190,42 +194,50 @@
             <span class="truncate font-medium" [title]="asset.displayName">{{
               asset.displayName
             }}</span>
-            <select
-              class="h-9 w-full rounded border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] px-2 text-sm"
-              [ngModel]="asset.folderId ?? ''"
-              (ngModelChange)="moveAsset(asset, $event)"
-              [attr.aria-label]="language.text('folder')"
-            >
-              <option value="">{{ language.text('unfiledImages') }}</option>
-              @for (folder of folders; track folder.id) {
-                <option [value]="folder.id">{{ folder.name }}</option>
-              }
-            </select>
-            <div class="flex flex-wrap gap-2">
-              <button
-                pButton
-                type="button"
-                size="small"
-                severity="secondary"
-                (click)="startRename(asset)"
+            @if (isAdmin) {
+              <select
+                class="h-9 w-full rounded border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] px-2 text-sm"
+                [ngModel]="asset.folderId ?? ''"
+                (ngModelChange)="moveAsset(asset, $event)"
+                [attr.aria-label]="language.text('folder')"
               >
-                <i class="pi pi-pencil" aria-hidden="true"></i>
-                <span>{{ language.text('rename') }}</span>
-              </button>
-              <p-fileupload
-                mode="basic"
-                name="replace"
-                accept="image/*"
-                [chooseLabel]="language.text('replace')"
-                [auto]="false"
-                [customUpload]="true"
-                (onSelect)="replace(asset, $event.files)"
-              />
-              <button pButton type="button" size="small" severity="danger" (click)="remove(asset)">
-                <i class="pi pi-trash" aria-hidden="true"></i>
-                <span>{{ language.text('delete') }}</span>
-              </button>
-            </div>
+                <option value="">{{ language.text('unfiledImages') }}</option>
+                @for (folder of folders; track folder.id) {
+                  <option [value]="folder.id">{{ folder.name }}</option>
+                }
+              </select>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  pButton
+                  type="button"
+                  size="small"
+                  severity="secondary"
+                  (click)="startRename(asset)"
+                >
+                  <i class="pi pi-pencil" aria-hidden="true"></i>
+                  <span>{{ language.text('rename') }}</span>
+                </button>
+                <p-fileupload
+                  mode="basic"
+                  name="replace"
+                  accept="image/*"
+                  [chooseLabel]="language.text('replace')"
+                  [auto]="false"
+                  [customUpload]="true"
+                  (onSelect)="replace(asset, $event.files)"
+                />
+                <button
+                  pButton
+                  type="button"
+                  size="small"
+                  severity="danger"
+                  (click)="remove(asset)"
+                >
+                  <i class="pi pi-trash" aria-hidden="true"></i>
+                  <span>{{ language.text('delete') }}</span>
+                </button>
+              </div>
+            }
           }
         </article>
       }

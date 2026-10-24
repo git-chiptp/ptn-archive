@@ -281,16 +281,8 @@ Deno.serve(async (request) => {
     data: { user },
     error: userError,
   } = await userClient.auth.getUser();
-  if (
-    userError ||
-    !user ||
-    !(
-      user.app_metadata?.role === "admin" ||
-      (Array.isArray(user.app_metadata?.roles) &&
-        user.app_metadata.roles.includes("admin"))
-    )
-  ) {
-    return errorResponse("Administrator access required.", 403);
+  if (userError || !user) {
+    return errorResponse("Authentication required.", 401);
   }
   let body: ImportRequest;
   try {

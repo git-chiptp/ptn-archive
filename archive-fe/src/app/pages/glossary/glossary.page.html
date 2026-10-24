@@ -1,4 +1,5 @@
 <section class="flex flex-col gap-8">
+  <p-confirmdialog key="glossary-actions" [style]="{ width: 'min(28rem, calc(100vw - 2rem))' }" />
   <header class="flex flex-wrap items-end justify-between gap-4">
     <div class="min-w-0">
       <p
@@ -14,13 +15,81 @@
       </p>
     </div>
     @if (auth.user()) {
-      <button pButton type="button" (click)="openAdd()">
-        <i class="pi pi-plus" aria-hidden="true"></i>
-        <span>{{ language.text('addGlossaryTerm') }}</span>
-      </button>
+      <div class="flex flex-wrap gap-2">
+        <button pButton type="button" (click)="openAdd()">
+          <i class="pi pi-plus" aria-hidden="true"></i>
+          <span>{{ language.text('addGlossaryTerm') }}</span>
+        </button>
+        <button
+          pButton
+          type="button"
+          severity="danger"
+          [outlined]="!deleteMode"
+          (click)="toggleDeleteMode()"
+        >
+          <i
+            class="pi"
+            [class.pi-trash]="!deleteMode"
+            [class.pi-times]="deleteMode"
+            aria-hidden="true"
+          ></i>
+          <span>{{ language.text(deleteMode ? 'cancelDelete' : 'deleteGlossaryTerms') }}</span>
+        </button>
+      </div>
     }
   </header>
 
+  <div
+    class="flex flex-col gap-3 rounded-xl border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-4"
+  >
+    <label class="flex min-w-0 flex-col gap-2">
+      <span class="font-medium">{{ language.text('searchGlossary') }}</span>
+      <input
+        pInputText
+        type="search"
+        [(ngModel)]="search"
+        class="w-full"
+        [placeholder]="language.text('searchGlossaryPlaceholder')"
+      />
+    </label>
+    <fieldset class="flex min-w-0 flex-wrap gap-x-4 gap-y-2 border-0 p-0">
+      <legend class="mb-1 text-sm font-medium text-[var(--p-text-muted-color)]">
+        {{ language.text('glossarySearchFields') }}
+      </legend>
+      <label class="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          [checked]="allSearchFieldsSelected"
+          (change)="toggleAllSearchFields()"
+        />
+        <span>{{ language.text('allFields') }}</span>
+      </label>
+      @for (field of searchFields; track field) {
+        <label class="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            [checked]="isSearchFieldSelected(field)"
+            (change)="toggleSearchField(field)"
+          />
+          <span>{{ language.text(field) }}</span>
+        </label>
+      }
+    </fieldset>
+  </div>
+
+  @if (deleteMode && selectedIds.size) {
+    <div
+      class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-3"
+    >
+      <span class="text-sm text-[var(--p-text-muted-color)]">
+        {{ language.text('glossarySelectedCount', { count: selectedIds.size.toString() }) }}
+      </span>
+      <button pButton type="button" severity="danger" (click)="deleteSelected()">
+        <i class="pi pi-trash" aria-hidden="true"></i>
+        <span>{{ language.text('deleteSelected') }}</span>
+      </button>
+    </div>
+  }
   @if (status) {
     <p-message severity="success" variant="simple">{{ status }}</p-message>
   }
@@ -45,92 +114,131 @@
       </p>
     </div>
   } @else {
-    <div class="grid min-w-0 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-      @for (entry of entries; track entry.id) {
-        <article
-          class="group flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg"
-        >
-          <header
-            class="overflow-hidden border-b border-[color-mix(in_srgb,var(--p-primary-contrast-color)_20%,transparent)] bg-[var(--p-primary-950)] p-5 text-white"
+    @if (search.trim() && !filteredEntries.length) {
+      <div
+        class="flex min-h-40 items-center justify-center rounded-2xl border border-dashed border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-8 text-center text-[var(--p-text-muted-color)]"
+      >
+        {{ language.text('glossaryNoMatches') }}
+      </div>
+    } @else {
+      <div class="grid min-w-0 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        @for (entry of filteredEntries; track entry.id) {
+          <article
+            class="group relative flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg"
+            [class.border-[var(--p-primary-color)]]="deleteMode && selectedIds.has(entry.id)"
           >
-            <div class="flex flex-col gap-3">
-              <div class="grid min-w-0 grid-cols-[7rem_minmax(0,1fr)] items-baseline gap-3">
-                <span class="text-xs font-semibold uppercase tracking-[0.14em] opacity-70">
-                  {{ language.text('vietnamese') }}
-                </span>
-                <p class="m-0 break-words text-lg font-semibold leading-tight">
-                  {{ entry.vietnamese }}
-                </p>
+            @if (deleteMode) {
+              <label
+                class="absolute left-3 top-3 z-10 flex cursor-pointer items-center gap-2 rounded bg-black/35 px-2 py-1 text-white"
+              >
+                <input
+                  type="checkbox"
+                  [checked]="selectedIds.has(entry.id)"
+                  (change)="toggleSelected(entry.id)"
+                  [attr.aria-label]="language.text('selectGlossaryTerm', { name: entry.english })"
+                />
+                <span class="sr-only">{{
+                  language.text('selectGlossaryTerm', { name: entry.english })
+                }}</span>
+              </label>
+            }
+            <header
+              class="overflow-hidden border-b border-[color-mix(in_srgb,var(--p-primary-contrast-color)_20%,transparent)] bg-[var(--p-primary-950)] p-5 text-white"
+            >
+              <div class="flex flex-col gap-3">
+                <div class="grid min-w-0 grid-cols-[7rem_minmax(0,1fr)] items-baseline gap-3">
+                  <span class="text-xs font-semibold uppercase tracking-[0.14em] opacity-70">
+                    {{ language.text('vietnamese') }}
+                  </span>
+                  <p class="m-0 break-words text-lg font-semibold leading-tight">
+                    {{ entry.vietnamese }}
+                  </p>
+                </div>
+                <div class="grid min-w-0 grid-cols-[7rem_minmax(0,1fr)] items-baseline gap-3">
+                  <span class="text-xs font-semibold uppercase tracking-[0.14em] opacity-70">
+                    {{ language.text('english') }}
+                  </span>
+                  <h2 class="m-0 break-words text-lg font-semibold leading-tight tracking-tight">
+                    {{ entry.english }}
+                  </h2>
+                </div>
+                <div class="grid min-w-0 grid-cols-[7rem_minmax(0,1fr)] items-baseline gap-3">
+                  <span class="text-xs font-semibold uppercase tracking-[0.14em] opacity-70">
+                    {{ language.text('chinese') }}
+                  </span>
+                  <p class="m-0 break-words text-lg font-semibold leading-tight">
+                    {{ entry.chinese }}
+                  </p>
+                </div>
               </div>
-              <div class="grid min-w-0 grid-cols-[7rem_minmax(0,1fr)] items-baseline gap-3">
-                <span class="text-xs font-semibold uppercase tracking-[0.14em] opacity-70">
-                  {{ language.text('english') }}
-                </span>
-                <h2 class="m-0 break-words text-lg font-semibold leading-tight tracking-tight">
-                  {{ entry.english }}
-                </h2>
-              </div>
-              <div class="grid min-w-0 grid-cols-[7rem_minmax(0,1fr)] items-baseline gap-3">
-                <span class="text-xs font-semibold uppercase tracking-[0.14em] opacity-70">
-                  {{ language.text('chinese') }}
-                </span>
-                <p class="m-0 break-words text-lg font-semibold leading-tight">
-                  {{ entry.chinese }}
-                </p>
-              </div>
+            </header>
+
+            <div class="flex flex-1 flex-col p-5">
+              @if (auth.user()) {
+                <div class="absolute right-3 top-3 z-10">
+                  <button
+                    pButton
+                    type="button"
+                    text
+                    size="small"
+                    [attr.aria-label]="language.text('editGlossaryTerm', { name: entry.english })"
+                    [title]="language.text('editGlossaryTerm', { name: entry.english })"
+                    (click)="openEdit(entry)"
+                  >
+                    <i class="pi pi-pencil" aria-hidden="true"></i>
+                  </button>
+                </div>
+              }
+              <details class="group min-w-0 border-b border-[var(--p-content-border-color)] pb-4">
+                <summary
+                  class="flex cursor-pointer list-none items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--p-primary-color)] [&::-webkit-details-marker]:hidden"
+                >
+                  <span>{{ language.text('detail') }}</span>
+                  <i
+                    class="pi pi-chevron-down transition-transform duration-200 group-open:rotate-180"
+                    aria-hidden="true"
+                  ></i>
+                </summary>
+                @if (entry.detail) {
+                  <p
+                    class="mt-3 whitespace-pre-line break-words leading-6 text-[var(--p-text-color)]"
+                  >
+                    {{ entry.detail }}
+                  </p>
+                } @else {
+                  <p class="mt-3 text-sm italic text-[var(--p-text-muted-color)]">
+                    {{ language.text('glossaryNoDetail') }}
+                  </p>
+                }
+              </details>
+
+              <details class="group min-w-0 pt-4">
+                <summary
+                  class="flex cursor-pointer list-none items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--p-text-muted-color)] [&::-webkit-details-marker]:hidden"
+                >
+                  <span>{{ language.text('note') }}</span>
+                  <i
+                    class="pi pi-chevron-down transition-transform duration-200 group-open:rotate-180"
+                    aria-hidden="true"
+                  ></i>
+                </summary>
+                @if (entry.note) {
+                  <p
+                    class="mt-3 whitespace-pre-line break-words leading-6 text-[var(--p-text-muted-color)]"
+                  >
+                    {{ entry.note }}
+                  </p>
+                } @else {
+                  <p class="mt-3 text-sm italic text-[var(--p-text-muted-color)]">
+                    {{ language.text('glossaryNoNote') }}
+                  </p>
+                }
+              </details>
             </div>
-          </header>
-
-          <div class="flex flex-1 flex-col p-5">
-            <details class="group min-w-0 border-b border-[var(--p-content-border-color)] pb-4">
-              <summary
-                class="flex cursor-pointer list-none items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--p-primary-color)] [&::-webkit-details-marker]:hidden"
-              >
-                <span>{{ language.text('detail') }}</span>
-                <i
-                  class="pi pi-chevron-down transition-transform duration-200 group-open:rotate-180"
-                  aria-hidden="true"
-                ></i>
-              </summary>
-              @if (entry.detail) {
-                <p
-                  class="mt-3 whitespace-pre-line break-words leading-6 text-[var(--p-text-color)]"
-                >
-                  {{ entry.detail }}
-                </p>
-              } @else {
-                <p class="mt-3 text-sm italic text-[var(--p-text-muted-color)]">
-                  {{ language.text('glossaryNoDetail') }}
-                </p>
-              }
-            </details>
-
-            <details class="group min-w-0 pt-4">
-              <summary
-                class="flex cursor-pointer list-none items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--p-text-muted-color)] [&::-webkit-details-marker]:hidden"
-              >
-                <span>{{ language.text('note') }}</span>
-                <i
-                  class="pi pi-chevron-down transition-transform duration-200 group-open:rotate-180"
-                  aria-hidden="true"
-                ></i>
-              </summary>
-              @if (entry.note) {
-                <p
-                  class="mt-3 whitespace-pre-line break-words leading-6 text-[var(--p-text-muted-color)]"
-                >
-                  {{ entry.note }}
-                </p>
-              } @else {
-                <p class="mt-3 text-sm italic text-[var(--p-text-muted-color)]">
-                  {{ language.text('glossaryNoNote') }}
-                </p>
-              }
-            </details>
-          </div>
-        </article>
-      }
-    </div>
+          </article>
+        }
+      </div>
+    }
   }
 </section>
 
@@ -141,7 +249,7 @@
   [resizable]="false"
   [closable]="!saving"
   [dismissableMask]="!saving"
-  [header]="language.text('addGlossaryEntry')"
+  [header]="language.text(editingEntry ? 'editGlossaryEntry' : 'addGlossaryEntry')"
   [style]="{ width: 'min(42rem, calc(100vw - 2rem))' }"
 >
   <form #form="ngForm" class="flex flex-col gap-4" (ngSubmit)="submit()" novalidate>
