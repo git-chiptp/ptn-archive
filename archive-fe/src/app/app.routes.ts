@@ -41,8 +41,15 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/credits/credits.page').then((page) => page.CreditsPage),
   },
   {
+    path: 'glossary',
+    loadComponent: () => import('./pages/glossary/glossary.page').then((page) => page.GlossaryPage),
+  },
+  {
     path: 'main-story/:chapterId',
-    loadComponent: () => import('./pages/main-story-chapter/main-story-chapter.page').then((page) => page.MainStoryChapterPage),
+    loadComponent: () =>
+      import('./pages/main-story-chapter/main-story-chapter.page').then(
+        (page) => page.MainStoryChapterPage,
+      ),
   },
   {
     path: 'main-story/:chapterId/:stageId',
@@ -50,7 +57,10 @@ export const routes: Routes = [
   },
   {
     path: 'eternal-nightmare/:chapterId',
-    loadComponent: () => import('./pages/main-story-chapter/main-story-chapter.page').then((page) => page.MainStoryChapterPage),
+    loadComponent: () =>
+      import('./pages/main-story-chapter/main-story-chapter.page').then(
+        (page) => page.MainStoryChapterPage,
+      ),
     data: { category: 'eternal-nightmare' },
   },
   {
@@ -59,7 +69,8 @@ export const routes: Routes = [
   },
   {
     path: 'event-story/:eventId',
-    loadComponent: () => import('./pages/event-story/event-story.page').then((page) => page.EventStoryPage),
+    loadComponent: () =>
+      import('./pages/event-story/event-story.page').then((page) => page.EventStoryPage),
   },
   {
     path: 'event-story/:eventId/:stageId',
@@ -119,9 +130,7 @@ export const routes: Routes = [
   {
     path: 'add-transcript',
     loadComponent: () =>
-      import('./pages/add-transcript/add-transcript.page').then(
-        (page) => page.AddTranscriptPage,
-      ),
+      import('./pages/add-transcript/add-transcript.page').then((page) => page.AddTranscriptPage),
     canActivate: [authGuard],
   },
   {

@@ -39,6 +39,7 @@ export class AppNavigationComponent {
     { icon: 'eye', label: 'mirage', path: '/mirage' },
     { icon: 'chart-line', label: 'perspectra', path: '/perspectra' },
     { icon: 'info-circle', label: 'credits', path: '/credits' },
+    { icon: 'language', label: 'glossary', path: '/glossary' },
     { icon: 'images', label: 'mediaLibrary', path: '/media' },
   ] as const;
 
@@ -77,7 +78,10 @@ export class AppNavigationComponent {
 
   private applyTheme() {
     this.document.documentElement.classList.toggle('dark', this.theme !== 'light');
-    this.document.documentElement.setAttribute('data-theme', this.theme === 'light' ? 'light' : 'dark');
+    this.document.documentElement.setAttribute(
+      'data-theme',
+      this.theme === 'light' ? 'light' : 'dark',
+    );
     usePreset(
       this.theme === 'light'
         ? archiveLightPreset
