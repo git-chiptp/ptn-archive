@@ -38,13 +38,14 @@ interface EditableLine {
 interface EditableChoice {
   type: 'choice';
   id: string;
-  prompt: string;
   options: { id: string; label: string; nodes: EditableNode[] }[];
 }
 interface EditableImage {
   type: 'image';
   id: string;
   src: string;
+  male: string;
+  female: string;
 }
 
 @Component({
@@ -81,7 +82,13 @@ export class TranscriptEditorComponent implements OnChanges {
 
   public pickerValue = '';
 
-  public pickerTarget: 'sprite' | 'image' = 'image';
+  public pickerTarget: 'sprite' | 'image' | 'image-male' | 'image-female' = 'image';
+
+  public readonly imagePickerTargets = [
+    { key: 'image' as const, label: 'defaultImage' },
+    { key: 'image-male' as const, label: 'maleImage' },
+    { key: 'image-female' as const, label: 'femaleImage' },
+  ];
 
   public pickerNode: EditableLine | EditableImage | null = null;
 
@@ -139,17 +146,24 @@ export class TranscriptEditorComponent implements OnChanges {
   }
 
   public choiceSummary(node: EditableChoice) {
-    return node.prompt || this.language?.text('choice') || 'Choice';
+    return this.language?.text('choice') || 'Choice';
   }
 
-  public openMediaPicker(target: 'sprite' | 'image', node: EditableLine | EditableImage) {
+  public openMediaPicker(
+    target: 'sprite' | 'image' | 'image-male' | 'image-female',
+    node: EditableLine | EditableImage,
+  ) {
     this.pickerTarget = target;
     this.pickerNode = node;
     this.pickerValue =
       target === 'sprite' && node.type === 'line'
         ? node.sprite
         : node.type === 'image'
-          ? node.src
+          ? target === 'image-male'
+            ? node.male
+            : target === 'image-female'
+              ? node.female
+              : node.src
           : '';
     this.pickerVisible = true;
   }
@@ -157,8 +171,14 @@ export class TranscriptEditorComponent implements OnChanges {
   public mediaPicked(value: string) {
     if (this.pickerTarget === 'sprite' && this.pickerNode?.type === 'line') {
       this.pickerNode.sprite = value;
-    } else if (this.pickerTarget === 'image' && this.pickerNode?.type === 'image') {
-      this.pickerNode.src = value;
+    } else if (this.pickerNode?.type === 'image') {
+      if (this.pickerTarget === 'image-male') {
+        this.pickerNode.male = value;
+      } else if (this.pickerTarget === 'image-female') {
+        this.pickerNode.female = value;
+      } else {
+        this.pickerNode.src = value;
+      }
     }
     this.changed.emit();
   }
@@ -237,17 +257,37 @@ export class TranscriptEditorComponent implements OnChanges {
   }
 
   public insertChoice(index: number, event?: MouseEvent) {
-    this.insert(index, {
-      type: 'choice',
-      id: crypto.randomUUID(),
-      prompt: '',
-      options: [this.newOption()],
-    });
+    this.nodes.splice(
+      index,
+      0,
+      {
+        type: 'line',
+        id: crypto.randomUUID(),
+        speaker: '',
+        sprite: '',
+        text: '',
+        male: '',
+        female: '',
+      },
+      {
+        type: 'choice',
+        id: crypto.randomUUID(),
+        options: [this.newOption()],
+      },
+    );
+    this.openInsertIndex = null;
+    this.changed.emit();
     (event?.currentTarget as HTMLElement | null)?.blur();
   }
 
   public insertImage(index: number, event?: MouseEvent) {
-    this.insert(index, { type: 'image', id: crypto.randomUUID(), src: '' });
+    this.insert(index, {
+      type: 'image',
+      id: crypto.randomUUID(),
+      src: '',
+      male: '',
+      female: '',
+    });
     (event?.currentTarget as HTMLElement | null)?.blur();
   }
 
@@ -325,7 +365,6 @@ export class TranscriptEditorComponent implements OnChanges {
           ? {
               type: 'choice',
               id: node.id,
-              prompt: node.prompt,
               options: node.options.map((option) => ({
                 id: option.id,
                 label: option.label,
@@ -337,7 +376,16 @@ export class TranscriptEditorComponent implements OnChanges {
   }
 
   private image(image: EditableImage): ImageNode {
-    return { type: 'image', id: image.id, src: image.src };
+    const variants =
+      image.male || image.female
+        ? { male: image.male || undefined, female: image.female || undefined }
+        : undefined;
+    return {
+      type: 'image',
+      id: image.id,
+      src: image.src || image.male || image.female,
+      ...(variants ? { variants } : {}),
+    };
   }
   private line(line: EditableLine): LineNode {
     const result: LineNode = {

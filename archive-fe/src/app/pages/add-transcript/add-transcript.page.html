@@ -4,9 +4,13 @@
   @if (store.statusMessage(); as message) {
     <p class="translation-status" role="status">{{ message }}</p>
   }
-  <h1 class="m-0 text-2xl font-semibold">{{ languages.text(editingId ? 'editTranscript' : 'addTranscript') }}</h1>
+  <h1 class="m-0 text-2xl font-semibold">
+    {{ languages.text(editingId ? 'editTranscript' : 'addTranscript') }}
+  </h1>
   <form #formRef="ngForm" (ngSubmit)="submit(formRef)" class="flex min-w-0 flex-col gap-6">
-    <div class="flex flex-wrap items-center gap-2 border-b border-[var(--p-content-border-color)] pb-4">
+    <div
+      class="flex flex-wrap items-center gap-2 border-b border-[var(--p-content-border-color)] pb-4"
+    >
       <button pButton type="submit" [disabled]="formRef.invalid || !nodes.length">
         <i class="pi pi-save" aria-hidden="true"></i>
         <span>{{ languages.text(editingId ? 'saveTranscript' : 'publishTranscript') }}</span>
@@ -30,7 +34,9 @@
     </div>
     <div class="grid min-w-0 gap-4 md:grid-cols-2">
       <div class="flex min-w-0 flex-col gap-2">
-        <label class="font-medium" for="transcript-language">{{ languages.text('transcriptLanguage') }}</label>
+        <label class="font-medium" for="transcript-language">{{
+          languages.text('transcriptLanguage')
+        }}</label>
         <p-select
           inputId="transcript-language"
           name="language"
@@ -42,7 +48,9 @@
         />
       </div>
       <div class="flex min-w-0 flex-col gap-2">
-        <label class="font-medium" for="transcript-category">{{ languages.text('transcriptType') }}</label>
+        <label class="font-medium" for="transcript-category">{{
+          languages.text('transcriptType')
+        }}</label>
         <p-select
           inputId="transcript-category"
           name="category"
@@ -55,7 +63,15 @@
       </div>
       <div class="flex min-w-0 flex-col gap-2">
         <label class="font-medium" for="transcript-parent">
-          {{ languages.text(form.category === 'main-story' || form.category === 'eternal-nightmare' ? 'chapter' : form.category === 'event-story' ? 'event' : 'character') }}
+          {{
+            languages.text(
+              form.category === 'main-story' || form.category === 'eternal-nightmare'
+                ? 'chapter'
+                : form.category === 'event-story'
+                  ? 'event'
+                  : 'character'
+            )
+          }}
         </label>
         <p-select
           inputId="transcript-parent"
@@ -64,42 +80,113 @@
           optionLabel="name"
           optionValue="name"
           [(ngModel)]="form.parentLabel"
-          [placeholder]="languages.text(form.category === 'main-story' || form.category === 'eternal-nightmare' ? 'selectChapter' : form.category === 'event-story' ? 'selectEvent' : 'selectCharacter')"
+          [placeholder]="
+            languages.text(
+              form.category === 'main-story' || form.category === 'eternal-nightmare'
+                ? 'selectChapter'
+                : form.category === 'event-story'
+                  ? 'selectEvent'
+                  : 'selectCharacter'
+            )
+          "
           [fluid]="true"
           required
         />
       </div>
       <div class="flex min-w-0 flex-col gap-2">
-        <label class="font-medium" for="transcript-stage">{{ languages.text('stageOrPart') }}</label>
+        <label class="font-medium" for="transcript-stage-number">
+          {{ languages.text('stageNumber') }}
+        </label>
         <input
           pInputText
-          id="transcript-stage"
+          id="transcript-stage-number"
           name="stageLabel"
           [(ngModel)]="form.stageLabel"
           required
-          [placeholder]="languages.text('stageOrPart')"
+          [placeholder]="languages.text('stageNumber')"
           class="w-full"
         />
       </div>
+      <div class="flex min-w-0 flex-col gap-2">
+        <label class="font-medium" for="transcript-stage-name">
+          {{ languages.text('stageName') }}
+        </label>
+        <input
+          pInputText
+          id="transcript-stage-name"
+          name="title"
+          [(ngModel)]="form.title"
+          [placeholder]="languages.text('stageName')"
+          class="w-full"
+        />
+      </div>
+      <div class="flex min-w-0 flex-col gap-2 md:col-span-2">
+        <label class="font-medium" for="transcript-stage-description">
+          {{ languages.text('stageDescription') }}
+        </label>
+        <textarea
+          pTextarea
+          id="transcript-stage-description"
+          name="description"
+          [(ngModel)]="form.description"
+          [placeholder]="languages.text('stageDescription')"
+          rows="3"
+          class="w-full"
+        ></textarea>
+      </div>
     </div>
-    <p-fileupload
-      mode="basic"
-      name="transcript"
-      accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-      [chooseLabel]="languages.text('chooseXlsx')"
-      chooseIcon="pi pi-file-excel"
-      [maxFileSize]="maxImportFileSize"
-      [auto]="false"
-      [customUpload]="true"
-      (onSelect)="importFile($event.files)"
-    />
+    <div class="flex flex-wrap items-end gap-4">
+      <p-fileupload
+        mode="basic"
+        name="transcript"
+        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        [chooseLabel]="languages.text('chooseXlsx')"
+        chooseIcon="pi pi-file-excel"
+        [maxFileSize]="maxImportFileSize"
+        [auto]="false"
+        [customUpload]="true"
+        (onSelect)="importFile($event.files)"
+      />
+      <a
+        pButton
+        type="button"
+        severity="secondary"
+        href="/example-transcript.xlsx"
+        download="example-transcript.xlsx"
+      >
+        <i class="pi pi-download" aria-hidden="true"></i>
+        <span>{{ languages.text('downloadExample') }}</span>
+      </a>
+      @if (importLanguageOptions.length > 1) {
+        <div class="flex min-w-0 flex-col gap-2">
+          <label class="font-medium" for="import-language">{{
+            languages.text('importLanguage')
+          }}</label>
+          <p-select
+            inputId="import-language"
+            [options]="importLanguageOptions"
+            optionLabel="label"
+            optionValue="key"
+            [ngModel]="importLanguage"
+            [ngModelOptions]="{ standalone: true }"
+            (ngModelChange)="changeImportLanguage($event)"
+          />
+        </div>
+      }
+    </div>
     @if (importLoading) {
-    <div class="import-loading flex min-w-0 flex-col gap-2" role="status">
-      <p-progressbar [value]="importProgress" [showValue]="true" />
-      <p class="m-0">{{ importMessage }}</p>
-    </div>
+      <div class="import-loading flex min-w-0 flex-col gap-2" role="status">
+        <p-progressbar [value]="importProgress" [showValue]="true" />
+        <p class="m-0">{{ importMessage }}</p>
+      </div>
     }
-    @if (importMessage && !importLoading) {
+    @if (importApplying) {
+      <p-message severity="info" variant="simple" role="status">
+        <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+        {{ importMessage }}
+      </p-message>
+    }
+    @if (importMessage && !importLoading && !importApplying) {
       <p-message [severity]="importError ? 'error' : 'success'" variant="simple">
         {{ importMessage }}
       </p-message>
@@ -107,9 +194,15 @@
     @if (pendingImportReady) {
       <div class="flex flex-wrap items-center gap-3">
         <p class="m-0 text-sm">{{ languages.text('fileLoaded', { name: pendingImportName }) }}</p>
-        <button pButton type="button" severity="secondary" (click)="importPending()" [disabled]="!pendingImportNodes.length">
+        <button
+          pButton
+          type="button"
+          severity="secondary"
+          (click)="importPending()"
+          [disabled]="!pendingImportNodes.length || importApplying"
+        >
           <i class="pi pi-download" aria-hidden="true"></i>
-          <span>{{ languages.text('import') }}</span>
+          <span>{{ languages.text(importApplying ? 'resolvingImportImages' : 'import') }}</span>
         </button>
       </div>
     }
@@ -125,9 +218,24 @@
     [contentStyle]="{ maxHeight: '70vh', overflowY: 'auto' }"
   >
     <div class="flex min-w-0 flex-col gap-5">
+      <div
+        class="flex min-w-0 flex-col items-center gap-1 border-b border-[var(--p-content-border-color)] pb-4 text-center"
+      >
+        <p class="m-0 break-words text-lg [overflow-wrap:anywhere]">{{ form.stageLabel }}</p>
+        <h2 class="m-0 break-words text-2xl font-semibold [overflow-wrap:anywhere]">
+          {{ form.title || form.stageLabel }}
+        </h2>
+        @if (form.description) {
+          <p class="m-0 max-w-2xl whitespace-pre-line break-words [overflow-wrap:anywhere]">
+            {{ form.description }}
+          </p>
+        }
+      </div>
       <div class="flex flex-wrap items-end gap-4">
         <div class="flex min-w-0 flex-col gap-2">
-          <label class="font-medium" for="preview-chief-name">{{ languages.text('chiefName') }}</label>
+          <label class="font-medium" for="preview-chief-name">{{
+            languages.text('chiefName')
+          }}</label>
           <input
             pInputText
             id="preview-chief-name"
@@ -139,7 +247,9 @@
           />
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <span id="preview-protagonist-label" class="font-medium">{{ languages.text('protagonist') }}</span>
+          <span id="preview-protagonist-label" class="font-medium">{{
+            languages.text('protagonist')
+          }}</span>
           <p-selectbutton
             [options]="protagonistOptions"
             optionLabel="label"
@@ -150,7 +260,12 @@
             ariaLabelledBy="preview-protagonist-label"
           >
             <ng-template #item let-option>
-              <p-image [src]="option.imageUrl" [alt]="option.alt" [preview]="false" imageClass="h-14 w-14 object-cover" />
+              <p-image
+                [src]="option.imageUrl"
+                [alt]="option.alt"
+                [preview]="false"
+                imageClass="h-14 w-14 object-cover"
+              />
             </ng-template>
           </p-selectbutton>
         </div>
@@ -165,6 +280,8 @@
     </div>
   </p-dialog>
   @if (published) {
-    <p-message severity="success" variant="simple" role="status">{{ languages.text('saved') }}</p-message>
+    <p-message severity="success" variant="simple" role="status">{{
+      languages.text('saved')
+    }}</p-message>
   }
 </section>

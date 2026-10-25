@@ -313,7 +313,9 @@ export class ArchiveStorageService {
     if (error) {
       throw error;
     }
-    return this.mediaAssetFromRow(data as MediaAssetRow);
+    const asset = this.mediaAssetFromRow(data as MediaAssetRow);
+    this.rememberMediaAsset(asset);
+    return asset;
   }
 
   public async removeMediaAsset(assetId: string): Promise<void> {
@@ -394,7 +396,7 @@ export class ArchiveStorageService {
         } else if (node.type === 'choice') {
           node.options.forEach((option) => collect(option.nodes));
         } else if (node.type === 'image') {
-          values.push(node.src);
+          values.push(node.src, node.variants?.male ?? '', node.variants?.female ?? '');
         }
       }
     };
@@ -517,8 +519,36 @@ export class ArchiveStorageService {
     const unresolved = new Set<string>();
     const resolve = (value?: string): Promise<string | undefined> => {
       const source = value?.trim();
-      if (!source || isMediaReference(source)) {
-        return Promise.resolve(source || undefined);
+      if (!source) {
+        return Promise.resolve(undefined);
+      }
+      if (isMediaReference(source)) {
+        const mediaId = MEDIA_REFERENCE_PATTERN.exec(source)?.[1];
+        if (!mediaId) {
+          return Promise.resolve(undefined);
+        }
+        const reference = mediaReference(mediaId);
+        const existing = imported.get(reference);
+        if (existing) {
+          return existing;
+        }
+        const pending = (async () => {
+          try {
+            if (!this.mediaAssets.has(reference)) {
+              await this.getMediaAsset(mediaId);
+            }
+            if (!this.mediaUrls.has(reference)) {
+              unresolved.add(source);
+              return undefined;
+            }
+            return reference;
+          } catch {
+            unresolved.add(source);
+            return undefined;
+          }
+        })();
+        imported.set(reference, pending);
+        return pending;
       }
       if (!isRemoteImageUrl(source)) {
         return Promise.resolve(source);
@@ -528,7 +558,10 @@ export class ArchiveStorageService {
         return existing;
       }
       const pending = this.importMediaUrl(source)
-        .then((asset) => mediaReference(asset.id))
+        .then((asset) => {
+          const reference = mediaReference(asset.id);
+          return this.mediaUrls.has(reference) ? reference : undefined;
+        })
         .catch(() => {
           unresolved.add(source);
           return undefined;
@@ -577,9 +610,9 @@ export class ArchiveStorageService {
       }
       return resolveLibraryReference(source);
     };
-    const transform = async (items: DialogueNode[]): Promise<DialogueNode[]> =>
-      Promise.all(
-        items.map(async (node) => {
+    const transform = async (items: DialogueNode[]): Promise<DialogueNode[]> => {
+      const transformed = await Promise.all(
+        items.map(async (node): Promise<DialogueNode | undefined> => {
           if (node.type === 'line') {
             return { ...node, sprite: await resolveSprite(node.sprite) };
           }
@@ -594,9 +627,27 @@ export class ArchiveStorageService {
               ),
             };
           }
-          return { ...node, src: (await resolveImage(node.src)) ?? '' };
+          const [src, male, female] = await Promise.all([
+            resolveImage(node.src),
+            resolveImage(node.variants?.male),
+            resolveImage(node.variants?.female),
+          ]);
+          const variants = node.variants
+            ? { male: male || undefined, female: female || undefined }
+            : undefined;
+          const imageSource = src || variants?.male || variants?.female;
+          if (!imageSource) {
+            return undefined;
+          }
+          return {
+            ...node,
+            src: imageSource,
+            ...(variants?.male || variants?.female ? { variants } : {}),
+          };
         }),
       );
+      return transformed.filter((node): node is DialogueNode => !!node);
+    };
     return { nodes: await transform(nodes), unresolved: unresolved.size };
   }
 
@@ -721,7 +772,18 @@ export class ArchiveStorageService {
                 nodes: this.toStorageNodes(option.nodes),
               })),
             }
-          : { ...node, src: this.toStoredValue(node.src) ?? node.src },
+          : {
+              ...node,
+              src: this.toStoredValue(node.src) ?? node.src,
+              ...(node.variants
+                ? {
+                    variants: {
+                      male: this.toStoredValue(node.variants.male) ?? node.variants.male,
+                      female: this.toStoredValue(node.variants.female) ?? node.variants.female,
+                    },
+                  }
+                : {}),
+            },
     );
   }
 
@@ -737,7 +799,18 @@ export class ArchiveStorageService {
                 nodes: this.toPublicNodes(option.nodes),
               })),
             }
-          : { ...node, src: this.toPublicUrl(node.src) ?? node.src },
+          : {
+              ...node,
+              src: this.toPublicUrl(node.src) ?? node.src,
+              ...(node.variants
+                ? {
+                    variants: {
+                      male: this.toPublicUrl(node.variants.male) ?? node.variants.male,
+                      female: this.toPublicUrl(node.variants.female) ?? node.variants.female,
+                    },
+                  }
+                : {}),
+            },
     );
   }
 
@@ -751,8 +824,10 @@ export class ArchiveStorageService {
         } else if (node.type === 'choice') {
           node.options.forEach((option) => collect(option.nodes));
         } else {
-          const path = this.toStoragePath(node.src);
-          if (path && !MEDIA_OBJECT_PATH_PATTERN.test(path)) paths.push(path);
+          for (const value of [node.src, node.variants?.male, node.variants?.female]) {
+            const path = this.toStoragePath(value);
+            if (path && !MEDIA_OBJECT_PATH_PATTERN.test(path)) paths.push(path);
+          }
         }
       });
     };

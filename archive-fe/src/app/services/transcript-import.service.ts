@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import * as XLSX from 'xlsx';
 import { defer, from } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { ChoiceNode, ChoiceOption, DialogueNode } from '../models/transcript.models';
 
 export interface ImportedLine {
   sprite?: string;
@@ -11,30 +12,84 @@ export interface ImportedLine {
   male?: string;
   female?: string;
   description: string;
-  type?: string;
-  prompt?: string;
-  option?: string;
-  depth?: number;
+  type: 'line' | 'choice' | 'option' | 'image';
+  depth: number;
 }
+
+export interface ImportLanguageOption {
+  key: string;
+  label: string;
+}
+
+export interface ImportedTranscriptMetadata {
+  stage?: string;
+  name?: string;
+  description?: string;
+}
+
+export interface TranscriptImportResult {
+  lines: ImportedLine[];
+  languages: ImportLanguageOption[];
+  selectedLanguage: string;
+  metadata: ImportedTranscriptMetadata;
+}
+
+type ImportMetadataField = keyof ImportedTranscriptMetadata;
+
+type ImportColumns = {
+  type: number;
+  depth: number;
+  speaker?: number;
+  sprite?: number;
+  languages: { key: string; label: string; index: number }[];
+  metadata: {
+    languageKey: string;
+    field: ImportMetadataField;
+    index: number;
+  }[];
+};
+
+type ImportedFontStyle = {
+  bold?: boolean;
+  italic?: boolean;
+  color?: string;
+};
+
+type ImportedFontStyles = Map<string, ImportedFontStyle>;
+
+type WorkbookWithFiles = XLSX.WorkBook & {
+  files?: Record<string, { content?: unknown }>;
+  Styles?: {
+    CellXf?: unknown[];
+    Fonts?: unknown[];
+  };
+};
 
 @Injectable({ providedIn: 'root' })
 export class TranscriptImportService {
-  public parseXlsx(file: File, onProgress?: (progress: number) => void) {
+  public parseXlsx(
+    file: File,
+    languageOrProgress?: string | ((progress: number) => void),
+    onProgress?: (progress: number) => void,
+  ) {
+    const language = typeof languageOrProgress === 'string' ? languageOrProgress : undefined;
+    const progress = typeof languageOrProgress === 'function' ? languageOrProgress : onProgress;
     return defer(() => {
-      onProgress?.(5);
+      progress?.(5);
       return from(file.arrayBuffer());
     }).pipe(
-      map((buffer) => {
-        onProgress?.(35);
+      map((buffer): TranscriptImportResult => {
+        progress?.(35);
         const workbook = XLSX.read(buffer, {
           cellHTML: true,
           cellStyles: true,
           cellFormula: false,
-        });
+          bookFiles: true,
+        }) as WorkbookWithFiles;
         const sheetName = workbook.SheetNames[0];
         if (!sheetName) {
-          onProgress?.(100);
-          return [];
+          progress?.(100);
+          return { lines: [], languages: [], selectedLanguage: '', metadata: {} };
         }
         const sheet = workbook.Sheets[sheetName];
         const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
@@ -42,69 +97,224 @@ export class TranscriptImportService {
           defval: '',
           raw: false,
         });
-        const imported = this.parseRows(rows, sheet);
-        onProgress?.(100);
+        const imported = this.parseRows(rows, sheet, language, workbook);
+        progress?.(100);
         return imported;
       }),
     );
   }
 
-  private parseRows(rows: unknown[][], sheet: XLSX.WorkSheet): ImportedLine[] {
+  private parseRows(
+    rows: unknown[][],
+    sheet: XLSX.WorkSheet,
+    language: string | undefined,
+    workbook: WorkbookWithFiles,
+  ): TranscriptImportResult {
     if (!rows.length) {
-      return [];
+      return { lines: [], languages: [], selectedLanguage: '', metadata: {} };
     }
-    const first = rows[0].map((value) => this.cellText(value).trim().toLowerCase());
-    const hasSpriteColumn = first[0] === 'sprite' && first[1] === 'speaker';
-    const hasSpeakerHeader = first[0] === 'speaker';
-    const start = hasSpriteColumn || hasSpeakerHeader ? 1 : 0;
+    const columns = this.importColumns(rows[0]);
+    const selectedLanguage =
+      columns.languages.find((item) => item.key === language)?.key ?? columns.languages[0].key;
+    const selectedColumn = columns.languages.find((item) => item.key === selectedLanguage);
+    if (!selectedColumn) {
+      throw new Error('Import requires at least one language column.');
+    }
+    const fontStyles = this.fontStyles(workbook, selectedColumn.index);
     const imported: ImportedLine[] = [];
-    for (let index = start; index < rows.length; index += 1) {
+    for (let index = 1; index < rows.length; index += 1) {
       const row = rows[index] ?? [];
-      const line = this.parseRow(row, index, sheet, hasSpriteColumn);
-      if (
-        line.speaker.trim() ||
-        line.text.trim() ||
-        line.prompt?.trim() ||
-        line.option?.trim() ||
-        line.sprite?.trim() ||
-        line.src?.trim()
-      ) {
-        imported.push(line);
+      if (!row.some((value) => this.cellText(value).trim())) {
+        continue;
       }
+      imported.push(this.parseRow(row, index, sheet, columns, selectedColumn, fontStyles));
     }
-    return imported;
+    return {
+      lines: imported,
+      languages: columns.languages.map(({ key, label }) => ({ key, label })),
+      selectedLanguage,
+      metadata: this.readMetadata(rows, sheet, columns, selectedLanguage),
+    };
+  }
+
+  private importColumns(header: unknown[]): ImportColumns {
+    const indexes = new Map<string, number>();
+    const headers = header
+      .map((value, index) => ({
+        index,
+        key: this.normalizeHeader(value),
+        label: this.cellText(value).trim(),
+      }))
+      .filter((item) => item.key);
+    headers.forEach((item) => {
+      if (indexes.has(item.key)) {
+        throw new Error(`Import column headers must be unique: ${item.label}.`);
+      }
+      indexes.set(item.key, item.index);
+    });
+    const required = (name: string): number => {
+      const index = indexes.get(name);
+      if (index === undefined) {
+        throw new Error(`Import requires a ${name} column.`);
+      }
+      return index;
+    };
+    const optional = (name: string): number | undefined => indexes.get(name);
+    const structural = new Set(['sprite', 'speaker', 'type', 'depth']);
+    const metadata: ImportColumns['metadata'] = [];
+    const bareMetadata: { field: ImportMetadataField; index: number; label: string }[] = [];
+    const languageHeaders = headers
+      .filter((item) => !structural.has(item.key))
+      .filter((item) => {
+        const parsed = this.parseMetadataHeader(item.key);
+        if (parsed) {
+          metadata.push({ ...parsed, index: item.index });
+          return false;
+        }
+        const field = this.parseBareMetadataHeader(item.key);
+        if (field) {
+          bareMetadata.push({ field, index: item.index, label: item.label });
+          return false;
+        }
+        return true;
+      });
+    const languages = languageHeaders.map((item) => ({
+      key: item.key,
+      label: item.label,
+      index: item.index,
+    }));
+    if (!languages.length) {
+      throw new Error('Import requires at least one language column.');
+    }
+    if (bareMetadata.length) {
+      if (languages.length !== 1) {
+        throw new Error(
+          'Metadata columns named Stage, Name, or Description require a language prefix when multiple languages are present.',
+        );
+      }
+      bareMetadata.forEach((item) =>
+        metadata.push({ languageKey: languages[0].key, field: item.field, index: item.index }),
+      );
+    }
+    metadata.forEach((item) => {
+      if (!languages.some((language) => language.key === item.languageKey)) {
+        throw new Error(
+          `Metadata column must use a language with a content column: ${item.languageKey}.`,
+        );
+      }
+    });
+
+    return {
+      type: required('type'),
+      depth: required('depth'),
+      speaker: optional('speaker'),
+      sprite: optional('sprite'),
+      languages,
+      metadata,
+    };
+  }
+
+  private parseMetadataHeader(
+    key: string,
+  ): { languageKey: string; field: ImportMetadataField } | undefined {
+    const parts = key.split(' ');
+    const fields: ImportMetadataField[] = ['stage', 'name', 'description'];
+    const endingField = fields.find((field) => parts.at(-1) === field);
+    if (endingField && parts.length > 1) {
+      return { languageKey: parts.slice(0, -1).join(' '), field: endingField };
+    }
+    const startingField = fields.find((field) => parts[0] === field);
+    if (startingField && parts.length > 1) {
+      return { languageKey: parts.slice(1).join(' '), field: startingField };
+    }
+    return undefined;
+  }
+
+  private parseBareMetadataHeader(key: string): ImportMetadataField | undefined {
+    return (['stage', 'name', 'description'] as ImportMetadataField[]).find(
+      (field) => key === field,
+    );
+  }
+
+  private readMetadata(
+    rows: unknown[][],
+    sheet: XLSX.WorkSheet,
+    columns: ImportColumns,
+    languageKey: string,
+  ): ImportedTranscriptMetadata {
+    const metadata: ImportedTranscriptMetadata = {};
+    columns.metadata
+      .filter((item) => item.languageKey === languageKey)
+      .forEach((item) => {
+        for (let rowIndex = 1; rowIndex < rows.length; rowIndex += 1) {
+          const value = this.stripTags(
+            this.decodeEntities(
+              this.richText(
+                this.cellAt(sheet, item.index, rowIndex),
+                rows[rowIndex]?.[item.index],
+              ),
+            ),
+          ).trim();
+          if (value) {
+            metadata[item.field] = value;
+            break;
+          }
+        }
+      });
+    return metadata;
   }
 
   private parseRow(
     row: unknown[],
     rowIndex: number,
     sheet: XLSX.WorkSheet,
-    hasSpriteColumn: boolean,
+    columns: ImportColumns,
+    language: { index: number },
+    fontStyles: ImportedFontStyles,
   ): ImportedLine {
-    const speakerColumn = hasSpriteColumn ? 1 : 0;
-    const sprite = hasSpriteColumn ? this.cellText(row[0]).trim() : '';
-    const speaker = this.cellText(row[speakerColumn]);
-    let firstContent = speakerColumn + 1;
-    while (firstContent < row.length && !this.cellText(row[firstContent]).trim()) {
-      firstContent += 1;
-    }
-    const cell = firstContent < row.length ? this.cellAt(sheet, firstContent, rowIndex) : undefined;
-    const raw = this.richText(cell, row[firstContent]);
-    const markerText = this.decodeEntities(raw);
-    const plain = this.stripTags(markerText).trim();
-    const variants = this.parseVariants(plain);
-    const depth = Math.max(0, firstContent - 1);
-    if (hasSpriteColumn && sprite && !speaker.trim() && !plain) {
+    const text = this.richText(
+      this.cellAt(sheet, language.index, rowIndex),
+      row[language.index],
+      fontStyles,
+      this.cellAddress(language.index, rowIndex),
+    );
+    const type = this.parseType(row[columns.type], rowIndex);
+    const depth = this.parseDepth(row[columns.depth], rowIndex);
+    const speaker = columns.speaker === undefined ? '' : this.cellText(row[columns.speaker]).trim();
+    const sprite = columns.sprite === undefined ? '' : this.cellText(row[columns.sprite]).trim();
+    const plain = this.stripTags(this.decodeEntities(text)).trim();
+
+    if (type === 'image') {
+      const imageValue = this.stripTags(this.decodeEntities(sprite)).trim();
+      const variants = this.parseVariants(imageValue);
+      if (!imageValue) {
+        throw new Error(`Row ${rowIndex + 1}: image rows require an image value in Sprite.`);
+      }
       return {
         sprite: '',
-        src: sprite,
+        src: variants?.male ?? variants?.female ?? imageValue,
+        male: variants?.male,
+        female: variants?.female,
         speaker: '',
         text: '',
         description: '',
-        type: 'image',
+        type,
         depth,
       };
     }
+
+    if (type === 'option') {
+      return {
+        sprite: '',
+        speaker: '',
+        text,
+        description: '',
+        type,
+        depth,
+      };
+    }
+
+    const variants = this.parseVariants(plain);
     if (variants) {
       return {
         sprite,
@@ -113,50 +323,49 @@ export class TranscriptImportService {
         male: variants.male,
         female: variants.female,
         description: '',
-        type: depth > 0 ? 'option-line' : 'line',
+        type,
         depth,
       };
     }
-    if (plain.startsWith('\\>')) {
-      return {
-        sprite,
-        speaker,
-        text: this.removeLiteralMarker(markerText),
-        description: '',
-        type: depth > 0 ? 'option-line' : 'line',
-        depth,
-      };
-    }
-    if (plain.startsWith('>>')) {
-      return {
-        sprite: '',
-        speaker: '',
-        text: '',
-        description: '',
-        type: 'option',
-        option: this.removeMarker(markerText, '>>'),
-        depth,
-      };
-    }
-    if (plain.startsWith('>')) {
-      return {
-        sprite: '',
-        speaker: '',
-        text: '',
-        description: '',
-        type: 'choice',
-        prompt: this.removeMarker(markerText, '>'),
-        depth,
-      };
-    }
+
     return {
       sprite,
       speaker,
-      text: raw,
+      text,
       description: '',
-      type: depth > 0 ? 'option-line' : 'line',
+      type,
       depth,
     };
+  }
+
+  private parseType(value: unknown, rowIndex: number): ImportedLine['type'] {
+    const type = this.cellText(value)
+      .trim()
+      .toLowerCase()
+      .replace(/[\s_]+/g, '-');
+    if (type === 'line' || type === 'choice' || type === 'option' || type === 'image') {
+      return type;
+    }
+    throw new Error(`Row ${rowIndex + 1}: Type must be line, choice, option, or image.`);
+  }
+
+  private parseDepth(value: unknown, rowIndex: number): number {
+    const text = this.cellText(value).trim();
+    const depth = Number(text);
+    if (!text || !Number.isInteger(depth) || depth < 0) {
+      throw new Error(`Row ${rowIndex + 1}: Depth must be a non-negative whole number.`);
+    }
+    return depth;
+  }
+
+  private normalizeHeader(value: unknown): string {
+    return this.cellText(value)
+      .trim()
+      .toLowerCase()
+      .replace(/[–—-]+/g, ' ')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   private parseVariants(value: string): { male?: string; female?: string } | undefined {
@@ -175,9 +384,9 @@ export class TranscriptImportService {
         return undefined;
       }
       const key = match[1].toLowerCase() as 'male' | 'female';
-      const text = match[2].trim();
-      if (text) {
-        variants[key] = text;
+      const variant = match[2].trim();
+      if (variant) {
+        variants[key] = variant;
       }
     }
     return variants.male || variants.female ? variants : undefined;
@@ -188,13 +397,148 @@ export class TranscriptImportService {
     return sheet[address];
   }
 
+  private cellAddress(column: number, row: number): string {
+    return XLSX.utils.encode_cell({ c: column, r: row });
+  }
+
   private cellText(value: unknown): string {
     return value == null ? '' : String(value);
   }
 
-  private richText(cell: XLSX.CellObject | undefined, fallback: unknown): string {
+  private richText(
+    cell: XLSX.CellObject | undefined,
+    fallback: unknown,
+    fontStyles: ImportedFontStyles = new Map(),
+    address?: string,
+  ): string {
+    const style = address ? fontStyles.get(address) : undefined;
+    const runs = typeof cell?.r === 'string' ? this.richTextRuns(cell.r) : '';
+    if (runs) {
+      const sanitized = this.sanitizeRichText(runs);
+      return style ? this.applyFontStyle(sanitized, style) : sanitized;
+    }
     const html = typeof cell?.h === 'string' ? cell.h : '';
-    return html ? this.sanitizeRichText(html) : this.escape(this.cellText(fallback));
+    if (html) {
+      const sanitized = this.sanitizeRichText(html);
+      return style ? this.applyFontStyle(sanitized, style) : sanitized;
+    }
+    const text = this.escape(this.cellText(fallback));
+    return style ? this.applyFontStyle(text, style) : text;
+  }
+
+  private richTextRuns(value: string): string {
+    if (typeof DOMParser === 'undefined') {
+      return '';
+    }
+    const document = new DOMParser().parseFromString(`<root>${value}</root>`, 'application/xml');
+    if (document.querySelector('parsererror')) {
+      return '';
+    }
+    return Array.from(document.documentElement.children)
+      .filter((run) => run.localName === 'r')
+      .map((run) => {
+        const text = Array.from(run.children)
+          .filter((element) => element.localName === 't')
+          .map((element) => element.textContent ?? '')
+          .join('')
+          .replace(/\r\n?/g, '\n');
+        if (!text) {
+          return '';
+        }
+        const style = this.fontStyleFromProperties(
+          Array.from(run.children).find((element) => element.localName === 'rPr'),
+        );
+        return this.applyFontStyle(this.escape(text), style);
+      })
+      .join('');
+  }
+
+  private fontStyleFromProperties(element?: Element): ImportedFontStyle {
+    if (!element) {
+      return {};
+    }
+    const color = Array.from(element.children).find((child) => child.localName === 'color');
+    return {
+      bold: Array.from(element.children).some(
+        (child) => child.localName === 'b' && child.getAttribute('val') !== '0',
+      ),
+      italic: Array.from(element.children).some(
+        (child) => child.localName === 'i' && child.getAttribute('val') !== '0',
+      ),
+      color: this.excelColor(color?.getAttribute('rgb') ?? undefined),
+    };
+  }
+
+  private applyFontStyle(value: string, style: ImportedFontStyle): string {
+    let result = value;
+    if (style.color) {
+      result = `<span style="color:${style.color}">${result}</span>`;
+    }
+    if (style.italic) {
+      result = `<em>${result}</em>`;
+    }
+    if (style.bold) {
+      result = `<strong>${result}</strong>`;
+    }
+    return result;
+  }
+
+  private fontStyles(workbook: WorkbookWithFiles, column: number): ImportedFontStyles {
+    const styles = workbook.Styles;
+    const cellXfs = styles?.CellXf ?? [];
+    const fonts = styles?.Fonts ?? [];
+    const result: ImportedFontStyles = new Map();
+    const sheetXml = workbook.files?.['xl/worksheets/sheet1.xml']?.content;
+    const xml =
+      typeof sheetXml === 'string'
+        ? sheetXml
+        : sheetXml instanceof Uint8Array
+          ? new TextDecoder().decode(sheetXml)
+          : '';
+    if (!xml) {
+      return result;
+    }
+    const columnName = XLSX.utils.encode_col(column);
+    const cells =
+      xml.match(new RegExp(`<c\\b[^>]*\\br="${columnName}[0-9]+"[^>]*>`, 'g')) ?? [];
+    cells.forEach((tag) => {
+      const address = tag.match(/\br="([A-Z]+[0-9]+)"/)?.[1];
+      const styleIndex = Number(tag.match(/\bs="(\d+)"/)?.[1]);
+      if (!address || !Number.isInteger(styleIndex)) {
+        return;
+      }
+      const cellXf = cellXfs[styleIndex] as { fontId?: number } | undefined;
+      const font = cellXf && fonts[cellXf.fontId ?? -1];
+      const style = this.fontStyleFromObject(font);
+      if (style.bold || style.italic || style.color) {
+        result.set(address, style);
+      }
+    });
+    return result;
+  }
+
+  private fontStyleFromObject(value: unknown): ImportedFontStyle {
+    if (!value || typeof value !== 'object') {
+      return {};
+    }
+    const font = value as {
+      bold?: boolean | number;
+      italic?: boolean | number;
+      color?: { rgb?: string };
+    };
+    return {
+      bold: Boolean(font.bold),
+      italic: Boolean(font.italic),
+      color: this.excelColor(font.color?.rgb),
+    };
+  }
+
+  private excelColor(value?: string): string | undefined {
+    const color = value?.replace(/^#/, '').trim();
+    if (!color || !/^[0-9a-f]{6,8}$/i.test(color)) {
+      return undefined;
+    }
+    return `#${color.slice(-6).toUpperCase()}`;
   }
 
   private sanitizeRichText(value: string): string {
@@ -244,7 +588,7 @@ export class TranscriptImportService {
 
   private stripTags(value: string): string {
     return value
-      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<br\s*\/?>(?=\s*\n?)/gi, '\n')
       .replace(/<[^>]+>/g, ' ')
       .replace(/&gt;/g, '>')
       .replace(/&lt;/g, '<')
@@ -252,15 +596,6 @@ export class TranscriptImportService {
       .replace(/[ \t\f\v]+/g, ' ')
       .replace(/ *\n */g, '\n')
       .trim();
-  }
-
-  private removeMarker(value: string, marker: string): string {
-    const escaped = marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return value.replace(new RegExp(`^((?:<[^>]+>)*)\s*${escaped}\s*`), '$1');
-  }
-
-  private removeLiteralMarker(value: string): string {
-    return value.replace(/^((?:<[^>]+>)*)\s*\\>/, '$1>');
   }
 
   private escape(value: string): string {
@@ -271,81 +606,95 @@ export class TranscriptImportService {
       .replaceAll('"', '&quot;');
   }
 
-  public toNodes(lines: ImportedLine[]): any[] {
-    const nodes: any[] = [];
-    const choices: { depth: number; node: any }[] = [];
-    const options: { depth: number; node: any }[] = [];
+  public toNodes(lines: ImportedLine[]): DialogueNode[] {
+    const nodes: DialogueNode[] = [];
+    const choices: { depth: number; node: ChoiceNode }[] = [];
+    const options: { depth: number; node: ChoiceOption }[] = [];
+
     lines.forEach((line, index) => {
-      const depth = line.depth ?? 0;
-      const keepsCurrentParent = line.type !== 'option';
-      const cutoff = keepsCurrentParent ? depth : depth - 1;
-      while (choices.length && choices[choices.length - 1].depth > cutoff) {
+      const depth = line.depth;
+      while (choices.length && choices[choices.length - 1].depth >= depth) {
         choices.pop();
       }
-      while (options.length && options[options.length - 1].depth > cutoff) {
+      while (options.length && options[options.length - 1].depth >= depth) {
         options.pop();
       }
+
       if (line.type === 'choice') {
-        const node = {
+        const question: DialogueNode = {
+          type: 'line',
+          id: `imported-${index + 1}`,
+          speaker: line.speaker,
+          sprite: line.sprite?.trim() ?? '',
+          text: line.text || line.description,
+          description: line.description || undefined,
+          ...(line.male || line.female
+            ? {
+                variants: {
+                  male: line.male || line.text,
+                  female: line.female || line.text,
+                },
+              }
+            : {}),
+        };
+        const node: ChoiceNode = {
           type: 'choice',
           id: `imported-choice-${index + 1}`,
-          prompt: line.prompt || line.text,
           options: [],
         };
-        const parentOption = [...options].reverse().find((item) => item.depth <= depth);
+        const parentOption = [...options].reverse().find((item) => item.depth < depth);
         if (parentOption) {
-          parentOption.node.nodes.push(node);
+          parentOption.node.nodes.push(question, node);
         } else {
-          nodes.push(node);
+          nodes.push(question, node);
         }
         choices.push({ depth, node });
         return;
       }
-      if (line.type === 'image') {
-        const node = {
-          type: 'image',
-          id: `imported-image-${index + 1}`,
-          src: line.src ?? '',
-        };
-        const parentOption = [...options].reverse().find((item) => item.depth <= depth);
-        if (parentOption) {
-          parentOption.node.nodes.push(node);
-        } else {
-          nodes.push(node);
-        }
-        return;
-      }
+
       if (line.type === 'option') {
         const parentChoice = [...choices].reverse().find((item) => item.depth < depth);
         if (!parentChoice) {
-          return;
+          throw new Error(`Row ${index + 2}: option has no choice parent at a lower depth.`);
         }
-        const option = {
+        const option: ChoiceOption = {
           id: `imported-option-${index + 1}`,
-          label: line.option || line.text,
-          nodes: [] as any[],
+          label: line.text,
+          nodes: [],
         };
         parentChoice.node.options.push(option);
         options.push({ depth, node: option });
         return;
       }
-      const text = line.text || line.description;
-      const node: any = {
-        type: 'line',
-        id: `imported-${index + 1}`,
-        speaker: line.speaker,
-        sprite: line.sprite?.trim() ?? '',
-        text,
-        description: line.description || undefined,
-      };
-      if (line.male || line.female) {
-        node.variants = {
-          male: line.male || text,
-          female: line.female || text,
-        };
-      }
-      const parentOption = [...options].reverse().find((item) => item.depth <= depth);
-      if (parentOption && line.type === 'option-line') {
+
+      const node: DialogueNode =
+        line.type === 'image'
+          ? {
+              type: 'image',
+              id: `imported-image-${index + 1}`,
+              src: line.src ?? '',
+              ...(line.male || line.female
+                ? { variants: { male: line.male, female: line.female } }
+                : {}),
+            }
+          : {
+              type: 'line',
+              id: `imported-${index + 1}`,
+              speaker: line.speaker,
+              sprite: line.sprite?.trim() ?? '',
+              text: line.text || line.description,
+              description: line.description || undefined,
+              ...(line.male || line.female
+                ? {
+                    variants: {
+                      male: line.male || line.text,
+                      female: line.female || line.text,
+                    },
+                  }
+                : {}),
+            };
+      const parentOption = [...options].reverse().find((item) => item.depth < depth);
+      if (parentOption) {
         parentOption.node.nodes.push(node);
       } else {
         nodes.push(node);

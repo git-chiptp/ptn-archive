@@ -11,6 +11,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogModule } from 'primeng/dialog';
 import { FileUploadModule } from 'primeng/fileupload';
 import { InputTextModule } from 'primeng/inputtext';
+import { TextareaModule } from 'primeng/textarea';
 import { ImageModule } from 'primeng/image';
 import { MessageModule } from 'primeng/message';
 import { ProgressBarModule } from 'primeng/progressbar';
@@ -33,7 +34,11 @@ import { ArchiveStore } from '../../services/archive.store';
 import { ArchiveStorageService } from '../../services/archive-storage.service';
 import { AuthService } from '../../services/auth.service';
 import { LanguageCode, LanguageService } from '../../services/language.service';
-import { TranscriptImportService } from '../../services/transcript-import.service';
+import {
+  ImportLanguageOption,
+  ImportedTranscriptMetadata,
+  TranscriptImportService,
+} from '../../services/transcript-import.service';
 import { finalize } from 'rxjs/operators';
 
 @Component({
@@ -47,6 +52,7 @@ import { finalize } from 'rxjs/operators';
     DialogModule,
     FileUploadModule,
     InputTextModule,
+    TextareaModule,
     ImageModule,
     MessageModule,
     ProgressBarModule,
@@ -125,6 +131,10 @@ export class ReaderPage {
 
   public editStage = '';
 
+  public editName = '';
+
+  public editDescription = '';
+
   public editNodes: EditableNode[] = [];
 
   public previewNodes: DialogueNode[] = [];
@@ -145,9 +155,19 @@ export class ReaderPage {
 
   public pendingImportNodes: EditableNode[] = [];
 
+  private pendingImportMetadata: ImportedTranscriptMetadata = {};
+
+  public importLanguageOptions: ImportLanguageOption[] = [];
+
+  public importLanguage = '';
+
+  private importFileSource: File | null = null;
+
   public pendingImportName = '';
 
   public pendingImportReady = false;
+
+  public importApplying = false;
 
   public importError = false;
 
@@ -272,7 +292,11 @@ export class ReaderPage {
 
   private breadcrumbItem(label: string, link: string[]): MenuItem {
     return this.editMode
-      ? { label, linkClass: 'cursor-pointer', command: () => this.requestBreadcrumbNavigation(link) }
+      ? {
+          label,
+          linkClass: 'cursor-pointer',
+          command: () => this.requestBreadcrumbNavigation(link),
+        }
       : { label, routerLink: link };
   }
 
@@ -341,13 +365,13 @@ export class ReaderPage {
       ? 'event-story'
       : routePath.startsWith('eternal-nightmare')
         ? 'eternal-nightmare'
-      : routePath.startsWith('main-story')
-        ? 'main-story'
-        : routePath.startsWith('perspectra')
-          ? 'perspectra'
-          : routePath.startsWith('mirage')
-            ? 'mirage'
-            : 'interrogation';
+        : routePath.startsWith('main-story')
+          ? 'main-story'
+          : routePath.startsWith('perspectra')
+            ? 'perspectra'
+            : routePath.startsWith('mirage')
+              ? 'mirage'
+              : 'interrogation';
     return this.store.transcripts().find((item) => {
       if (stageSlug) {
         const parentSlug = chapterSlug ?? eventSlug;
@@ -396,7 +420,13 @@ export class ReaderPage {
     return (
       this.editDirty ||
       this.editSnapshot !==
-        JSON.stringify({ parent: this.editParent, stage: this.editStage, nodes: this.editNodes })
+        JSON.stringify({
+        parent: this.editParent,
+        stage: this.editStage,
+        name: this.editName,
+        description: this.editDescription,
+        nodes: this.editNodes,
+      })
     );
   }
   public savePendingLanguageChange() {
@@ -442,12 +472,16 @@ export class ReaderPage {
     if (selected === (transcript.sourceLanguage ?? 'en') || !translation) {
       this.editParent = transcript.parentLabel;
       this.editStage = transcript.stageLabel;
+      this.editName = transcript.title;
+      this.editDescription = transcript.description;
       this.editNodes = this.toEditable(transcript.nodes);
       this.captureEditSnapshot();
       return;
     }
     this.editParent = translation.parentLabel ?? transcript.parentLabel;
     this.editStage = translation.stageLabel ?? transcript.stageLabel;
+    this.editName = translation.title ?? transcript.title;
+    this.editDescription = translation.description ?? transcript.description;
     this.editNodes = this.toEditable(translation.nodes ?? transcript.nodes);
     this.captureEditSnapshot();
   }
@@ -455,6 +489,8 @@ export class ReaderPage {
     this.editSnapshot = JSON.stringify({
       parent: this.editParent,
       stage: this.editStage,
+      name: this.editName,
+      description: this.editDescription,
       nodes: this.editNodes,
     });
     this.editDirty = false;
@@ -497,10 +533,12 @@ export class ReaderPage {
     this.previewSelections = { ...this.previewSelections, [event.id]: event.option };
   }
 
-  public openPreview() {
+  public async openPreview() {
     const editor = new TranscriptEditorComponent();
     editor.nodes = this.editNodes;
-    this.previewNodes = editor.serialize();
+    const nodes = editor.serialize();
+    await this.storage.resolveMediaReferences(this.storage.mediaReferences(nodes)).catch(() => undefined);
+    this.previewNodes = this.storage.toPublicNodes(nodes);
     this.previewSelections = {};
     this.previewGender = this.store.gender();
     this.previewOpen = true;
@@ -536,8 +574,13 @@ export class ReaderPage {
       return;
     }
     this.pendingImportNodes = [];
+    this.pendingImportMetadata = {};
+    this.importLanguageOptions = [];
+    this.importLanguage = '';
+    this.importFileSource = file;
     this.pendingImportName = '';
     this.pendingImportReady = false;
+    this.importApplying = false;
     this.importError = false;
     this.importProgress = 0;
     if (!/\.xlsx$/i.test(file.name)) {
@@ -555,11 +598,24 @@ export class ReaderPage {
       this.importMessage = 'Import failed: the XLSX file must be 100 MB or smaller.';
       return;
     }
+    this.parseImportFile(file);
+  }
+
+  public changeImportLanguage(language: string) {
+    if (!this.importFileSource || language === this.importLanguage) {
+      return;
+    }
+    this.importLanguage = language;
+    this.parseImportFile(this.importFileSource);
+  }
+
+  private parseImportFile(file: File) {
     this.importLoading = true;
+    this.importError = false;
     this.importProgress = 5;
     this.importMessage = 'Reading XLSX file in the browser...';
     this.importer
-      .parseXlsx(file, (progress) => {
+      .parseXlsx(file, this.importLanguage || undefined, (progress) => {
         this.importProgress = progress;
         this.cdr.markForCheck();
       })
@@ -570,9 +626,12 @@ export class ReaderPage {
         }),
       )
       .subscribe({
-        next: (imported) => {
+        next: (result) => {
           this.importProgress = 100;
-          this.pendingImportNodes = this.toEditable(this.importer.toNodes(imported));
+          this.importLanguageOptions = result.languages;
+          this.importLanguage = result.selectedLanguage;
+          this.pendingImportMetadata = result.metadata;
+          this.pendingImportNodes = this.toEditable(this.importer.toNodes(result.lines));
           this.pendingImportName = file.name;
           this.pendingImportReady = this.pendingImportNodes.length > 0;
           this.importError = this.pendingImportNodes.length === 0;
@@ -581,13 +640,16 @@ export class ReaderPage {
             : 'Import failed: no transcript rows found.';
           this.cdr.markForCheck();
         },
-        error: () => {
+        error: (error: unknown) => {
           this.importProgress = 0;
           this.pendingImportNodes = [];
           this.pendingImportName = '';
           this.pendingImportReady = false;
           this.importError = true;
-          this.importMessage = 'Import failed: the browser could not parse the XLSX file.';
+          this.importMessage =
+            error instanceof Error
+              ? error.message
+              : 'Import failed: the browser could not parse the XLSX file.';
           this.cdr.markForCheck();
         },
       });
@@ -606,18 +668,42 @@ export class ReaderPage {
   }
 
   private async applyPendingImport() {
-    const helper = new TranscriptEditorComponent();
-    helper.nodes = this.pendingImportNodes;
-    const result = await this.storage.importRemoteMediaReferences(helper.serialize());
-    this.editNodes = this.toEditable(result.nodes);
-    this.pendingImportNodes = [];
-    this.pendingImportName = '';
-    this.pendingImportReady = false;
-    this.editDirty = true;
-    this.importError = result.unresolved > 0;
-    this.importMessage = result.unresolved > 0
-      ? this.language.text('importedWithUnresolvedImages', { count: String(result.unresolved) })
-      : this.language.text('importedTranscript');
+    if (this.importApplying) {
+      return;
+    }
+    this.importApplying = true;
+    this.importError = false;
+    this.importMessage = this.language.text('resolvingImportImages');
+    try {
+      const helper = new TranscriptEditorComponent();
+      helper.nodes = this.pendingImportNodes;
+      const result = await this.storage.importRemoteMediaReferences(helper.serialize());
+      this.editName = this.pendingImportMetadata.name ?? this.editName;
+      this.editStage = this.pendingImportMetadata.stage ?? this.editStage;
+      this.editDescription = this.pendingImportMetadata.description ?? this.editDescription;
+      this.editNodes = this.toEditable(result.nodes);
+      this.pendingImportNodes = [];
+      this.pendingImportMetadata = {};
+      this.pendingImportName = '';
+      this.pendingImportReady = false;
+      this.editDirty = true;
+      this.importError = result.unresolved > 0;
+      this.importMessage =
+        result.unresolved > 0
+          ? this.language.text('importedWithUnresolvedImages', {
+              count: String(result.unresolved),
+            })
+          : this.language.text('importedTranscript');
+    } catch (error: unknown) {
+      this.importError = true;
+      this.importMessage =
+        error instanceof Error
+          ? error.message
+          : 'Import failed: the image references could not be resolved.';
+    } finally {
+      this.importApplying = false;
+      this.cdr.markForCheck();
+    }
   }
   public save() {
     if (!this.transcript || !this.editNodes.length || this.saving) {
@@ -643,7 +729,8 @@ export class ReaderPage {
     helper.nodes = this.editNodes;
     const updated: Transcript = {
       ...this.transcript,
-      title: this.transcript.title,
+      title: this.editName,
+      description: this.editDescription,
       parentLabel: this.editParent,
       stageLabel: this.editStage,
       parentId: this.editParent.toLowerCase().replaceAll(' ', '-'),
@@ -673,7 +760,8 @@ export class ReaderPage {
         },
         () => {
           this.saving = false;
-          this.transcript = this.store.transcripts().find((item) => item.id === updated.id) ?? updated;
+          this.transcript =
+            this.store.transcripts().find((item) => item.id === updated.id) ?? updated;
           this.captureEditSnapshot();
           onSuccess();
         },
@@ -689,11 +777,18 @@ export class ReaderPage {
     const transcript = this.transcript;
     const path = ['/', transcript.category, this.slug(transcript.parentLabel)];
     if (transcript.category === 'perspectra') {
-      path.push(this.slug(transcript.stageLabel), this.slug(transcript.title || transcript.stageLabel));
+      path.push(
+        this.slug(transcript.stageLabel),
+        this.slug(transcript.title || transcript.stageLabel),
+      );
     } else {
-      path.push(this.slug(transcript.category === 'interrogation' || transcript.category === 'mirage'
-        ? transcript.title || transcript.stageLabel
-        : transcript.stageLabel || transcript.title));
+      path.push(
+        this.slug(
+          transcript.category === 'interrogation' || transcript.category === 'mirage'
+            ? transcript.title || transcript.stageLabel
+            : transcript.stageLabel || transcript.title,
+        ),
+      );
     }
     this.editMode = false;
     this.router.navigate(path, { replaceUrl: true });
@@ -744,13 +839,18 @@ export class ReaderPage {
   }
 
   private image(node: ImageNode): EditableNode {
-    return { type: 'image', id: node.id, src: node.src };
+    return {
+      type: 'image',
+      id: node.id,
+      src: node.src,
+      male: node.variants?.male ?? '',
+      female: node.variants?.female ?? '',
+    };
   }
   private choice(node: ChoiceNode): EditableNode {
     return {
       type: 'choice',
       id: node.id,
-      prompt: node.prompt ?? '',
       options: node.options.map((option) => ({
         id: option.id,
         label: option.label,
