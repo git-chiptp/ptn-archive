@@ -10,6 +10,7 @@ import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { FileUploadModule } from 'primeng/fileupload';
 import { InputTextModule } from 'primeng/inputtext';
+import { TextareaModule } from 'primeng/textarea';
 import { MessageModule } from 'primeng/message';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { SelectButtonModule } from 'primeng/selectbutton';
@@ -32,7 +33,11 @@ import { NodeListComponent } from '../../components/transcript/node-list.compone
 import { ArchiveStore } from '../../services/archive.store';
 import { LanguageCode, LanguageService } from '../../services/language.service';
 import { ArchiveStorageService } from '../../services/archive-storage.service';
-import { ImportedLine, TranscriptImportService } from '../../services/transcript-import.service';
+import {
+  ImportLanguageOption,
+  ImportedTranscriptMetadata,
+  TranscriptImportService,
+} from '../../services/transcript-import.service';
 
 @Component({
   standalone: true,
@@ -45,6 +50,7 @@ import { ImportedLine, TranscriptImportService } from '../../services/transcript
     DialogModule,
     FileUploadModule,
     InputTextModule,
+    TextareaModule,
     MessageModule,
     ProgressBarModule,
     SelectButtonModule,
@@ -105,6 +111,8 @@ export class AddTranscriptPage {
     language: 'en' as LanguageCode,
     parentLabel: '',
     stageLabel: '',
+    title: '',
+    description: '',
   };
 
   public nodes: EditableNode[] = [this.newLine()];
@@ -136,9 +144,19 @@ export class AddTranscriptPage {
 
   public pendingImportNodes: EditableNode[] = [];
 
+  private pendingImportMetadata: ImportedTranscriptMetadata = {};
+
+  public importLanguageOptions: ImportLanguageOption[] = [];
+
+  public importLanguage = '';
+
+  private importFileSource: File | null = null;
+
   public pendingImportName = '';
 
   public pendingImportReady = false;
+
+  public importApplying = false;
 
   public importLoading = false;
 
@@ -175,7 +193,13 @@ export class AddTranscriptPage {
       this.form.stageLabel = stageLabel;
     }
 
-    if (category === 'eternal-nightmare' || category === 'event-story' || category === 'interrogation' || category === 'mirage' || category === 'perspectra') {
+    if (
+      category === 'eternal-nightmare' ||
+      category === 'event-story' ||
+      category === 'interrogation' ||
+      category === 'mirage' ||
+      category === 'perspectra'
+    ) {
       this.form.category = category;
     }
 
@@ -251,7 +275,9 @@ export class AddTranscriptPage {
 
   public get parentChoices() {
     const category = this.form.category;
-    const choices = this.store.collections(category).map((item) => ({ id: item.id, name: item.label }));
+    const choices = this.store
+      .collections(category)
+      .map((item) => ({ id: item.id, name: item.label }));
     if (this.form.parentLabel && !choices.some((item) => item.name === this.form.parentLabel)) {
       choices.unshift({ id: '', name: this.form.parentLabel });
     }
@@ -277,6 +303,8 @@ export class AddTranscriptPage {
       language: transcript.sourceLanguage ?? 'en',
       parentLabel: transcript.parentLabel,
       stageLabel: transcript.stageLabel,
+      title: transcript.title,
+      description: transcript.description,
     };
     this.nodes = this.toEditable(transcript.nodes);
     this.published = false;
@@ -285,7 +313,14 @@ export class AddTranscriptPage {
 
   public cancelEdit() {
     this.editingId = null;
-    this.form = { category: 'main-story', language: 'en', parentLabel: '', stageLabel: '' };
+    this.form = {
+      category: 'main-story',
+      language: 'en',
+      parentLabel: '',
+      stageLabel: '',
+      title: '',
+      description: '',
+    };
     this.nodes = [this.newLine()];
     this.captureSnapshot();
   }
@@ -318,9 +353,13 @@ export class AddTranscriptPage {
       return;
     }
     this.pendingImportNodes = [];
+    this.pendingImportMetadata = {};
+    this.importLanguageOptions = [];
+    this.importLanguage = '';
+    this.importFileSource = file;
     this.pendingImportName = '';
     this.pendingImportReady = false;
-    this.importLoading = false;
+    this.importApplying = false;
     this.importError = false;
     this.importProgress = 0;
     if (!/\.xlsx$/i.test(file.name)) {
@@ -338,11 +377,24 @@ export class AddTranscriptPage {
       this.importMessage = 'Import failed: the XLSX file must be 100 MB or smaller.';
       return;
     }
+    this.parseImportFile(file);
+  }
+
+  public changeImportLanguage(language: string) {
+    if (!this.importFileSource || language === this.importLanguage) {
+      return;
+    }
+    this.importLanguage = language;
+    this.parseImportFile(this.importFileSource);
+  }
+
+  private parseImportFile(file: File) {
     this.importLoading = true;
+    this.importError = false;
     this.importProgress = 5;
     this.importMessage = 'Reading XLSX file in the browser...';
     this.importer
-      .parseXlsx(file, (progress) => {
+      .parseXlsx(file, this.importLanguage || undefined, (progress) => {
         this.importProgress = progress;
         this.cdr.markForCheck();
       })
@@ -353,9 +405,12 @@ export class AddTranscriptPage {
         }),
       )
       .subscribe({
-        next: (imported) => {
+        next: (result) => {
           this.importProgress = 100;
-          this.pendingImportNodes = this.toEditable(this.importer.toNodes(imported));
+          this.importLanguageOptions = result.languages;
+          this.importLanguage = result.selectedLanguage;
+          this.pendingImportMetadata = result.metadata;
+          this.pendingImportNodes = this.toEditable(this.importer.toNodes(result.lines));
           this.pendingImportName = file.name;
           this.pendingImportReady = this.pendingImportNodes.length > 0;
           this.importError = this.pendingImportNodes.length === 0;
@@ -364,13 +419,16 @@ export class AddTranscriptPage {
             : 'Import failed: no transcript rows found.';
           this.cdr.markForCheck();
         },
-        error: () => {
+        error: (error: unknown) => {
           this.importProgress = 0;
           this.pendingImportNodes = [];
           this.pendingImportName = '';
           this.pendingImportReady = false;
           this.importError = true;
-          this.importMessage = 'Import failed: the browser could not parse the XLSX file.';
+          this.importMessage =
+            error instanceof Error
+              ? error.message
+              : 'Import failed: the browser could not parse the XLSX file.';
           this.cdr.markForCheck();
         },
       });
@@ -383,7 +441,8 @@ export class AddTranscriptPage {
       this.confirmation.confirm({
         key: 'admin-actions',
         header: 'Replace transcript content?',
-        message: 'Importing this file will replace all current transcript lines and choices. Continue?',
+        message:
+          'Importing this file will replace all current transcript lines and choices. Continue?',
         icon: 'pi pi-upload',
         acceptLabel: 'Import file',
         rejectLabel: 'Cancel',
@@ -395,25 +454,52 @@ export class AddTranscriptPage {
   }
 
   private async applyPendingImport() {
-    const helper = new TranscriptEditorComponent();
-    helper.nodes = this.pendingImportNodes;
-    const result = await this.storage.importRemoteMediaReferences(helper.serialize());
-    this.nodes = this.toEditable(result.nodes);
-    this.pendingImportNodes = [];
-    this.pendingImportReady = false;
-    this.pendingImportName = '';
-    this.importError = result.unresolved > 0;
-    this.importMessage = result.unresolved > 0
-      ? this.languages.text('importedWithUnresolvedImages', { count: String(result.unresolved) })
-      : this.languages.text('importedLines', { count: String(this.nodes.length) });
+    if (this.importApplying) {
+      return;
+    }
+    this.importApplying = true;
+    this.importError = false;
+    this.importMessage = this.languages.text('resolvingImportImages');
+    try {
+      const helper = new TranscriptEditorComponent();
+      helper.nodes = this.pendingImportNodes;
+      const result = await this.storage.importRemoteMediaReferences(helper.serialize());
+      this.form = {
+        ...this.form,
+        title: this.pendingImportMetadata.name ?? this.form.title,
+        stageLabel: this.pendingImportMetadata.stage ?? this.form.stageLabel,
+        description: this.pendingImportMetadata.description ?? this.form.description,
+      };
+      this.nodes = this.toEditable(result.nodes);
+      this.pendingImportNodes = [];
+      this.pendingImportMetadata = {};
+      this.pendingImportReady = false;
+      this.pendingImportName = '';
+      this.importError = result.unresolved > 0;
+      this.importMessage =
+        result.unresolved > 0
+          ? this.languages.text('importedWithUnresolvedImages', {
+              count: String(result.unresolved),
+            })
+          : this.languages.text('importedLines', { count: String(this.nodes.length) });
+    } catch (error: unknown) {
+      this.importError = true;
+      this.importMessage =
+        error instanceof Error
+          ? error.message
+          : 'Import failed: the image references could not be resolved.';
+    } finally {
+      this.importApplying = false;
+      this.cdr.markForCheck();
+    }
   }
   private editorHasContent() {
     return this.nodes.some((node) =>
       node.type === 'line'
         ? !!(node.speaker || node.text || node.male || node.female)
         : node.type === 'choice'
-          ? !!(node.prompt || node.options.some((option) => option.label || option.nodes.length))
-          : !!node.src,
+          ? node.options.some((option) => option.label || option.nodes.length)
+          : !!(node.src || node.male || node.female),
     );
   }
 
@@ -421,13 +507,15 @@ export class AddTranscriptPage {
     this.previewSelections = { ...this.previewSelections, [event.id]: event.option };
   }
 
-  public openPreview() {
+  public async openPreview() {
     if (!this.nodes.length) {
       return;
     }
     const editor = new TranscriptEditorComponent();
     editor.nodes = this.nodes;
-    this.previewNodes = editor.serialize();
+    const nodes = editor.serialize();
+    await this.storage.resolveMediaReferences(this.storage.mediaReferences(nodes)).catch(() => undefined);
+    this.previewNodes = this.storage.toPublicNodes(nodes);
     this.previewSelections = {};
     this.previewGender = 'female';
     this.previewOpen = true;
@@ -455,13 +543,14 @@ export class AddTranscriptPage {
     helper.nodes = this.nodes;
     const current: Transcript = {
       id: this.editingId ?? this.draftAssetOwnerId,
-      title: this.form.stageLabel,
+      title: this.form.title.trim() || this.form.stageLabel,
       category: this.form.category,
-      parentId: this.parentChoices.find((item) => item.name === this.form.parentLabel)?.id
-        ?? this.slug(this.form.parentLabel),
+      parentId:
+        this.parentChoices.find((item) => item.name === this.form.parentLabel)?.id ??
+        this.slug(this.form.parentLabel),
       parentLabel: this.form.parentLabel,
       stageLabel: this.form.stageLabel,
-      description: '',
+      description: this.form.description,
       nodes: helper.serialize(),
       sourceLanguage: this.form.language,
     };
@@ -504,7 +593,13 @@ export class AddTranscriptPage {
   }
 
   private image(node: ImageNode): EditableNode {
-    return { type: 'image', id: node.id, src: node.src };
+    return {
+      type: 'image',
+      id: node.id,
+      src: node.src,
+      male: node.variants?.male ?? '',
+      female: node.variants?.female ?? '',
+    };
   }
   private line(node: LineNode): EditableNode {
     return {
@@ -521,7 +616,6 @@ export class AddTranscriptPage {
     return {
       type: 'choice',
       id: node.id,
-      prompt: node.prompt ?? '',
       options: node.options.map((option) => ({
         id: option.id,
         label: option.label,

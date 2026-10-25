@@ -1,6 +1,18 @@
 @import 'tailwindcss';
 
+@font-face {
+  font-family: 'Sekuya';
+  src: url('/font/Sekuya-Regular.ttf') format('truetype');
+  font-display: swap;
+  font-weight: 400;
+  font-style: normal;
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
+
+.archive-brand {
+  font-family: 'Sekuya', sans-serif;
+}
 
 :root {
   color-scheme: light;
@@ -15,6 +27,22 @@ body {
   color: var(--p-text-color);
 }
 
+.p-breadcrumb {
+  width: 100%;
+  margin-bottom: 1rem;
+  padding: 0 !important;
+}
+
+.p-breadcrumb-list {
+  min-width: 0;
+  align-items: center;
+}
+
+.p-breadcrumb-item,
+.p-breadcrumb-item-link {
+  min-width: 0;
+}
+
 @media (max-width: 639px) {
   .p-breadcrumb-list {
     min-width: 0;
@@ -22,12 +50,7 @@ body {
     overflow: hidden;
   }
 
-  .p-breadcrumb-item {
-    min-width: 0;
-  }
-
   .p-breadcrumb-item-link {
-    min-width: 0;
     max-width: 10rem;
   }
 

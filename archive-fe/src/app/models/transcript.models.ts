@@ -1,4 +1,5 @@
-export type Category = 'main-story' | 'eternal-nightmare' | 'event-story' | 'interrogation' | 'mirage' | 'perspectra';
+export type Category =
+  'main-story' | 'eternal-nightmare' | 'event-story' | 'interrogation' | 'mirage' | 'perspectra';
 export type Gender = 'male' | 'female';
 export type LanguageCode = string;
 export interface TranscriptTranslation {
@@ -27,13 +28,13 @@ export interface ChoiceOption {
 export interface ChoiceNode {
   type: 'choice';
   id: string;
-  prompt?: string;
   options: ChoiceOption[];
 }
 export interface ImageNode {
   type: 'image';
   id: string;
   src: string;
+  variants?: { male?: string; female?: string };
 }
 export interface Transcript {
   id: string;

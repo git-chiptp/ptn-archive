@@ -1,18 +1,22 @@
-import { ChoiceNode, Transcript, TranscriptTranslation } from '../models/transcript.models';
+import { ChoiceNode, LineNode, Transcript, TranscriptTranslation } from '../models/transcript.models';
+const responseQuestion: LineNode = {
+  type: 'line',
+  id: 'response-question',
+  text: 'How do you respond?',
+};
 const response: ChoiceNode = {
   type: 'choice',
   id: 'response',
-  prompt: 'How do you respond?',
   options: [
     {
       id: 'truth',
       label: 'Tell the truth',
       nodes: [
         { type: 'line', id: 'truth-line', speaker: 'Mira', text: 'Then we face it together.' },
+        { type: 'line', id: 'promise-question', text: 'Will you make a promise?' },
         {
           type: 'choice',
           id: 'promise',
-          prompt: 'Will you make a promise?',
           options: [
             {
               id: 'yes',
@@ -65,6 +69,7 @@ export const TRANSCRIPTS: Transcript[] = [
         },
       },
       { type: 'line', id: 'a2', description: 'Rain ticks against the broken observatory glass.' },
+      responseQuestion,
       response,
       {
         type: 'line',
@@ -144,10 +149,10 @@ export const TRANSCRIPTS: Transcript[] = [
         speaker: 'Archivist',
         text: 'The archive sealed itself from the inside.',
       },
+      { type: 'line', id: 'ad-question', text: 'Which path should the crew take?' },
       {
         type: 'choice',
         id: 'ad-choice',
-        prompt: 'Which path should the crew take?',
         options: [
           {
             id: 'tunnel',
@@ -210,10 +215,10 @@ export const TRANSCRIPTS: Transcript[] = [
         speaker: 'Vendor',
         text: 'I kept this for someone who asked the right question.',
       },
+      { type: 'line', id: 'mm-question', text: 'What do you offer in return?' },
       {
         type: 'choice',
         id: 'mm-choice',
-        prompt: 'What do you offer in return?',
         options: [
           {
             id: 'coin',
@@ -267,10 +272,10 @@ export const TRANSCRIPTS: Transcript[] = [
     nodes: [
       { type: 'line', id: 'pi1', speaker: 'Detective', text: 'Who gave the order to turn?' },
       { type: 'line', id: 'pi2', speaker: 'Pilot', text: 'No one. The ship chose.' },
+      { type: 'line', id: 'pi-question', text: 'Do you press the pilot?' },
       {
         type: 'choice',
         id: 'pi-choice',
-        prompt: 'Do you press the pilot?',
         options: [
           {
             id: 'press',
@@ -336,10 +341,10 @@ export const TRANSCRIPTS: Transcript[] = [
         speaker: 'Archivist',
         text: 'Listen. It is replaying our footsteps.',
       },
+      { type: 'line', id: 'baa-question', text: 'How do you open the memory door?' },
       {
         type: 'choice',
         id: 'baa-choice',
-        prompt: 'How do you open the memory door?',
         options: [
           {
             id: 'touch',
@@ -407,6 +412,7 @@ const vietnameseExamples: Record<string, TranscriptTranslation> = {
     nodes: [
       { type: 'line', id: 'a1', speaker: 'Mira', text: 'Bạn đã đến rồi. Tôi bắt đầu lo lắng đấy.' },
       { type: 'line', id: 'a2', description: 'Mưa rơi lộp bộp trên những ô kính vỡ của đài quan sát.' },
+      responseQuestion,
       response,
       { type: 'line', id: 'a3', speaker: 'Thủ thư', text: 'Tín hiệu vẫn còn sống bên dưới chúng ta.' },
     ],

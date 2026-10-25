@@ -1,4 +1,7 @@
-<section class="reader" *ngIf="!store.transcriptLoading() && localizedTranscript as t; else loadingOrMissing">
+<section
+  class="reader"
+  *ngIf="!store.transcriptLoading() && localizedTranscript as t; else loadingOrMissing"
+>
   @if (store.statusMessage(); as message) {
     <p class="translation-status">{{ message }}</p>
   }
@@ -7,7 +10,9 @@
   @if (!editMode) {
     <div class="reader-controls flex w-full flex-wrap items-center gap-x-4 gap-y-3">
       <div class="flex w-fit max-w-full min-w-0 flex-none flex-wrap items-center gap-2">
-        <label class="shrink-0 font-medium" for="chief-name">{{ language.text('chiefName') }}</label>
+        <label class="shrink-0 font-medium" for="chief-name">{{
+          language.text('chiefName')
+        }}</label>
         <input
           pInputText
           id="chief-name"
@@ -19,7 +24,9 @@
         />
       </div>
       <div class="flex min-w-0 max-w-full flex-none flex-wrap items-center gap-2">
-        <span id="protagonist-label" class="shrink-0 font-medium">{{ language.text('protagonist') }}</span>
+        <span id="protagonist-label" class="shrink-0 font-medium">{{
+          language.text('protagonist')
+        }}</span>
         <p-selectbutton
           [options]="protagonistOptions"
           optionLabel="label"
@@ -31,7 +38,12 @@
           styleClass="h-16 w-auto p-0"
         >
           <ng-template #item let-option>
-            <p-image [src]="option.imageUrl" [alt]="option.alt" [preview]="false" imageClass="h-14 w-14 object-cover" />
+            <p-image
+              [src]="option.imageUrl"
+              [alt]="option.alt"
+              [preview]="false"
+              imageClass="h-14 w-14 object-cover"
+            />
           </ng-template>
         </p-selectbutton>
       </div>
@@ -42,21 +54,54 @@
         </button>
       }
     </div>
-    <h1 class="mb-4 break-words text-3xl font-semibold [overflow-wrap:anywhere]">{{ t.parentLabel }} / {{ t.stageLabel }}</h1>
+    <div
+      class="mb-4 flex min-w-0 flex-col items-center gap-1 border-b border-[var(--p-content-border-color)] pb-4 text-center"
+    >
+      <p class="m-0 break-words text-lg [overflow-wrap:anywhere]">{{ t.stageLabel }}</p>
+      <h1 class="m-0 break-words text-3xl font-semibold [overflow-wrap:anywhere]">
+        {{ t.title || t.stageLabel }}
+      </h1>
+      @if (t.description) {
+        <p class="m-0 max-w-2xl whitespace-pre-line break-words [overflow-wrap:anywhere]">
+          {{ t.description }}
+        </p>
+      }
+    </div>
   }
   @if (editMode) {
     <section class="editor-page flex w-full min-w-0 flex-col gap-6">
-      <h1 class="m-0 break-words text-3xl font-semibold [overflow-wrap:anywhere]">{{ language.text('editTranscript') }}</h1>
-      <div class="flex flex-wrap items-center gap-2 border-b border-[var(--p-content-border-color)] pb-4">
-        <button pButton type="button" (click)="save()" [disabled]="saving || deleting || !editNodes.length">
+      <h1 class="m-0 break-words text-3xl font-semibold [overflow-wrap:anywhere]">
+        {{ language.text('editTranscript') }}
+      </h1>
+      <div
+        class="flex flex-wrap items-center gap-2 border-b border-[var(--p-content-border-color)] pb-4"
+      >
+        <button
+          pButton
+          type="button"
+          (click)="save()"
+          [disabled]="saving || deleting || !editNodes.length"
+        >
           <i class="pi pi-save" aria-hidden="true"></i>
           <span>{{ language.text('saveTranscript') }}</span>
         </button>
-        <button pButton type="button" severity="danger" (click)="remove()" [disabled]="saving || deleting">
+        <button
+          pButton
+          type="button"
+          severity="danger"
+          (click)="remove()"
+          [disabled]="saving || deleting"
+        >
           <i class="pi pi-trash" aria-hidden="true"></i>
           <span>{{ language.text('deleteTranscript') }}</span>
         </button>
-        <button pButton type="button" severity="secondary" (click)="openPreview()" [disabled]="!editNodes.length || saving || deleting">
+        <button
+          pButton
+          type="button"
+          severity="secondary"
+          (click)="openPreview()"
+          [disabled]="!editNodes.length || saving || deleting"
+        >
           <i class="pi pi-eye" aria-hidden="true"></i>
           <span>{{ language.text('previewTranscript') }}</span>
         </button>
@@ -64,7 +109,9 @@
       <div class="flex min-w-0 flex-col gap-6">
         <div class="grid min-w-0 gap-4 md:grid-cols-2">
           <div class="flex min-w-0 flex-col gap-2">
-            <label class="font-medium" for="edit-language">{{ language.text('transcriptLanguage') }}</label>
+            <label class="font-medium" for="edit-language">{{
+              language.text('transcriptLanguage')
+            }}</label>
             <p-select
               inputId="edit-language"
               [options]="language.supportedLanguages"
@@ -85,27 +132,67 @@
               optionValue="value"
               [(ngModel)]="editParent"
               (ngModelChange)="markEditDirty()"
-              [placeholder]="language.text(transcript?.category === 'main-story' || transcript?.category === 'eternal-nightmare' ? 'selectChapter' : transcript?.category === 'event-story' ? 'selectEvent' : 'selectCharacter')"
+              [placeholder]="
+                language.text(
+                  transcript?.category === 'main-story' ||
+                    transcript?.category === 'eternal-nightmare'
+                    ? 'selectChapter'
+                    : transcript?.category === 'event-story'
+                      ? 'selectEvent'
+                      : 'selectCharacter'
+                )
+              "
               [filter]="true"
               filterBy="label"
               [fluid]="true"
             />
           </div>
           <div class="flex min-w-0 flex-col gap-2">
-            <label class="font-medium" for="edit-stage">{{ language.text('stageOrPart') }}</label>
+            <label class="font-medium" for="edit-stage-number">
+              {{ language.text('stageNumber') }}
+            </label>
             <input
               pInputText
-              id="edit-stage"
+              id="edit-stage-number"
               class="w-full"
               [(ngModel)]="editStage"
               (ngModelChange)="markEditDirty()"
-              [placeholder]="language.text('stageOrPart')"
+              [placeholder]="language.text('stageNumber')"
             />
+          </div>
+          <div class="flex min-w-0 flex-col gap-2">
+            <label class="font-medium" for="edit-stage-name">
+              {{ language.text('stageName') }}
+            </label>
+            <input
+              pInputText
+              id="edit-stage-name"
+              class="w-full"
+              [(ngModel)]="editName"
+              (ngModelChange)="markEditDirty()"
+              [placeholder]="language.text('stageName')"
+            />
+          </div>
+          <div class="flex min-w-0 flex-col gap-2 md:col-span-2">
+            <label class="font-medium" for="edit-stage-description">
+              {{ language.text('stageDescription') }}
+            </label>
+            <textarea
+              pTextarea
+              id="edit-stage-description"
+              [(ngModel)]="editDescription"
+              (ngModelChange)="markEditDirty()"
+              [placeholder]="language.text('stageDescription')"
+              rows="3"
+              class="w-full"
+            ></textarea>
           </div>
         </div>
 
-        <section class="flex min-w-0 flex-col gap-3 border border-[var(--p-content-border-color)] p-4">
-          <div class="flex flex-wrap items-center justify-between gap-3">
+        <section
+          class="flex min-w-0 flex-col gap-3 border border-[var(--p-content-border-color)] p-4"
+        >
+          <div class="flex flex-wrap items-end justify-between gap-3">
             <p-fileupload
               mode="basic"
               name="transcript"
@@ -117,6 +204,22 @@
               [customUpload]="true"
               (onSelect)="importFile($event.files)"
             />
+            @if (importLanguageOptions.length > 1) {
+              <div class="flex min-w-0 flex-col gap-2">
+                <label class="font-medium" for="reader-import-language">{{
+                  language.text('importLanguage')
+                }}</label>
+                <p-select
+                  inputId="reader-import-language"
+                  [options]="importLanguageOptions"
+                  optionLabel="label"
+                  optionValue="key"
+                  [ngModel]="importLanguage"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="changeImportLanguage($event)"
+                />
+              </div>
+            }
           </div>
           @if (importLoading) {
             <p-message severity="info" variant="simple" role="status">
@@ -125,17 +228,39 @@
             </p-message>
             <p-progressbar [value]="importProgress" [showValue]="true" />
           }
-          @if (importMessage && !importLoading) {
+          @if (importApplying) {
+            <p-message severity="info" variant="simple" role="status">
+              <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+              {{ importMessage }}
+            </p-message>
+          }
+          @if (importMessage && !importLoading && !importApplying) {
             <p-message [severity]="importError ? 'error' : 'success'" variant="simple">
               {{ importMessage }}
             </p-message>
           }
           @if (pendingImportReady) {
             <div class="flex flex-wrap items-center justify-between gap-3">
-              <span class="text-sm">{{ language.text('fileLoaded', { name: pendingImportName }) }}</span>
-              <button pButton type="button" severity="secondary" (click)="importPending()">
-                <i class="pi pi-download" aria-hidden="true"></i>
-                <span>{{ language.text('importIntoEditor') }}</span>
+              <span class="text-sm">{{
+                language.text('fileLoaded', { name: pendingImportName })
+              }}</span>
+              <button
+                pButton
+                type="button"
+                severity="secondary"
+                (click)="importPending()"
+                [disabled]="importApplying"
+              >
+                <i
+                  class="pi"
+                  [class.pi-download]="!importApplying"
+                  [class.pi-spin]="importApplying"
+                  [class.pi-spinner]="importApplying"
+                  aria-hidden="true"
+                ></i>
+                <span>{{
+                  language.text(importApplying ? 'resolvingImportImages' : 'importIntoEditor')
+                }}</span>
               </button>
             </div>
           }
@@ -159,8 +284,23 @@
         [contentStyle]="{ maxHeight: '70vh', overflowY: 'auto' }"
       >
         <div class="flex min-w-0 flex-col gap-5">
+          <div
+            class="flex min-w-0 flex-col items-center gap-1 border-b border-[var(--p-content-border-color)] pb-4 text-center"
+          >
+            <p class="m-0 break-words text-lg [overflow-wrap:anywhere]">{{ editStage }}</p>
+            <h2 class="m-0 break-words text-2xl font-semibold [overflow-wrap:anywhere]">
+              {{ editName || editStage }}
+            </h2>
+            @if (editDescription) {
+              <p class="m-0 max-w-2xl whitespace-pre-line break-words [overflow-wrap:anywhere]">
+                {{ editDescription }}
+              </p>
+            }
+          </div>
           <div class="flex flex-wrap items-center gap-2">
-            <span id="preview-protagonist-label" class="font-medium">{{ language.text('protagonist') }}</span>
+            <span id="preview-protagonist-label" class="font-medium">{{
+              language.text('protagonist')
+            }}</span>
             <p-selectbutton
               [options]="protagonistOptions"
               optionLabel="label"
@@ -170,7 +310,12 @@
               ariaLabelledBy="preview-protagonist-label"
             >
               <ng-template #item let-option>
-                <p-image [src]="option.imageUrl" [alt]="option.alt" [preview]="false" imageClass="h-14 w-14 object-cover" />
+                <p-image
+                  [src]="option.imageUrl"
+                  [alt]="option.alt"
+                  [preview]="false"
+                  imageClass="h-14 w-14 object-cover"
+                />
               </ng-template>
             </p-selectbutton>
           </div>
@@ -193,17 +338,22 @@
       >
         <p class="text-muted-color">{{ language.text('unsavedLanguageMessage') }}</p>
         <ng-template #footer>
-              <button pButton type="button" (click)="savePendingLanguageChange()">
-                <i class="pi pi-save" aria-hidden="true"></i>
-                <span>{{ language.text('saveChanges') }}</span>
-              </button>
-              <button pButton type="button" severity="secondary" (click)="discardPendingLanguageChange()">
-                <i class="pi pi-times" aria-hidden="true"></i>
-                {{ language.text('discardChanges') }}
-              </button>
-              <button pButton type="button" severity="contrast" (click)="cancelPendingLanguageChange()">
-                {{ language.text('cancel') }}
-              </button>
+          <button pButton type="button" (click)="savePendingLanguageChange()">
+            <i class="pi pi-save" aria-hidden="true"></i>
+            <span>{{ language.text('saveChanges') }}</span>
+          </button>
+          <button
+            pButton
+            type="button"
+            severity="secondary"
+            (click)="discardPendingLanguageChange()"
+          >
+            <i class="pi pi-times" aria-hidden="true"></i>
+            {{ language.text('discardChanges') }}
+          </button>
+          <button pButton type="button" severity="contrast" (click)="cancelPendingLanguageChange()">
+            {{ language.text('cancel') }}
+          </button>
         </ng-template>
       </p-dialog>
     </section>

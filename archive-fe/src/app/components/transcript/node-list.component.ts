@@ -4,7 +4,10 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { ButtonModule } from 'primeng/button';
 import { ImageModule } from 'primeng/image';
 import { DialogueNode, Gender, ImageNode, LineNode } from '../../models/transcript.models';
-import { isRenderableImageSource } from '../../services/archive-storage.service';
+import {
+  ArchiveStorageService,
+  isRenderableImageSource,
+} from '../../services/archive-storage.service';
 @Component({
   selector: 'app-node-list',
   standalone: true,
@@ -16,6 +19,7 @@ import { isRenderableImageSource } from '../../services/archive-storage.service'
 })
 export class NodeListComponent {
   private sanitizer = inject(DomSanitizer);
+  private readonly storage = inject(ArchiveStorageService);
   @Input() nodes: DialogueNode[] = [];
   @Input() gender: Gender = 'female';
   @Input() chiefName = 'A';
@@ -35,7 +39,13 @@ export class NodeListComponent {
   }
 
   public image(node: ImageNode) {
-    return node.src;
+    const value =
+      node.variants?.[this.gender] || node.variants?.male || node.variants?.female || node.src;
+    return this.mediaUrl(value);
+  }
+
+  public mediaUrl(value?: string) {
+    return this.storage.toPublicUrl(value) ?? value ?? '';
   }
 
   private richText(value: string) {
@@ -55,9 +65,12 @@ export class NodeListComponent {
         const safeStyles = styles
           .split(';')
           .map((style: string) => style.trim())
-          .filter((style: string) =>
-            /^(color\s*:\s*(#[0-9a-f]{3,8}|[a-z]+|rgba?\([^)]*\))|font-weight\s*:\s*(normal|bold|[1-9]00)|font-style\s*:\s*(normal|italic))$/i.test(style) &&
-            (!/^color\s*:/i.test(style) || !this.isThemeNeutralColor(style)),
+          .filter(
+            (style: string) =>
+              /^(color\s*:\s*(#[0-9a-f]{3,8}|[a-z]+|rgba?\([^)]*\))|font-weight\s*:\s*(normal|bold|[1-9]00)|font-style\s*:\s*(normal|italic))$/i.test(
+                style,
+              ) &&
+              (!/^color\s*:/i.test(style) || !this.isThemeNeutralColor(style)),
           )
           .join(';');
         return safeStyles ? ` style=${quote}${safeStyles}${quote}` : '';

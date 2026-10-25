@@ -75,12 +75,16 @@
         <div
           class="collapsed-preview-content mt-2 min-w-0 max-w-full break-words whitespace-normal pl-4 [overflow-wrap:anywhere]"
         >
-          <p-image
-            [src]="treeNode.src"
-            [alt]="'imagePreview' | ui"
-            [preview]="true"
-            imageClass="block h-20 w-20 max-w-full object-contain"
-          />
+          @for (imageValue of [treeNode.src, treeNode.male, treeNode.female]; track $index) {
+            @if (imageValue) {
+              <p-image
+                [src]="imagePreviewUrl(imageValue)"
+                [alt]="'imagePreview' | ui"
+                [preview]="true"
+                imageClass="block h-20 w-20 max-w-full object-contain"
+              />
+            }
+          }
         </div>
       }
     }
@@ -248,12 +252,16 @@
           <div
             class="collapsed-preview mt-4 min-w-0 max-w-full break-words whitespace-normal [overflow-wrap:anywhere]"
           >
-            <p-image
-              [src]="imagePreviewUrl(node.src)"
-              [alt]="'imagePreview' | ui"
-              [preview]="true"
-              imageClass="mt-2 block h-20 w-20 max-w-full border border-[var(--p-content-border-color)] object-contain"
-            />
+            @for (imageValue of [node.src, node.male, node.female]; track $index) {
+              @if (imageValue) {
+                <p-image
+                  [src]="imagePreviewUrl(imageValue)"
+                  [alt]="'imagePreview' | ui"
+                  [preview]="true"
+                  imageClass="mt-2 block h-20 w-20 max-w-full border border-[var(--p-content-border-color)] object-contain"
+                />
+              }
+            }
           </div>
         }
       } @else if (node.type === 'line') {
@@ -330,15 +338,6 @@
           class="mt-4 flex min-w-0 flex-col gap-4 border border-[var(--p-content-border-color)] p-4"
         >
           <legend>{{ 'choice' | ui }}</legend>
-          <quill-editor
-            class="block w-full"
-            [(ngModel)]="node.prompt"
-            [ngModelOptions]="{ standalone: true }"
-            [name]="'prompt-' + node.id"
-            [modules]="modules"
-            format="html"
-            [placeholder]="'choicePrompt' | ui"
-          ></quill-editor>
           @for (option of node.options; track option.id; let optionIndex = $index) {
             <fieldset
               class="flex min-w-0 flex-col gap-4 border border-[var(--p-content-border-color)] p-4"
@@ -388,27 +387,37 @@
           class="mt-4 flex min-w-0 flex-col gap-4 border border-[var(--p-content-border-color)] p-4"
         >
           <legend>{{ 'image' | ui }}</legend>
-          <div class="flex min-w-0 flex-wrap items-end gap-4">
-            <button
-              pButton
-              type="button"
-              severity="secondary"
-              (click)="openMediaPicker('image', node)"
-            >
-              <i class="pi pi-images" aria-hidden="true"></i>
-              <span>{{ 'chooseFromLibrary' | ui }}</span>
-            </button>
+          <div class="grid min-w-0 gap-4 md:grid-cols-3">
+            @for (target of imagePickerTargets; track target.key) {
+              <div class="flex min-w-0 flex-col gap-2">
+                <span class="font-medium">{{ target.label | ui }}</span>
+                <button
+                  pButton
+                  type="button"
+                  severity="secondary"
+                  (click)="openMediaPicker(target.key, node)"
+                >
+                  <i class="pi pi-images" aria-hidden="true"></i>
+                  <span>{{ 'chooseFromLibrary' | ui }}</span>
+                </button>
+                @if (
+                  target.key === 'image'
+                    ? node.src
+                    : target.key === 'image-male'
+                      ? node.male
+                      : node.female;
+                  as imageValue
+                ) {
+                  <p-image
+                    [src]="imagePreviewUrl(imageValue)"
+                    [alt]="'imagePreview' | ui"
+                    [preview]="true"
+                    imageClass="block max-h-40 max-w-full border border-[var(--p-content-border-color)] object-contain"
+                  />
+                }
+              </div>
+            }
           </div>
-          @if (node.src) {
-            <div class="flex w-full min-w-0">
-              <p-image
-                [src]="imagePreviewUrl(node.src)"
-                [alt]="'imagePreview' | ui"
-                [preview]="true"
-                imageClass="block max-h-64 max-w-full border border-[var(--p-content-border-color)] object-contain"
-              />
-            </div>
-          }
           <button pButton type="button" severity="danger" (click)="remove(i)">
             <i class="pi pi-trash" aria-hidden="true"></i>
             <span>{{ 'deleteImage' | ui }}</span>

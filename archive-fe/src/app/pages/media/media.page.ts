@@ -108,6 +108,25 @@ export class MediaPage {
     return this.storage.toPublicUrl(mediaReference(asset.id)) ?? mediaReference(asset.id);
   }
 
+  public imagePath(asset: MediaAsset): string {
+    const name = asset.displayName
+      .trim()
+      .replace(/\.(?:avif|gif|jpe?g|png|webp)$/i, '');
+    const folder = this.folders.find((item) => item.id === asset.folderId)?.name.trim();
+    return folder ? `${folder}/${name}` : name;
+  }
+
+  public async copyImagePath(asset: MediaAsset) {
+    const path = this.imagePath(asset);
+    try {
+      await this.copyToClipboard(path);
+      this.error = '';
+      this.status = this.language.text('imagePathCopied', { path });
+    } catch {
+      this.error = this.language.text('copyImagePathFailed');
+    }
+  }
+
   public get currentFolderName(): string {
     return this.folders.find((folder) => folder.id === this.selectedFolderId)?.name ?? '';
   }
@@ -266,6 +285,27 @@ export class MediaPage {
       await this.load();
     } catch {
       this.error = this.language.text('mediaDeleteFailed');
+    }
+  }
+
+  private async copyToClipboard(value: string): Promise<void> {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+      return;
+    }
+    const input = document.createElement('textarea');
+    input.value = value;
+    input.setAttribute('readonly', '');
+    input.style.position = 'fixed';
+    input.style.opacity = '0';
+    document.body.appendChild(input);
+    input.select();
+    try {
+      if (!document.execCommand('copy')) {
+        throw new Error('Clipboard copy failed.');
+      }
+    } finally {
+      input.remove();
     }
   }
 }
