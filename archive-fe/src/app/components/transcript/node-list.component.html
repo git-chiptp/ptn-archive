@@ -4,10 +4,10 @@
       <div
         class="line mb-6 min-w-0 max-w-full break-words last:mb-0 [overflow-wrap:anywhere]"
       >
-        @if (node.sprite) {
+        @if (mediaUrl(node.sprite); as spriteUrl) {
           <div class="block min-w-0 max-w-full">
             <p-image
-              [src]="mediaUrl(node.sprite)"
+              [src]="spriteUrl"
               alt="Narrator sprite"
               [preview]="true"
               imageClass="narrator-sprite block h-[100px] w-[100px] object-contain"
@@ -61,16 +61,18 @@
         }
       </div>
     } @else {
-      <div
-        class="line transcript-image mb-6 flex min-w-0 max-w-full justify-center overflow-hidden last:mb-0"
-      >
-        <p-image
-          [src]="image(node)"
-          alt="Transcript image"
-          [preview]="true"
-          imageClass="block h-auto max-w-full object-contain"
-        />
-      </div>
+      @if (image(node); as imageUrl) {
+        <div
+          class="line transcript-image mb-6 flex min-w-0 max-w-full justify-center overflow-hidden last:mb-0"
+        >
+          <p-image
+            [src]="imageUrl"
+            alt="Transcript image"
+            [preview]="true"
+            imageClass="block h-auto max-w-full object-contain"
+          />
+        </div>
+      }
     }
   }
 </div>

@@ -107,7 +107,7 @@ export class MediaPage {
   }
 
   public imageUrl(asset: MediaAsset): string {
-    return this.storage.toPublicUrl(mediaReference(asset.id)) ?? mediaReference(asset.id);
+    return this.storage.toPublicUrl(mediaReference(asset.id)) ?? '';
   }
 
   public imagePath(asset: MediaAsset): string {
@@ -202,6 +202,7 @@ export class MediaPage {
     const items: MenuItem[] = [
       {
         label: this.language.text('allImages'),
+        styleClass: 'cursor-pointer hover:underline',
         command: () => this.folderChanged(''),
       },
     ];
@@ -210,6 +211,7 @@ export class MediaPage {
       items.push({
         label: folder.name,
         disabled: index === path.length - 1,
+        styleClass: index === path.length - 1 ? '' : 'cursor-pointer hover:underline',
         command: () => this.folderChanged(folder.id),
       });
     });

@@ -322,7 +322,7 @@ export class ArchiveStorageService {
     }
     const mediaId = MEDIA_REFERENCE_PATTERN.exec(value.trim())?.[1];
     if (mediaId) {
-      return this.mediaUrls.get(mediaReference(mediaId)) ?? value;
+      return this.mediaUrls.get(mediaReference(mediaId));
     }
     const path = this.toStoragePath(value);
     return path
@@ -766,33 +766,41 @@ export class ArchiveStorageService {
   }
 
   public toPublicNodes(nodes: DialogueNode[]): DialogueNode[] {
-    return nodes.map((node) =>
-      node.type === 'line'
+    const publicNodes: DialogueNode[] = [];
+    for (const node of nodes) {
+      if (node.type === 'line') {
+        publicNodes.push({
+          ...node,
+          sprite: this.toPublicUrl(node.sprite),
+          ...(node.options
+            ? {
+                options: node.options.map((option) => ({
+                  ...option,
+                  nodes: this.toPublicNodes(option.nodes),
+                })),
+              }
+            : {}),
+        });
+        continue;
+      }
+      const src = this.toPublicUrl(node.src);
+      const variants = node.variants
         ? {
-            ...node,
-            sprite: this.toPublicUrl(node.sprite),
-            ...(node.options
-              ? {
-                  options: node.options.map((option) => ({
-                    ...option,
-                    nodes: this.toPublicNodes(option.nodes),
-                  })),
-                }
-              : {}),
+            male: this.toPublicUrl(node.variants.male),
+            female: this.toPublicUrl(node.variants.female),
           }
-        : {
-              ...node,
-              src: this.toPublicUrl(node.src) ?? node.src,
-              ...(node.variants
-                ? {
-                    variants: {
-                      male: this.toPublicUrl(node.variants.male) ?? node.variants.male,
-                      female: this.toPublicUrl(node.variants.female) ?? node.variants.female,
-                    },
-                  }
-                : {}),
-            },
-    );
+        : undefined;
+      const imageSource = src || variants?.male || variants?.female;
+      if (!imageSource) {
+        continue;
+      }
+      publicNodes.push({
+        ...node,
+        src: imageSource,
+        ...(variants?.male || variants?.female ? { variants } : {}),
+      });
+    }
+    return publicNodes;
   }
 
   public collectPaths(nodes: DialogueNode[]): string[] {
