@@ -26,46 +26,48 @@
         @if (node.options?.length) {
           <div class="transcript-options mt-6 min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
             <div
-              class="options flex max-w-full flex-wrap items-center justify-center gap-2"
+              class="options flex max-w-full flex-col items-stretch gap-2"
               role="group"
               aria-label="Transcript options"
             >
               @for (option of node.options; track option.id) {
-                <button
-                  pButton
-                  type="button"
-                  severity="secondary"
-                  class="transcript-option min-w-0 max-w-full flex-[1_1_16rem] whitespace-normal break-words text-left [overflow-wrap:anywhere]"
-                  [class.!bg-[var(--p-button-secondary-active-background)]]="
-                    selections[node.id] === option.id && option.nodes.length > 0
-                  "
-                  [class.!text-[var(--p-button-secondary-active-color)]]="
-                    selections[node.id] === option.id && option.nodes.length > 0
-                  "
-                  [attr.aria-pressed]="
-                    option.nodes.length > 0 ? selections[node.id] === option.id : null
-                  "
-                  [disabled]="!option.nodes.length"
-                  (click)="toggleOption(node.id, option.id, option.nodes.length > 0)"
-                >
-                  <span
-                    class="block min-w-0 max-w-full break-words text-base [overflow-wrap:anywhere] [&_img]:mx-auto [&_img]:block [&_img]:h-auto [&_img]:max-w-full"
-                    [innerHTML]="htmlText(option.label)"
-                  ></span>
-                </button>
+                <div class="option-group w-full min-w-0 max-w-full">
+                  <button
+                    pButton
+                    type="button"
+                    severity="secondary"
+                    class="transcript-option w-full min-w-0 max-w-full whitespace-normal break-words text-left [overflow-wrap:anywhere]"
+                    [class.!bg-[var(--p-button-secondary-active-background)]]="
+                      selections[node.id] === option.id && option.nodes.length > 0
+                    "
+                    [class.!text-[var(--p-button-secondary-active-color)]]="
+                      selections[node.id] === option.id && option.nodes.length > 0
+                    "
+                    [attr.aria-pressed]="
+                      option.nodes.length > 0 ? selections[node.id] === option.id : null
+                    "
+                    [disabled]="!option.nodes.length"
+                    (click)="toggleOption(node.id, option.id, option.nodes.length > 0)"
+                  >
+                    <span
+                      class="block min-w-0 max-w-full break-words text-base [overflow-wrap:anywhere] [&_img]:mx-auto [&_img]:block [&_img]:h-auto [&_img]:max-w-full"
+                      [innerHTML]="htmlText(option.label)"
+                    ></span>
+                  </button>
+                  @if (selections[node.id] === option.id) {
+                    <div class="branch mt-6 min-w-0 max-w-full">
+                      <app-node-list
+                        [nodes]="option.nodes"
+                        [gender]="gender"
+                        [chiefName]="chiefName"
+                        [selections]="selections"
+                        (changed)="changed.emit($event)"
+                      />
+                    </div>
+                  }
+                </div>
               }
             </div>
-            @if (selections[node.id]; as selected) {
-              <div class="branch mt-6 min-w-0 max-w-full">
-                <app-node-list
-                  [nodes]="node.options.find((o) => o.id === selected)?.nodes || []"
-                  [gender]="gender"
-                  [chiefName]="chiefName"
-                  [selections]="selections"
-                  (changed)="changed.emit($event)"
-                />
-              </div>
-            }
           </div>
         }
       </div>

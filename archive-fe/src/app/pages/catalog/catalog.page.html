@@ -84,12 +84,9 @@
             aria-hidden="true"
           ></span>
           <div class="relative z-10 flex h-full min-h-0 flex-col p-4 text-white sm:p-5">
-            <h2 class="m-0 text-2xl font-semibold">
+            <h2 class="m-0">
               <a
-                pButton
-                text
-                severity="contrast"
-                class="!p-0 !text-2xl !font-semibold"
+                class="absolute inset-0 z-10 flex h-full w-full items-center justify-center p-4 text-center text-2xl font-semibold uppercase leading-tight tracking-wide text-white no-underline drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]"
                 [routerLink]="['/', category, slug(collection.label)]"
                 >{{ collection.label }}</a
               >
