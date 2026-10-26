@@ -57,9 +57,9 @@
           class="collapsed-preview-content mt-2 min-w-0 max-w-full break-words whitespace-normal pl-4 [overflow-wrap:anywhere]"
         >
           @for (imageValue of [treeNode.src, treeNode.male, treeNode.female]; track $index) {
-            @if (imageValue) {
+            @if (imagePreviewUrl(imageValue); as imageUrl) {
               <p-image
-                [src]="imagePreviewUrl(imageValue)"
+                [src]="imageUrl"
                 [alt]="'imagePreview' | ui"
                 [preview]="true"
                 imageClass="block h-20 w-20 max-w-full object-contain"
@@ -236,9 +236,9 @@
               <i class="pi pi-images" aria-hidden="true"></i>
               <span>{{ 'chooseFromLibrary' | ui }}</span>
             </button>
-            @if (node.sprite) {
+            @if (imagePreviewUrl(node.sprite); as imageUrl) {
               <p-image
-                [src]="imagePreviewUrl(node.sprite)"
+                [src]="imageUrl"
                 [alt]="'narratorSpritePreview' | ui"
                 [preview]="false"
                 imageClass="h-16 w-16 border border-[var(--p-content-border-color)] object-cover"
@@ -339,15 +339,16 @@
                   <span>{{ 'chooseFromLibrary' | ui }}</span>
                 </button>
                 @if (
-                  target.key === 'image'
-                    ? node.src
-                    : target.key === 'image-male'
-                      ? node.male
-                      : node.female;
-                  as imageValue
+                  imagePreviewUrl(
+                    target.key === 'image'
+                      ? node.src
+                      : target.key === 'image-male'
+                        ? node.male
+                        : node.female
+                  ); as imageUrl
                 ) {
                   <p-image
-                    [src]="imagePreviewUrl(imageValue)"
+                    [src]="imageUrl"
                     [alt]="'imagePreview' | ui"
                     [preview]="true"
                     imageClass="block max-h-40 max-w-full border border-[var(--p-content-border-color)] object-contain"

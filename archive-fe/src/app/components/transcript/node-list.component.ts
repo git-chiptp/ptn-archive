@@ -45,7 +45,7 @@ export class NodeListComponent {
   }
 
   public mediaUrl(value?: string) {
-    return this.storage.toPublicUrl(value) ?? value ?? '';
+    return this.storage.toPublicUrl(value);
   }
 
   private richText(value: string) {

@@ -142,8 +142,8 @@ export class TranscriptEditorComponent implements OnChanges {
     return node.speaker ? node.speaker + ':' : (this.language?.text('narration') ?? 'Narration:');
   }
 
-  public imagePreviewUrl(value?: string): string {
-    return value ? (this.storage?.toPublicUrl(value) ?? value) : '';
+  public imagePreviewUrl(value?: string): string | undefined {
+    return value ? this.storage?.toPublicUrl(value) : undefined;
   }
 
   public openMediaPicker(

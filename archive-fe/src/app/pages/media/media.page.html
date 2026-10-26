@@ -183,12 +183,14 @@
         <article
           class="flex min-w-0 flex-col gap-3 rounded border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-3"
         >
-          <p-image
-            [src]="imageUrl(asset)"
-            [alt]="asset.displayName"
-            [preview]="true"
-            imageClass="aspect-square w-full object-contain"
-          />
+          @if (imageUrl(asset); as assetUrl) {
+            <p-image
+              [src]="assetUrl"
+              [alt]="asset.displayName"
+              [preview]="true"
+              imageClass="aspect-square w-full object-contain"
+            />
+          }
           @if (editing?.id === asset.id) {
             <input
               pInputText
