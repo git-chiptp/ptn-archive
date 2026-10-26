@@ -43,16 +43,11 @@
 :host ::ng-deep .ql-toolbar.ql-snow,
 :host ::ng-deep .ql-container.ql-snow {
   border-color: var(--p-content-border-color);
-  background: var(--p-content-background);
 }
 
-:host ::ng-deep .ql-editor {
-  color: var(--p-text-color);
-  caret-color: var(--p-text-color);
-}
-
-:host ::ng-deep .ql-editor.ql-blank::before {
-  color: var(--p-text-muted-color);
+:host ::ng-deep .ql-container.ql-snow {
+  background: #fff;
+  color: #000;
 }
 
 .editor-node {

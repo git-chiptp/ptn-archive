@@ -16,7 +16,7 @@
         }
         <span
           *ngIf="node.speaker"
-          class="speaker block max-w-full break-words text-[20px] [overflow-wrap:anywhere]"
+          class="speaker block max-w-full break-words text-[20px] font-bold [overflow-wrap:anywhere]"
           >{{ displayText(node.speaker) }}</span
         >
         <span
@@ -36,11 +36,20 @@
                   type="button"
                   severity="secondary"
                   class="transcript-option min-w-0 max-w-full flex-[1_1_16rem] whitespace-normal break-words text-left [overflow-wrap:anywhere]"
-                  [class.active]="selections[node.id] === option.id"
-                  (click)="changed.emit({ id: node.id, option: option.id })"
+                  [class.!bg-[var(--p-button-secondary-active-background)]]="
+                    selections[node.id] === option.id && option.nodes.length > 0
+                  "
+                  [class.!text-[var(--p-button-secondary-active-color)]]="
+                    selections[node.id] === option.id && option.nodes.length > 0
+                  "
+                  [attr.aria-pressed]="
+                    option.nodes.length > 0 ? selections[node.id] === option.id : null
+                  "
+                  [disabled]="!option.nodes.length"
+                  (click)="toggleOption(node.id, option.id, option.nodes.length > 0)"
                 >
                   <span
-                    class="block min-w-0 max-w-full break-words [overflow-wrap:anywhere] [&_img]:mx-auto [&_img]:block [&_img]:h-auto [&_img]:max-w-full"
+                    class="block min-w-0 max-w-full break-words text-base [overflow-wrap:anywhere] [&_img]:mx-auto [&_img]:block [&_img]:h-auto [&_img]:max-w-full"
                     [innerHTML]="htmlText(option.label)"
                   ></span>
                 </button>

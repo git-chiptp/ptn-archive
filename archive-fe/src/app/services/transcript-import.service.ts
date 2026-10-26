@@ -300,18 +300,15 @@ export class TranscriptImportService {
     language: { key: string; index: number },
     fontStyles: ImportedFontStyles,
   ): ImportedLine {
-    const text = this.richText(
-      this.cellAt(sheet, language.index, rowIndex),
-      row[language.index],
-      fontStyles,
-      this.cellAddress(language.index, rowIndex),
-    );
+    const address = this.cellAddress(language.index, rowIndex);
+    const cellStyle = fontStyles.get(address);
+    const richText = this.richText(this.cellAt(sheet, language.index, rowIndex), row[language.index]);
+    const text = cellStyle ? this.applyFontStyle(richText, cellStyle) : richText;
     const type = this.parseType(row[columns.type], rowIndex);
     const depth = this.parseDepth(row[columns.depth], rowIndex);
     const languageSpeaker = columns.speakers.find((item) => item.languageKey === language.key);
     const speaker = languageSpeaker ? this.cellText(row[languageSpeaker.index]).trim() : '';
     const sprite = columns.sprite === undefined ? '' : this.cellText(row[columns.sprite]).trim();
-    const plain = this.stripTags(this.decodeEntities(text)).trim();
 
     if (type === 'image') {
       const imageValue = this.stripTags(this.decodeEntities(sprite)).trim();
@@ -343,7 +340,7 @@ export class TranscriptImportService {
       };
     }
 
-    const variants = this.parseVariants(plain);
+    const variants = this.parseVariants(richText, cellStyle);
     if (variants) {
       return {
         sprite,
@@ -397,28 +394,63 @@ export class TranscriptImportService {
       .trim();
   }
 
-  private parseVariants(value: string): { male?: string; female?: string } | undefined {
+  private parseVariants(
+    value: string,
+    cellStyle?: ImportedFontStyle,
+  ): { male?: string; female?: string } | undefined {
     const lines = value
       .split(/\r?\n/)
       .map((line) => line.trim())
       .filter(Boolean);
-    if (!lines.length || lines.some((line) => !/^(male|female)\s*:/i.test(line))) {
+    const plainLines = lines.map((line) => this.stripTags(this.decodeEntities(line)).trim());
+    if (!plainLines.length || plainLines.some((line) => !/^(male|female)\s*:/i.test(line))) {
       return undefined;
     }
 
     const variants: { male?: string; female?: string } = {};
-    for (const line of lines) {
-      const match = /^(male|female)\s*:\s*(.*)$/i.exec(line);
+    for (const [index, plainLine] of plainLines.entries()) {
+      const match = /^(male|female)\s*:\s*(.*)$/i.exec(plainLine);
       if (!match) {
         return undefined;
       }
       const key = match[1].toLowerCase() as 'male' | 'female';
-      const variant = match[2].trim();
+      const variant = this.removeVariantPrefix(lines[index], match[1]).trim();
       if (variant) {
-        variants[key] = variant;
+        variants[key] = cellStyle ? this.applyFontStyle(variant, cellStyle) : variant;
       }
     }
     return variants.male || variants.female ? variants : undefined;
+  }
+
+  private removeVariantPrefix(value: string, label: string): string {
+    if (typeof DOMParser === 'undefined') {
+      const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return value.replace(
+        new RegExp(`^\\s*${escapedLabel}\\s*:\\s*`, 'i'),
+        '',
+      );
+    }
+    const document = new DOMParser().parseFromString(`<root>${value}</root>`, 'text/html');
+    const root = document.body.firstElementChild;
+    if (!root) {
+      return value;
+    }
+    const prefix = new RegExp(`^\\s*${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:\\s*`, 'i');
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let textNode = walker.nextNode();
+    let remaining = true;
+    while (textNode && remaining) {
+      const node = textNode as Text;
+      const match = prefix.exec(node.data);
+      if (match) {
+        node.data = node.data.slice(match[0].length);
+        remaining = false;
+      } else if (node.data.trim()) {
+        remaining = false;
+      }
+      textNode = walker.nextNode();
+    }
+    return root.innerHTML;
   }
 
   private cellAt(sheet: XLSX.WorkSheet, column: number, row: number): XLSX.CellObject | undefined {
