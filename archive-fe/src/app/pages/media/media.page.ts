@@ -9,6 +9,7 @@ import { ImageModule } from 'primeng/image';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { PaginatorModule } from 'primeng/paginator';
+import { SelectModule } from 'primeng/select';
 import {
   ArchiveStorageService,
   MediaAsset,
@@ -29,6 +30,7 @@ import { LanguageService } from '../../services/language.service';
     InputTextModule,
     MessageModule,
     PaginatorModule,
+    SelectModule,
   ],
   templateUrl: './media.page.html',
 })
@@ -179,7 +181,7 @@ export class MediaPage {
     });
   }
 
-  public async moveAsset(asset: MediaAsset, folderId: string) {
+  public async moveAsset(asset: MediaAsset, folderId: string | null) {
     try {
       await this.storage.moveMediaAsset(asset.id, folderId || null);
       this.status = this.language.text('mediaMoved');

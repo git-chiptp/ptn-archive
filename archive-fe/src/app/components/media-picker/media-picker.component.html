@@ -89,27 +89,29 @@
     } @else {
       <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
         @for (asset of assets; track asset.id) {
-          <button
-            type="button"
-            class="flex min-w-0 flex-col gap-2 rounded border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-2 text-left transition hover:border-[var(--p-primary-color)]"
+          <p-button
+            [text]="true"
+            severity="secondary"
+            styleClass="flex min-w-0 flex-col gap-2 rounded border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-2 text-left transition hover:border-[var(--p-primary-color)]"
             [class.border-[var(--p-primary-color)]]="
               value === imageUrl(asset) || value === 'media:' + asset.id
             "
-            (click)="choose(asset)"
+            (onClick)="choose(asset)"
           >
             <span
-              class="flex aspect-square items-center justify-center overflow-hidden bg-[var(--p-content-hover-background)]"
+              class="flex aspect-square w-full items-center justify-center overflow-hidden bg-[var(--p-content-hover-background)]"
             >
-              <img
-                class="h-full w-full object-contain"
+              <p-image
                 [src]="imageUrl(asset)"
                 [alt]="asset.displayName"
+                [preview]="false"
+                imageClass="h-full w-full object-contain"
               />
             </span>
             <span class="truncate text-sm" [title]="asset.displayName">{{
               asset.displayName
             }}</span>
-          </button>
+          </p-button>
         }
       </div>
       <p-paginator

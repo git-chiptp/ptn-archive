@@ -1,11 +1,14 @@
 import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ConfirmationService } from 'primeng/api';
+import { AccordionModule } from 'primeng/accordion';
 import { ButtonModule } from 'primeng/button';
+import { CheckboxModule } from 'primeng/checkbox';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
+import { TextareaModule } from 'primeng/textarea';
 import { AuthService } from '../../services/auth.service';
 import { GlossaryEntry, GlossaryInput, GlossaryService } from '../../services/glossary.service';
 import { LanguageService } from '../../services/language.service';
@@ -25,11 +28,14 @@ const GLOSSARY_SEARCH_FIELDS: GlossarySearchField[] = [
   standalone: true,
   imports: [
     FormsModule,
+    AccordionModule,
     ButtonModule,
+    CheckboxModule,
     ConfirmDialogModule,
     DialogModule,
     InputTextModule,
     MessageModule,
+    TextareaModule,
   ],
   templateUrl: './glossary.page.html',
 })

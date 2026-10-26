@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 import { BreadcrumbModule } from 'primeng/breadcrumb';
 import { ButtonModule } from 'primeng/button';
+import { ImageModule } from 'primeng/image';
 import { InputTextModule } from 'primeng/inputtext';
 import { Category } from '../../models/transcript.models';
 import { AuthService } from '../../services/auth.service';
@@ -12,7 +13,15 @@ import { ArchiveStore } from '../../services/archive.store';
 import { LanguageService } from '../../services/language.service';
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, BreadcrumbModule, ButtonModule, InputTextModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    BreadcrumbModule,
+    ButtonModule,
+    ImageModule,
+    InputTextModule,
+  ],
   templateUrl: './catalog.page.html',
 })
 export class CatalogPage {

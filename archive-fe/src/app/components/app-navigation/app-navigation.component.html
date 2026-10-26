@@ -11,13 +11,13 @@
       [ariaLabel]="language.text('navigation')"
       (onClick)="drawerOpen = true"
     />
-    <button
-      type="button"
-      class="archive-brand cursor-pointer border-0 bg-transparent text-sm font-extrabold tracking-[0.16em] text-[var(--p-text-color)]"
-      (click)="navigate('/')"
-    >
-      DISTIONARY
-    </button>
+    <p-button
+      label="DISTIONARY"
+      [text]="true"
+      severity="secondary"
+      styleClass="archive-brand text-sm font-extrabold tracking-[0.16em] text-[var(--p-text-color)]"
+      (onClick)="navigate('/')"
+    />
   </header>
   <main class="min-h-screen min-w-0 px-5 pb-16 pt-8">
     <div class="mx-auto w-full max-w-[76rem]">
@@ -32,13 +32,13 @@
   [style]="drawerPosition === 'top' ? { height: 'min(80dvh, 36rem)' } : { width: '18rem' }"
 >
   <ng-template #header>
-    <button
-      type="button"
-      class="archive-brand cursor-pointer border-0 bg-transparent p-0 text-sm font-extrabold tracking-[0.16em] text-[var(--p-text-color)]"
-      (click)="navigate('/')"
-    >
-      DISTIONARY
-    </button>
+    <p-button
+      label="DISTIONARY"
+      [text]="true"
+      severity="secondary"
+      styleClass="archive-brand p-0 text-sm font-extrabold tracking-[0.16em] text-[var(--p-text-color)]"
+      (onClick)="navigate('/')"
+    />
   </ng-template>
   <p-menu
     [model]="navigationMenu"

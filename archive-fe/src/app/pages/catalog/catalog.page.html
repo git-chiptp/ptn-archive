@@ -69,12 +69,12 @@
           (keydown.enter)="collectionCardsAreLinks && openCollection(collection.label)"
         >
           @if (collection.backgroundImage) {
-            <img
-              class="absolute inset-0 h-full w-full object-cover object-center"
+            <p-image
               [src]="collection.backgroundImage"
               [alt]="collection.label"
-              [attr.loading]="collectionIndex === 0 ? 'eager' : 'lazy'"
-              decoding="async"
+              [preview]="false"
+              [loading]="collectionIndex === 0 ? 'eager' : 'lazy'"
+              imageClass="absolute inset-0 h-full w-full object-cover object-center"
             />
           } @else {
             <span class="absolute inset-0 bg-[var(--p-surface-700)]" aria-hidden="true"></span>

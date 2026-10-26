@@ -288,10 +288,11 @@
               <span>{{ 'chooseFromLibrary' | ui }}</span>
             </button>
             @if (node.sprite) {
-              <img
-                class="h-16 w-16 border border-[var(--p-content-border-color)] object-cover"
+              <p-image
                 [src]="imagePreviewUrl(node.sprite)"
                 [alt]="'narratorSpritePreview' | ui"
+                [preview]="false"
+                imageClass="h-16 w-16 border border-[var(--p-content-border-color)] object-cover"
               />
             }
           </div>

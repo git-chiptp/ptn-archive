@@ -40,6 +40,7 @@ type ImportColumns = {
   type: number;
   depth: number;
   speaker?: number;
+  speakers: { languageKey: string; index: number }[];
   sprite?: number;
   languages: { key: string; label: string; index: number }[];
   metadata: {
@@ -160,7 +161,11 @@ export class TranscriptImportService {
       return index;
     };
     const optional = (name: string): number | undefined => indexes.get(name);
-    const structural = new Set(['sprite', 'speaker', 'type', 'depth']);
+    const languageSpeakers = headers
+      .map((item) => ({ ...item, languageKey: this.parseSpeakerHeader(item.key) }))
+      .filter((item): item is typeof item & { languageKey: string } => !!item.languageKey);
+    const languageSpeakerKeys = new Set(languageSpeakers.map((item) => item.key));
+    const structural = new Set(['sprite', 'speaker', 'type', 'depth', ...languageSpeakerKeys]);
     const metadata: ImportColumns['metadata'] = [];
     const bareMetadata: { field: ImportMetadataField; index: number; label: string }[] = [];
     const languageHeaders = headers
@@ -196,6 +201,16 @@ export class TranscriptImportService {
         metadata.push({ languageKey: languages[0].key, field: item.field, index: item.index }),
       );
     }
+    languageSpeakers.forEach((item) => {
+      if (!languages.some((language) => language.key === item.languageKey)) {
+        throw new Error(
+          `Speaker column must use a language with a content column: ${item.languageKey}.`,
+        );
+      }
+      if (languageSpeakers.filter((speaker) => speaker.languageKey === item.languageKey).length > 1) {
+        throw new Error(`Import has multiple speaker columns for ${item.languageKey}.`);
+      }
+    });
     metadata.forEach((item) => {
       if (!languages.some((language) => language.key === item.languageKey)) {
         throw new Error(
@@ -208,10 +223,25 @@ export class TranscriptImportService {
       type: required('type'),
       depth: required('depth'),
       speaker: optional('speaker'),
+      speakers: languageSpeakers.map(({ languageKey, index }) => ({ languageKey, index })),
       sprite: optional('sprite'),
       languages,
       metadata,
     };
+  }
+
+  private parseSpeakerHeader(key: string): string | undefined {
+    const parts = key.split(' ');
+    if (parts.length < 2) {
+      return undefined;
+    }
+    if (parts.at(-1) === 'speaker') {
+      return parts.slice(0, -1).join(' ');
+    }
+    if (parts[0] === 'speaker') {
+      return parts.slice(1).join(' ');
+    }
+    return undefined;
   }
 
   private parseMetadataHeader(
@@ -269,7 +299,7 @@ export class TranscriptImportService {
     rowIndex: number,
     sheet: XLSX.WorkSheet,
     columns: ImportColumns,
-    language: { index: number },
+    language: { key: string; index: number },
     fontStyles: ImportedFontStyles,
   ): ImportedLine {
     const text = this.richText(
@@ -280,7 +310,9 @@ export class TranscriptImportService {
     );
     const type = this.parseType(row[columns.type], rowIndex);
     const depth = this.parseDepth(row[columns.depth], rowIndex);
-    const speaker = columns.speaker === undefined ? '' : this.cellText(row[columns.speaker]).trim();
+    const languageSpeaker = columns.speakers.find((item) => item.languageKey === language.key);
+    const speakerColumn = languageSpeaker?.index ?? columns.speaker;
+    const speaker = speakerColumn === undefined ? '' : this.cellText(row[speakerColumn]).trim();
     const sprite = columns.sprite === undefined ? '' : this.cellText(row[columns.sprite]).trim();
     const plain = this.stripTags(this.decodeEntities(text)).trim();
 
