@@ -8,7 +8,7 @@
       >
         <i class="pi pi-lock"></i>
       </div>
-      <h1 class="m-0 text-xl font-semibold">{{ language.text('adminLogin') }}</h1>
+      <h1 class="m-0 text-xl font-semibold">{{ language.text('login') }}</h1>
     </div>
 
     <form #loginForm="ngForm" class="flex flex-col gap-3" (ngSubmit)="submit()" novalidate>
@@ -45,12 +45,7 @@
         <p-message severity="error" variant="simple">{{ error }}</p-message>
       }
 
-      <button
-        pButton
-        type="submit"
-        [loading]="submitting"
-        [disabled]="submitting"
-      >
+      <button pButton type="submit" [loading]="submitting" [disabled]="submitting">
         <i class="pi pi-sign-in" aria-hidden="true"></i>
         <span>{{ language.text('signIn') }}</span>
       </button>

@@ -5,7 +5,6 @@ import { SUPABASE_CLIENT } from './supabase.client';
 export interface AuthUser {
   id: string;
   username: string;
-  authorities: string[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -55,22 +54,18 @@ export class AuthService {
     );
   }
 
-  private toUser(user: {
-    id: string;
-    email?: string | null;
-    user_metadata?: Record<string, unknown>;
-    app_metadata?: Record<string, unknown>;
-  } | null): AuthUser | null {
+  private toUser(
+    user: {
+      id: string;
+      email?: string | null;
+      user_metadata?: Record<string, unknown>;
+    } | null,
+  ): AuthUser | null {
     if (!user) return null;
-    const username = typeof user.user_metadata?.['username'] === 'string'
-      ? user.user_metadata['username']
-      : user.email ?? user.id;
-    const roles = Array.isArray(user.app_metadata?.['roles'])
-      ? user.app_metadata['roles'].filter((role): role is string => typeof role === 'string')
-      : [];
-    const authorities = user.app_metadata?.['role'] === 'admin' || roles.includes('admin')
-      ? ['ROLE_ADMIN']
-      : [];
-    return { id: user.id, username, authorities };
+    const username =
+      typeof user.user_metadata?.['username'] === 'string'
+        ? user.user_metadata['username']
+        : (user.email ?? user.id);
+    return { id: user.id, username };
   }
 }

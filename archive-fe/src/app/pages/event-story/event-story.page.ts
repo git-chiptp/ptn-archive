@@ -2,9 +2,9 @@ import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MenuItem } from 'primeng/api';
+import { AuthService } from '../../services/auth.service';
 import { BreadcrumbModule } from 'primeng/breadcrumb';
 import { ArchiveStore } from '../../services/archive.store';
-import { AuthService } from '../../services/auth.service';
 import { LanguageService } from '../../services/language.service';
 import { ButtonModule } from 'primeng/button';
 
@@ -18,10 +18,6 @@ export class EventStoryPage {
   readonly auth = inject(AuthService);
   readonly language = inject(LanguageService);
   private route = inject(ActivatedRoute);
-  public get isAdmin() {
-    return !!this.auth.user();
-  }
-
   public readonly breadcrumbHome: MenuItem = { icon: 'pi pi-home', routerLink: '/' };
 
   public get breadcrumbItems(): MenuItem[] {
