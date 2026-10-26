@@ -391,10 +391,9 @@ export class ArchiveStorageService {
     const values: string[] = [];
     const collect = (items: DialogueNode[]) => {
       for (const node of items) {
-        if (node.type === 'line' && node.sprite) {
-          values.push(node.sprite);
-        } else if (node.type === 'choice') {
-          node.options.forEach((option) => collect(option.nodes));
+        if (node.type === 'line') {
+          if (node.sprite) values.push(node.sprite);
+          node.options?.forEach((option) => collect(option.nodes));
         } else if (node.type === 'image') {
           values.push(node.src, node.variants?.male ?? '', node.variants?.female ?? '');
         }
@@ -614,17 +613,19 @@ export class ArchiveStorageService {
       const transformed = await Promise.all(
         items.map(async (node): Promise<DialogueNode | undefined> => {
           if (node.type === 'line') {
-            return { ...node, sprite: await resolveSprite(node.sprite) };
-          }
-          if (node.type === 'choice') {
             return {
               ...node,
-              options: await Promise.all(
-                node.options.map(async (option) => ({
-                  ...option,
-                  nodes: await transform(option.nodes),
-                })),
-              ),
+              sprite: await resolveSprite(node.sprite),
+              ...(node.options
+                ? {
+                    options: await Promise.all(
+                      node.options.map(async (option) => ({
+                        ...option,
+                        nodes: await transform(option.nodes),
+                      })),
+                    ),
+                  }
+                : {}),
             };
           }
           const [src, male, female] = await Promise.all([
@@ -763,16 +764,19 @@ export class ArchiveStorageService {
   public toStorageNodes(nodes: DialogueNode[]): DialogueNode[] {
     return nodes.map((node) =>
       node.type === 'line'
-        ? { ...node, sprite: this.toStoredValue(node.sprite) }
-        : node.type === 'choice'
-          ? {
-              ...node,
-              options: node.options.map((option) => ({
-                ...option,
-                nodes: this.toStorageNodes(option.nodes),
-              })),
-            }
-          : {
+        ? {
+            ...node,
+            sprite: this.toStoredValue(node.sprite),
+            ...(node.options
+              ? {
+                  options: node.options.map((option) => ({
+                    ...option,
+                    nodes: this.toStorageNodes(option.nodes),
+                  })),
+                }
+              : {}),
+          }
+        : {
               ...node,
               src: this.toStoredValue(node.src) ?? node.src,
               ...(node.variants
@@ -790,16 +794,19 @@ export class ArchiveStorageService {
   public toPublicNodes(nodes: DialogueNode[]): DialogueNode[] {
     return nodes.map((node) =>
       node.type === 'line'
-        ? { ...node, sprite: this.toPublicUrl(node.sprite) }
-        : node.type === 'choice'
-          ? {
-              ...node,
-              options: node.options.map((option) => ({
-                ...option,
-                nodes: this.toPublicNodes(option.nodes),
-              })),
-            }
-          : {
+        ? {
+            ...node,
+            sprite: this.toPublicUrl(node.sprite),
+            ...(node.options
+              ? {
+                  options: node.options.map((option) => ({
+                    ...option,
+                    nodes: this.toPublicNodes(option.nodes),
+                  })),
+                }
+              : {}),
+          }
+        : {
               ...node,
               src: this.toPublicUrl(node.src) ?? node.src,
               ...(node.variants
@@ -821,8 +828,7 @@ export class ArchiveStorageService {
         if (node.type === 'line') {
           const path = this.toStoragePath(node.sprite);
           if (path && !MEDIA_OBJECT_PATH_PATTERN.test(path)) paths.push(path);
-        } else if (node.type === 'choice') {
-          node.options.forEach((option) => collect(option.nodes));
+          node.options?.forEach((option) => collect(option.nodes));
         } else {
           for (const value of [node.src, node.variants?.male, node.variants?.female]) {
             const path = this.toStoragePath(value);

@@ -17,7 +17,7 @@ import { ButtonModule } from 'primeng/button';
 import { MediaPickerComponent } from '../media-picker/media-picker.component';
 import { InputTextModule } from 'primeng/inputtext';
 import { ImageModule } from 'primeng/image';
-import { ChoiceNode, DialogueNode, ImageNode, LineNode } from '../../models/transcript.models';
+import { DialogueNode, ImageNode, LineNode } from '../../models/transcript.models';
 import { LanguageService } from '../../services/language.service';
 import {
   ArchiveStorageService,
@@ -25,7 +25,7 @@ import {
 } from '../../services/archive-storage.service';
 import { UiTextPipe } from '../../i18n/ui-text.pipe';
 
-type EditableNode = EditableLine | EditableChoice | EditableImage;
+type EditableNode = EditableLine | EditableImage;
 interface EditableLine {
   type: 'line';
   id: string;
@@ -34,11 +34,12 @@ interface EditableLine {
   text: string;
   male: string;
   female: string;
+  options: EditableOption[];
 }
-interface EditableChoice {
-  type: 'choice';
+interface EditableOption {
   id: string;
-  options: { id: string; label: string; nodes: EditableNode[] }[];
+  label: string;
+  nodes: EditableNode[];
 }
 interface EditableImage {
   type: 'image';
@@ -145,10 +146,6 @@ export class TranscriptEditorComponent implements OnChanges {
     return value ? (this.storage?.toPublicUrl(value) ?? value) : '';
   }
 
-  public choiceSummary(node: EditableChoice) {
-    return this.language?.text('choice') || 'Choice';
-  }
-
   public openMediaPicker(
     target: 'sprite' | 'image' | 'image-male' | 'image-female',
     node: EditableLine | EditableImage,
@@ -252,31 +249,8 @@ export class TranscriptEditorComponent implements OnChanges {
       text: '',
       male: '',
       female: '',
+      options: [],
     });
-    (event?.currentTarget as HTMLElement | null)?.blur();
-  }
-
-  public insertChoice(index: number, event?: MouseEvent) {
-    this.nodes.splice(
-      index,
-      0,
-      {
-        type: 'line',
-        id: crypto.randomUUID(),
-        speaker: '',
-        sprite: '',
-        text: '',
-        male: '',
-        female: '',
-      },
-      {
-        type: 'choice',
-        id: crypto.randomUUID(),
-        options: [this.newOption()],
-      },
-    );
-    this.openInsertIndex = null;
-    this.changed.emit();
     (event?.currentTarget as HTMLElement | null)?.blur();
   }
 
@@ -345,34 +319,20 @@ export class TranscriptEditorComponent implements OnChanges {
       event.dataTransfer.dropEffect = 'move';
     }
   }
-  addOption(choice: EditableChoice) {
-    choice.options.push(this.newOption());
+  addOption(line: EditableLine) {
+    line.options.push(this.newOption());
   }
-  removeOption(choice: EditableChoice, index: number) {
-    if (choice.options.length > 1) choice.options.splice(index, 1);
+  removeOption(line: EditableLine, index: number) {
+    if (line.options.length > 1) line.options.splice(index, 1);
   }
-  newOption() {
-    return { id: crypto.randomUUID(), label: '', nodes: [] as EditableNode[] };
+  newOption(): EditableOption {
+    return { id: crypto.randomUUID(), label: '', nodes: [] };
   }
   serialize(): DialogueNode[] {
     return this.serializeNodes(this.nodes);
   }
   private serializeNodes(nodes: EditableNode[]): DialogueNode[] {
-    return nodes.map((node) =>
-      node.type === 'line'
-        ? this.line(node)
-        : node.type === 'choice'
-          ? {
-              type: 'choice',
-              id: node.id,
-              options: node.options.map((option) => ({
-                id: option.id,
-                label: option.label,
-                nodes: this.serializeNodes(option.nodes),
-              })),
-            }
-          : this.image(node),
-    );
+    return nodes.map((node) => (node.type === 'line' ? this.line(node) : this.image(node)));
   }
 
   private image(image: EditableImage): ImageNode {
@@ -397,6 +357,13 @@ export class TranscriptEditorComponent implements OnChanges {
     };
     if (line.male || line.female)
       result.variants = { male: line.male || line.text, female: line.female || line.text };
+    if (line.options.length) {
+      result.options = line.options.map((option) => ({
+        id: option.id,
+        label: option.label,
+        nodes: this.serializeNodes(option.nodes),
+      }));
+    }
     return result;
   }
 }

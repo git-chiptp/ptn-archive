@@ -18,7 +18,6 @@ import { ProgressBarModule } from 'primeng/progressbar';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import {
-  ChoiceNode,
   DialogueNode,
   Gender,
   ImageNode,
@@ -838,10 +837,13 @@ export class ReaderPage {
             text: node.text ?? node.description ?? '',
             male: node.variants?.male ?? '',
             female: node.variants?.female ?? '',
+            options: (node.options ?? []).map((option) => ({
+              id: option.id,
+              label: option.label,
+              nodes: this.toEditable(option.nodes),
+            })),
           }
-        : node.type === 'choice'
-          ? this.choice(node)
-          : this.image(node),
+        : this.image(node),
     );
   }
 
@@ -852,17 +854,6 @@ export class ReaderPage {
       src: node.src,
       male: node.variants?.male ?? '',
       female: node.variants?.female ?? '',
-    };
-  }
-  private choice(node: ChoiceNode): EditableNode {
-    return {
-      type: 'choice',
-      id: node.id,
-      options: node.options.map((option) => ({
-        id: option.id,
-        label: option.label,
-        nodes: this.toEditable(option.nodes),
-      })),
     };
   }
 }

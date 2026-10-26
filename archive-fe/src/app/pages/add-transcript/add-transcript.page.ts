@@ -18,7 +18,6 @@ import { SelectModule } from 'primeng/select';
 import { ImageModule } from 'primeng/image';
 import {
   Category,
-  ChoiceNode,
   DialogueNode,
   Gender,
   LineNode,
@@ -293,6 +292,7 @@ export class AddTranscriptPage {
       text: '',
       male: '',
       female: '',
+      options: [],
     };
   }
 
@@ -442,7 +442,7 @@ export class AddTranscriptPage {
         key: 'transcript-actions',
         header: 'Replace transcript content?',
         message:
-          'Importing this file will replace all current transcript lines and choices. Continue?',
+          'Importing this file will replace all current transcript content. Continue?',
         icon: 'pi pi-upload',
         acceptLabel: 'Import file',
         rejectLabel: 'Cancel',
@@ -494,13 +494,19 @@ export class AddTranscriptPage {
     }
   }
   private editorHasContent() {
-    return this.nodes.some((node) =>
-      node.type === 'line'
-        ? !!(node.speaker || node.text || node.male || node.female)
-        : node.type === 'choice'
-          ? node.options.some((option) => option.label || option.nodes.length)
+    const hasContent = (nodes: EditableNode[]): boolean =>
+      nodes.some((node) =>
+        node.type === 'line'
+          ? !!(
+              node.speaker ||
+              node.text ||
+              node.male ||
+              node.female ||
+              node.options.some((option) => option.label || hasContent(option.nodes))
+            )
           : !!(node.src || node.male || node.female),
-    );
+      );
+    return hasContent(this.nodes);
   }
 
   public selectPreview(event: { id: string; option: string }) {
@@ -583,13 +589,7 @@ export class AddTranscriptPage {
   }
 
   private toEditable(nodes: DialogueNode[]): EditableNode[] {
-    return nodes.map((node) =>
-      node.type === 'line'
-        ? this.line(node)
-        : node.type === 'choice'
-          ? this.choice(node)
-          : this.image(node),
-    );
+    return nodes.map((node) => (node.type === 'line' ? this.line(node) : this.image(node)));
   }
 
   private image(node: ImageNode): EditableNode {
@@ -610,13 +610,7 @@ export class AddTranscriptPage {
       text: node.text ?? node.description ?? '',
       male: node.variants?.male ?? '',
       female: node.variants?.female ?? '',
-    };
-  }
-  private choice(node: ChoiceNode): EditableNode {
-    return {
-      type: 'choice',
-      id: node.id,
-      options: node.options.map((option) => ({
+      options: (node.options ?? []).map((option) => ({
         id: option.id,
         label: option.label,
         nodes: this.toEditable(option.nodes),

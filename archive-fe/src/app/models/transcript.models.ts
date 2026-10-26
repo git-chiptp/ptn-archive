@@ -9,7 +9,7 @@ export interface TranscriptTranslation {
   description?: string;
   nodes?: DialogueNode[];
 }
-export type DialogueNode = LineNode | ChoiceNode | ImageNode;
+export type DialogueNode = LineNode | ImageNode;
 export interface LineNode {
   type: 'line';
   id: string;
@@ -19,16 +19,12 @@ export interface LineNode {
   description?: string;
   format?: { bold?: boolean; italic?: boolean; color?: string };
   variants?: { male: string; female: string };
+  options?: LineOption[];
 }
-export interface ChoiceOption {
+export interface LineOption {
   id: string;
   label: string;
   nodes: DialogueNode[];
-}
-export interface ChoiceNode {
-  type: 'choice';
-  id: string;
-  options: ChoiceOption[];
 }
 export interface ImageNode {
   type: 'image';

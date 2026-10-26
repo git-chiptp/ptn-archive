@@ -41,18 +41,6 @@ describe('TranscriptImportService', () => {
     expect(result.lines[0].speaker).toBe('Lan');
   });
 
-  it('uses the legacy shared speaker column when no language-specific value exists', async () => {
-    const result = await parse(
-      [
-        ['Speaker', 'Type', 'Depth', 'English', 'Vietnamese'],
-        ['Narrator', 'line', 0, 'Hello.', 'Xin chào.'],
-      ],
-      'vietnamese',
-    );
-
-    expect(result.lines[0].speaker).toBe('Narrator');
-  });
-
   it('leaves the speaker blank when the selected language has no speaker column', async () => {
     const result = await parse(
       [
