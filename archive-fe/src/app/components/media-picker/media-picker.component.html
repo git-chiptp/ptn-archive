@@ -32,20 +32,14 @@
         (onSelect)="upload($event.files)"
       />
     </div>
-    <div class="flex flex-wrap items-center gap-2">
-      @if (selectedFolderId) {
-        <button pButton type="button" severity="secondary" (click)="folderChanged('')">
-          <i class="pi pi-arrow-left" aria-hidden="true"></i>
-          <span>{{ language.text('allImages') }}</span>
-        </button>
-        <span class="font-medium">/ {{ currentFolderName }}</span>
-      } @else {
-        <span class="font-medium">{{ language.text('unfiledImages') }}</span>
-      }
-    </div>
-    @if (!selectedFolderId && folders.length) {
+    @if (selectedFolderId) {
+      <p-breadcrumb [model]="folderBreadcrumbs" styleClass="!p-0" />
+    } @else {
+      <span class="font-medium">{{ language.text('unfiledImages') }}</span>
+    }
+    @if (visibleFolders.length) {
       <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-        @for (folder of folders; track folder.id) {
+        @for (folder of visibleFolders; track folder.id) {
           <button
             pButton
             type="button"
