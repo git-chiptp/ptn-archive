@@ -23,39 +23,40 @@
           class="block min-w-0 max-w-full break-words [overflow-wrap:anywhere] [&_img]:mx-auto [&_img]:block [&_img]:h-auto [&_img]:max-w-full"
           [innerHTML]="html(node)"
         ></span>
-      </div>
-    } @else if (node.type === 'choice') {
-      <div class="choice mb-6 min-w-0 max-w-full break-words last:mb-0 [overflow-wrap:anywhere]">
-        <div
-          class="options flex max-w-full flex-wrap items-center justify-center gap-2"
-          role="group"
-          aria-label="Choice options"
-        >
-          @for (option of node.options; track option.id) {
-            <button
-              pButton
-              type="button"
-              severity="secondary"
-              class="choice-option min-w-0 max-w-full flex-[1_1_16rem] whitespace-normal break-words text-left [overflow-wrap:anywhere]"
-              [class.active]="selections[node.id] === option.id"
-              (click)="changed.emit({ id: node.id, option: option.id })"
+        @if (node.options?.length) {
+          <div class="transcript-options mt-6 min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
+            <div
+              class="options flex max-w-full flex-wrap items-center justify-center gap-2"
+              role="group"
+              aria-label="Transcript options"
             >
-              <span
-                class="block min-w-0 max-w-full break-words [overflow-wrap:anywhere] [&_img]:mx-auto [&_img]:block [&_img]:h-auto [&_img]:max-w-full"
-                [innerHTML]="htmlText(option.label)"
-              ></span>
-            </button>
-          }
-        </div>
-        @if (selections[node.id]; as selected) {
-          <div class="branch mt-6 min-w-0 max-w-full">
-            <app-node-list
-              [nodes]="node.options.find((o) => o.id === selected)?.nodes || []"
-              [gender]="gender"
-              [chiefName]="chiefName"
-              [selections]="selections"
-              (changed)="changed.emit($event)"
-            />
+              @for (option of node.options; track option.id) {
+                <button
+                  pButton
+                  type="button"
+                  severity="secondary"
+                  class="transcript-option min-w-0 max-w-full flex-[1_1_16rem] whitespace-normal break-words text-left [overflow-wrap:anywhere]"
+                  [class.active]="selections[node.id] === option.id"
+                  (click)="changed.emit({ id: node.id, option: option.id })"
+                >
+                  <span
+                    class="block min-w-0 max-w-full break-words [overflow-wrap:anywhere] [&_img]:mx-auto [&_img]:block [&_img]:h-auto [&_img]:max-w-full"
+                    [innerHTML]="htmlText(option.label)"
+                  ></span>
+                </button>
+              }
+            </div>
+            @if (selections[node.id]; as selected) {
+              <div class="branch mt-6 min-w-0 max-w-full">
+                <app-node-list
+                  [nodes]="node.options.find((o) => o.id === selected)?.nodes || []"
+                  [gender]="gender"
+                  [chiefName]="chiefName"
+                  [selections]="selections"
+                  (changed)="changed.emit($event)"
+                />
+              </div>
+            }
           </div>
         }
       </div>

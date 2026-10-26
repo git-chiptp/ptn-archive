@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import * as XLSX from 'xlsx';
 import { defer, from } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { ChoiceNode, ChoiceOption, DialogueNode } from '../models/transcript.models';
+import { DialogueNode, LineNode, LineOption } from '../models/transcript.models';
 
 export interface ImportedLine {
   sprite?: string;
@@ -12,7 +12,7 @@ export interface ImportedLine {
   male?: string;
   female?: string;
   description: string;
-  type: 'line' | 'choice' | 'option' | 'image';
+  type: 'line' | 'option' | 'image';
   depth: number;
 }
 
@@ -39,7 +39,6 @@ type ImportMetadataField = keyof ImportedTranscriptMetadata;
 type ImportColumns = {
   type: number;
   depth: number;
-  speaker?: number;
   speakers: { languageKey: string; index: number }[];
   sprite?: number;
   languages: { key: string; label: string; index: number }[];
@@ -165,7 +164,7 @@ export class TranscriptImportService {
       .map((item) => ({ ...item, languageKey: this.parseSpeakerHeader(item.key) }))
       .filter((item): item is typeof item & { languageKey: string } => !!item.languageKey);
     const languageSpeakerKeys = new Set(languageSpeakers.map((item) => item.key));
-    const structural = new Set(['sprite', 'speaker', 'type', 'depth', ...languageSpeakerKeys]);
+    const structural = new Set(['sprite', 'type', 'depth', ...languageSpeakerKeys]);
     const metadata: ImportColumns['metadata'] = [];
     const bareMetadata: { field: ImportMetadataField; index: number; label: string }[] = [];
     const languageHeaders = headers
@@ -222,7 +221,6 @@ export class TranscriptImportService {
     return {
       type: required('type'),
       depth: required('depth'),
-      speaker: optional('speaker'),
       speakers: languageSpeakers.map(({ languageKey, index }) => ({ languageKey, index })),
       sprite: optional('sprite'),
       languages,
@@ -311,8 +309,7 @@ export class TranscriptImportService {
     const type = this.parseType(row[columns.type], rowIndex);
     const depth = this.parseDepth(row[columns.depth], rowIndex);
     const languageSpeaker = columns.speakers.find((item) => item.languageKey === language.key);
-    const speakerColumn = languageSpeaker?.index ?? columns.speaker;
-    const speaker = speakerColumn === undefined ? '' : this.cellText(row[speakerColumn]).trim();
+    const speaker = languageSpeaker ? this.cellText(row[languageSpeaker.index]).trim() : '';
     const sprite = columns.sprite === undefined ? '' : this.cellText(row[columns.sprite]).trim();
     const plain = this.stripTags(this.decodeEntities(text)).trim();
 
@@ -375,10 +372,10 @@ export class TranscriptImportService {
       .trim()
       .toLowerCase()
       .replace(/[\s_]+/g, '-');
-    if (type === 'line' || type === 'choice' || type === 'option' || type === 'image') {
+    if (type === 'line' || type === 'option' || type === 'image') {
       return type;
     }
-    throw new Error(`Row ${rowIndex + 1}: Type must be line, choice, option, or image.`);
+    throw new Error(`Row ${rowIndex + 1}: Type must be line, option, or image.`);
   }
 
   private parseDepth(value: unknown, rowIndex: number): number {
@@ -640,63 +637,43 @@ export class TranscriptImportService {
 
   public toNodes(lines: ImportedLine[]): DialogueNode[] {
     const nodes: DialogueNode[] = [];
-    const choices: { depth: number; node: ChoiceNode }[] = [];
-    const options: { depth: number; node: ChoiceOption }[] = [];
+    const activeLines = new Map<number, LineNode>();
+    const activeOptions = new Map<number, LineOption>();
 
     lines.forEach((line, index) => {
       const depth = line.depth;
-      while (choices.length && choices[choices.length - 1].depth >= depth) {
-        choices.pop();
-      }
-      while (options.length && options[options.length - 1].depth >= depth) {
-        options.pop();
-      }
-
-      if (line.type === 'choice') {
-        const question: DialogueNode = {
-          type: 'line',
-          id: `imported-${index + 1}`,
-          speaker: line.speaker,
-          sprite: line.sprite?.trim() ?? '',
-          text: line.text || line.description,
-          description: line.description || undefined,
-          ...(line.male || line.female
-            ? {
-                variants: {
-                  male: line.male || line.text,
-                  female: line.female || line.text,
-                },
-              }
-            : {}),
-        };
-        const node: ChoiceNode = {
-          type: 'choice',
-          id: `imported-choice-${index + 1}`,
-          options: [],
-        };
-        const parentOption = [...options].reverse().find((item) => item.depth < depth);
-        if (parentOption) {
-          parentOption.node.nodes.push(question, node);
-        } else {
-          nodes.push(question, node);
-        }
-        choices.push({ depth, node });
-        return;
-      }
-
       if (line.type === 'option') {
-        const parentChoice = [...choices].reverse().find((item) => item.depth < depth);
-        if (!parentChoice) {
-          throw new Error(`Row ${index + 2}: option has no choice parent at a lower depth.`);
+        for (const activeDepth of [...activeLines.keys()]) {
+          if (activeDepth > depth) activeLines.delete(activeDepth);
         }
-        const option: ChoiceOption = {
+        for (const activeDepth of [...activeOptions.keys()]) {
+          if (activeDepth >= depth) activeOptions.delete(activeDepth);
+        }
+
+        const parentLine = [...activeLines.entries()]
+          .filter(([activeDepth]) => activeDepth <= depth)
+          .sort(([left], [right]) => right - left)[0]?.[1];
+        if (!parentLine) {
+          throw new Error(
+            `Row ${index + 2}: option has no line parent at the same or lower depth.`,
+          );
+        }
+        parentLine.options ??= [];
+        const option: LineOption = {
           id: `imported-option-${index + 1}`,
           label: line.text,
           nodes: [],
         };
-        parentChoice.node.options.push(option);
-        options.push({ depth, node: option });
+        parentLine.options.push(option);
+        activeOptions.set(depth, option);
         return;
+      }
+
+      for (const activeDepth of [...activeLines.keys()]) {
+        if (activeDepth >= depth) activeLines.delete(activeDepth);
+      }
+      for (const activeDepth of [...activeOptions.keys()]) {
+        if (activeDepth >= depth) activeOptions.delete(activeDepth);
       }
 
       const node: DialogueNode =
@@ -725,12 +702,15 @@ export class TranscriptImportService {
                   }
                 : {}),
             };
-      const parentOption = [...options].reverse().find((item) => item.depth < depth);
+      const parentOption = [...activeOptions.entries()]
+        .filter(([activeDepth]) => activeDepth < depth)
+        .sort(([left], [right]) => right - left)[0]?.[1];
       if (parentOption) {
-        parentOption.node.nodes.push(node);
+        parentOption.nodes.push(node);
       } else {
         nodes.push(node);
       }
+      if (node.type === 'line') activeLines.set(depth, node);
     });
     return nodes;
   }

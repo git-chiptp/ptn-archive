@@ -15,6 +15,7 @@
           pInputText
           type="search"
           [(ngModel)]="search"
+          [ngModelOptions]="{ standalone: true }"
           (ngModelChange)="searchChanged()"
           [placeholder]="language.text('searchMediaPlaceholder')"
         />
@@ -62,7 +63,13 @@
     <div class="flex flex-wrap items-end gap-3">
       <label class="flex min-w-0 flex-1 flex-col gap-2">
         <span class="font-medium">{{ language.text('importImageUrl') }}</span>
-        <input pInputText type="url" [(ngModel)]="importUrl" [placeholder]="'https://...'" />
+        <input
+          pInputText
+          type="url"
+          [(ngModel)]="importUrl"
+          [ngModelOptions]="{ standalone: true }"
+          [placeholder]="'https://...'"
+        />
       </label>
       <button
         pButton

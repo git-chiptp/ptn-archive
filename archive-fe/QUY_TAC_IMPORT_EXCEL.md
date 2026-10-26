@@ -5,10 +5,12 @@
 Hàng đầu tiên là tiêu đề. File cần `Type`, `Depth` và ít nhất một cột ngôn ngữ:
 
 ```text
-Sprite | Speaker | Type | Depth | English | Vietnamese
+Sprite | English Speaker | Vietnamese Speaker | Type | Depth | English | Vietnamese
 ```
 
-- `Sprite` và `Speaker` là tùy chọn. Để trống `Speaker` nếu là lời dẫn.
+- `Sprite` là tùy chọn.
+- Speaker nên đặt theo ngôn ngữ, ví dụ `English Speaker` và `Vietnamese Speaker` (cũng chấp nhận `Speaker English` và `Speaker Vietnamese`). Speaker chỉ được gắn với cột ngôn ngữ cùng tên.
+- Để trống speaker nếu là lời dẫn. Mỗi cột speaker phải ghi rõ ngôn ngữ tương ứng.
 - Có thể thêm nhiều cột ngôn ngữ; sau khi tải file, chọn cột muốn nhập.
 - `Stage`, `Name`, `Description` là metadata tùy chọn. Khi có nhiều ngôn ngữ, đặt tên như `English Stage` hoặc `Vietnamese Description`.
 - Tên cột không phân biệt hoa thường và phải khác nhau.
@@ -16,27 +18,43 @@ Sprite | Speaker | Type | Depth | English | Vietnamese
 
 ## 2. `Type` và `Depth`
 
-`Type` chỉ có thể là `line`, `choice`, `option`, hoặc `image`. `Depth` là số nguyên không âm; số nhỏ hơn là cấp cao hơn.
+`Type` chỉ có thể là `line`, `option`, hoặc `image`. `Depth` là số nguyên không âm; số nhỏ hơn là cấp cao hơn.
 
-- `line`: dòng thoại hoặc lời dẫn.
-- `choice`: nội dung câu hỏi; importer tạo một `line` rồi một nhóm choice chỉ chứa các option.
-- `option`: phương án thuộc choice gần nhất ở depth thấp hơn.
+- `line`: dòng thoại, lời dẫn, hoặc nội dung bất kỳ có thể chứa các option.
+- `option`: phương án thuộc dòng `line` gần nhất ở cùng depth hoặc depth thấp hơn. Option dùng cùng depth với dòng sở hữu; nội dung thuộc option nằm ở depth lớn hơn.
 - `image`: ảnh được tham chiếu trong `Sprite`.
+
+Một dòng `line` có thể là câu hỏi hoặc câu nói, cảnh báo, lời dẫn và vẫn có option. Không có dòng `choice` riêng.
 
 Ví dụ:
 
 ```text
-choice | 0 | Which route should we take?
-option | 1 | Take the forest route
-line   | 2 | The forest is dark.
-choice | 2 | Should we light a torch?
-option | 3 | Yes
-line   | 4 | Mira lights the torch.
-option | 3 | No
-line   | 4 | We continue in the dark.
+line   | 0 | The warning is clear. Which route should we take?
+option | 0 | Take the forest route
+line   | 1 | The forest is dark.
+line   | 1 | A low mechanical hum follows you.
+option | 0 | Take the old stairwell
+line   | 1 | The stairs descend farther than the building should allow.
+line   | 0 | The archive door is sealed. Choose a response.
+option | 0 | Tell the truth
+line   | 1 | Then we face it together.
+option | 0 | Change the subject
+line   | 1 | You always do that when it matters.
 ```
 
-Các dòng cùng nhánh phải được đặt liên tiếp. Choice không có trường `prompt` hoặc dòng `pre-choice` riêng.
+Option lồng nhau cũng dùng cùng depth với dòng chứa nó:
+
+```text
+line   | 0 | Choose a route.
+option | 0 | Take the forest route
+line   | 1 | Do you light a torch?
+option | 1 | Yes
+line   | 2 | You light the torch.
+option | 1 | No
+line   | 2 | You continue in darkness.
+```
+
+Các dòng cùng nhánh phải được đặt liên tiếp. Mỗi option phải có một dòng `line` ở cùng hoặc thấp hơn; các dòng thuộc option phải ở depth lớn hơn.
 
 ## 3. Sprite và image
 

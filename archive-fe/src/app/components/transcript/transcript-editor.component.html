@@ -52,25 +52,6 @@
             ></span>
           }
         </div>
-      } @else if (treeNode.type === 'choice') {
-        <div
-          class="collapsed-preview-content mt-2 min-w-0 max-w-full break-words whitespace-normal pl-4 [overflow-wrap:anywhere]"
-        >
-          <strong [innerHTML]="summaryHtml(choiceSummary(treeNode))"></strong>
-          @for (treeOption of treeNode.options; track treeOption.id) {
-            <div
-              class="mt-2 min-w-0 max-w-full break-words whitespace-normal pl-4 [overflow-wrap:anywhere]"
-            >
-              <span
-                class="collapsed-preview-content min-w-0 max-w-full break-words whitespace-normal [overflow-wrap:anywhere]"
-                [innerHTML]="summaryHtml(treeOption.label || ('emptyOption' | ui))"
-              ></span>
-              <ng-container
-                *ngTemplateOutlet="collapsedNodeTree; context: { $implicit: treeOption.nodes }"
-              />
-            </div>
-          }
-        </div>
       } @else {
         <div
           class="collapsed-preview-content mt-2 min-w-0 max-w-full break-words whitespace-normal pl-4 [overflow-wrap:anywhere]"
@@ -128,16 +109,6 @@
           >
             <i class="pi pi-align-left" aria-hidden="true"></i>
             <span>{{ 'line' | ui }}</span>
-          </button>
-          <button
-            pButton
-            type="button"
-            severity="secondary"
-            size="small"
-            (click)="insertChoice(index, $event)"
-          >
-            <i class="pi pi-list" aria-hidden="true"></i>
-            <span>{{ 'choice' | ui }}</span>
           </button>
           <button
             pButton
@@ -226,28 +197,6 @@
               ></span>
             }
           </div>
-        } @else if (node.type === 'choice') {
-          <div
-            class="collapsed-preview mt-4 min-w-0 max-w-full break-words whitespace-normal [overflow-wrap:anywhere]"
-          >
-            <strong
-              class="collapsed-preview-content block min-w-0 max-w-full break-words whitespace-normal [overflow-wrap:anywhere]"
-              [innerHTML]="summaryHtml(choiceSummary(node))"
-            ></strong>
-            @for (option of node.options; track option.id) {
-              <div
-                class="mt-2 min-w-0 max-w-full break-words whitespace-normal pl-4 [overflow-wrap:anywhere]"
-              >
-                <span
-                  class="collapsed-preview-content block min-w-0 max-w-full break-words whitespace-normal [overflow-wrap:anywhere]"
-                  [innerHTML]="summaryHtml(option.label || 'Empty option')"
-                ></span>
-                <ng-container
-                  *ngTemplateOutlet="collapsedNodeTree; context: { $implicit: option.nodes }"
-                />
-              </div>
-            }
-          </div>
         } @else {
           <div
             class="collapsed-preview mt-4 min-w-0 max-w-full break-words whitespace-normal [overflow-wrap:anywhere]"
@@ -329,16 +278,6 @@
               ></quill-editor
             ></label>
           }
-          <button pButton type="button" severity="danger" (click)="remove(i)">
-            <i class="pi pi-trash" aria-hidden="true"></i>
-            <span>{{ 'deleteLine' | ui }}</span>
-          </button>
-        </fieldset>
-      } @else if (node.type === 'choice') {
-        <fieldset
-          class="mt-4 flex min-w-0 flex-col gap-4 border border-[var(--p-content-border-color)] p-4"
-        >
-          <legend>{{ 'choice' | ui }}</legend>
           @for (option of node.options; track option.id; let optionIndex = $index) {
             <fieldset
               class="flex min-w-0 flex-col gap-4 border border-[var(--p-content-border-color)] p-4"
@@ -372,16 +311,14 @@
               </button>
             </fieldset>
           }
-          <div class="flex flex-wrap gap-2">
-            <button pButton type="button" severity="secondary" (click)="addOption(node)">
-              <i class="pi pi-plus" aria-hidden="true"></i>
-              <span>{{ 'addOption' | ui }}</span>
-            </button>
-            <button pButton type="button" severity="danger" (click)="remove(i)">
-              <i class="pi pi-trash" aria-hidden="true"></i>
-              <span>{{ 'deleteChoice' | ui }}</span>
-            </button>
-          </div>
+          <button pButton type="button" severity="secondary" (click)="addOption(node)">
+            <i class="pi pi-plus" aria-hidden="true"></i>
+            <span>{{ 'addOption' | ui }}</span>
+          </button>
+          <button pButton type="button" severity="danger" (click)="remove(i)">
+            <i class="pi pi-trash" aria-hidden="true"></i>
+            <span>{{ 'deleteLine' | ui }}</span>
+          </button>
         </fieldset>
       } @else {
         <fieldset

@@ -554,19 +554,8 @@ export class ArchiveStore {
       nodes: this.storage.toPublicNodes(this.parseNodes(item.transcriptText)),
     };
   }
-  private parseNodes(value?: DialogueNode[] | string | null): DialogueNode[] {
-    if (!value) {
-      return [];
-    }
-    if (Array.isArray(value)) {
-      return value;
-    }
-    try {
-      const parsed = JSON.parse(value);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [{ type: 'line', id: crypto.randomUUID(), text: value }];
-    }
+  private parseNodes(value?: DialogueNode[] | null): DialogueNode[] {
+    return value ?? [];
   }
   private toRow(transcript: Transcript) {
     return {
