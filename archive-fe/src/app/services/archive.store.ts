@@ -149,10 +149,11 @@ export class ArchiveStore {
         .order('created_at', { ascending: true });
       if (error) throw error;
       const rows = (data ?? []) as ChapterRow[];
+      this.chapters.set(rows.map((item) => this.chapterFromRow(item)));
       await this.storage
         .resolveMediaReferences(rows.map((item) => item.background_image))
+        .then(() => this.chapters.set(rows.map((item) => this.chapterFromRow(item))))
         .catch(() => this.error.set('Could not load chapter images.'));
-      this.chapters.set(rows.map((item) => this.chapterFromRow(item)));
     } catch {
       this.error.set('Could not load chapters from Supabase.');
     }
