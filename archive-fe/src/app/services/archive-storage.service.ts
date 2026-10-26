@@ -25,6 +25,7 @@ const RASTER_DATA_URL_PATTERN = /^data:image\/(?:avif|gif|jpe?g|png|webp);base64
 export type MediaFolder = {
   id: string;
   name: string;
+  parentId?: string;
 };
 
 export type MediaAsset = {
@@ -54,6 +55,7 @@ type MediaAssetRow = {
 type MediaFolderRow = {
   id: string;
   name: string;
+  parent_id: string | null;
 };
 
 type ImportedMediaResponse = {
@@ -257,48 +259,6 @@ export class ArchiveStorageService {
     return asset;
   }
 
-  public async replaceMediaAsset(assetId: string, file: File): Promise<MediaAsset> {
-    await this.validateImage(file);
-    const current = await this.getMediaAsset(assetId);
-    if (this.usesR2() && current.provider === 'r2') {
-      const form = new FormData();
-      form.set('file', file);
-      const data = await this.r2Request<R2MediaResponse>(`/media/replace/${current.id}`, {
-        method: 'POST',
-        body: form,
-      });
-      if (!data.asset) throw new Error('The image replacement did not return an asset.');
-      const replacement = this.mediaAssetFromRow(data.asset);
-      this.rememberMediaAsset(replacement);
-      return replacement;
-    }
-    const objectKey = mediaObjectPath(current.id, file.type);
-    await this.uploadImage(file, objectKey);
-    const { data, error } = await this.supabase
-      .from('media_assets')
-      .update({
-        object_key: objectKey,
-        provider: 'supabase',
-        mime_type: file.type,
-        byte_size: file.size,
-      })
-      .eq('id', current.id)
-      .select(
-        'id,display_name,object_key,provider,mime_type,byte_size,folder_id,original_url,attribution',
-      )
-      .single();
-    if (error) {
-      this.orphanedUploadKeySet.add(objectKey);
-      throw error;
-    }
-    const replacement = this.mediaAssetFromRow(data as MediaAssetRow);
-    this.rememberMediaAsset(replacement);
-    if (current.provider === 'supabase') {
-      await this.removeObjectKeys([current.objectKey]);
-    }
-    return replacement;
-  }
-
   public async getMediaAsset(assetId: string): Promise<MediaAsset> {
     if (!UUID_PATTERN.test(assetId)) {
       throw new Error('Invalid media asset ID.');
@@ -406,7 +366,7 @@ export class ArchiveStorageService {
   public async listMediaFolders(): Promise<MediaFolder[]> {
     const { data, error } = await this.supabase
       .from('media_folders')
-      .select('id,name')
+      .select('id,name,parent_id')
       .order('name', { ascending: true });
     if (error) {
       throw error;
@@ -414,15 +374,15 @@ export class ArchiveStorageService {
     return (data ?? []).map((row) => this.mediaFolderFromRow(row as MediaFolderRow));
   }
 
-  public async createMediaFolder(name: string): Promise<MediaFolder> {
+  public async createMediaFolder(name: string, parentId?: string | null): Promise<MediaFolder> {
     const trimmed = name.trim();
-    if (!trimmed) {
+    if (!trimmed || (parentId !== null && parentId !== undefined && !UUID_PATTERN.test(parentId))) {
       throw new Error('Folder name is required.');
     }
     const { data, error } = await this.supabase
       .from('media_folders')
-      .insert({ name: trimmed })
-      .select('id,name')
+      .insert({ name: trimmed, parent_id: parentId?.toLowerCase() ?? null })
+      .select('id,name,parent_id')
       .single();
     if (error) {
       throw error;
@@ -439,7 +399,7 @@ export class ArchiveStorageService {
       .from('media_folders')
       .update({ name: trimmed })
       .eq('id', folderId.toLowerCase())
-      .select('id,name')
+      .select('id,name,parent_id')
       .single();
     if (error) {
       throw error;
@@ -583,12 +543,7 @@ export class ArchiveStorageService {
         return (await existing) ?? '';
       }
       const pending = (async () => {
-        folderIds ??= new Map(
-          (await this.listMediaFolders()).map((folder) => [
-            folder.name.trim().toLowerCase(),
-            folder.id,
-          ]),
-        );
+        folderIds ??= this.mediaFolderPathMap(await this.listMediaFolders());
         return this.findMediaReference(source, folderIds);
       })();
       libraryReferences.set(source, pending);
@@ -652,6 +607,23 @@ export class ArchiveStorageService {
     return { nodes: await transform(nodes), unresolved: unresolved.size };
   }
 
+  private mediaFolderPathMap(folders: MediaFolder[]): Map<string, string> {
+    const byId = new Map(folders.map((folder) => [folder.id, folder]));
+    const paths = new Map<string, string>();
+    for (const folder of folders) {
+      const segments: string[] = [];
+      const visited = new Set<string>();
+      let current: MediaFolder | undefined = folder;
+      while (current && !visited.has(current.id)) {
+        segments.unshift(current.name.trim().toLowerCase());
+        visited.add(current.id);
+        current = current.parentId ? byId.get(current.parentId) : undefined;
+      }
+      paths.set(segments.join('/'), folder.id);
+    }
+    return paths;
+  }
+
   private async findMediaReference(
     value: string,
     folders: Map<string, string>,
@@ -660,14 +632,16 @@ export class ArchiveStorageService {
       .split('/')
       .map((segment) => segment.trim())
       .filter(Boolean);
-    if (segments.length > 2 || !segments.length) {
+    if (!segments.length) {
       return undefined;
     }
     const fileName = segments.at(-1) ?? '';
-    const folderName = segments.length === 2 ? segments[0] : undefined;
+    const folderPath = segments.slice(0, -1);
     const normalizedFileName = fileName.replace(/\.[a-z0-9]+$/i, '').toLowerCase();
-    const folderId = folderName ? folders.get(folderName.toLowerCase()) : undefined;
-    if (folderName && !folderId) {
+    const folderId = folderPath.length
+      ? folders.get(folderPath.join('/').toLowerCase())
+      : undefined;
+    if (folderPath.length && !folderId) {
       return undefined;
     }
     let query = this.supabase
@@ -862,7 +836,7 @@ export class ArchiveStorageService {
   }
 
   private mediaFolderFromRow(row: MediaFolderRow): MediaFolder {
-    return { id: row.id, name: row.name };
+    return { id: row.id, name: row.name, parentId: row.parent_id ?? undefined };
   }
 
   private mediaAssetFromRow(row: MediaAssetRow): MediaAsset {

@@ -1,15 +1,17 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ConfirmationService } from 'primeng/api';
+import { ConfirmationService, MenuItem, TreeNode } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
+import { BreadcrumbModule } from 'primeng/breadcrumb';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { DialogModule } from 'primeng/dialog';
 import { FileUploadModule } from 'primeng/fileupload';
 import { ImageModule } from 'primeng/image';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { PaginatorModule } from 'primeng/paginator';
-import { SelectModule } from 'primeng/select';
+import { TreeModule } from 'primeng/tree';
 import {
   ArchiveStorageService,
   MediaAsset,
@@ -24,13 +26,15 @@ import { LanguageService } from '../../services/language.service';
     CommonModule,
     FormsModule,
     ButtonModule,
+    BreadcrumbModule,
     ConfirmDialogModule,
+    DialogModule,
     FileUploadModule,
     ImageModule,
     InputTextModule,
     MessageModule,
     PaginatorModule,
-    SelectModule,
+    TreeModule,
   ],
   templateUrl: './media.page.html',
 })
@@ -54,8 +58,10 @@ export class MediaPage {
   public status = '';
   public editing: MediaAsset | null = null;
   public editingName = '';
-  public replacing: MediaAsset | null = null;
   public importUrl = '';
+  public moveDialogVisible = false;
+  public movingAsset: MediaAsset | null = null;
+  public moveTargetFolderId: string | null = null;
 
   constructor() {
     void this.load();
@@ -90,10 +96,6 @@ export class MediaPage {
     this.folderChanged(folderId);
   }
 
-  public showRoot() {
-    this.folderChanged('');
-  }
-
   public searchChanged() {
     this.page = 0;
     void this.load();
@@ -110,8 +112,15 @@ export class MediaPage {
 
   public imagePath(asset: MediaAsset): string {
     const name = asset.displayName.trim().replace(/\.(?:avif|gif|jpe?g|png|webp)$/i, '');
-    const folder = this.folders.find((item) => item.id === asset.folderId)?.name.trim();
-    return folder ? `${folder}/${name}` : name;
+    const folder = asset.folderId
+      ? this.folders.find((item) => item.id === asset.folderId)
+      : undefined;
+    const path = folder
+      ? this.folderAncestors(folder.id)
+          .map((ancestor) => ancestor.name.trim())
+          .join('/')
+      : '';
+    return path ? `${path}/${name}` : name;
   }
 
   public async copyImagePath(asset: MediaAsset) {
@@ -125,15 +134,113 @@ export class MediaPage {
     }
   }
 
+  public get visibleFolders(): MediaFolder[] {
+    return this.folders.filter(
+      (folder) => (folder.parentId ?? null) === (this.selectedFolderId ?? null),
+    );
+  }
+
+  public get folderOptions(): { id: string; name: string }[] {
+    return this.folders.map((folder) => ({ id: folder.id, name: this.folderPath(folder) }));
+  }
+
+  public get folderTree(): TreeNode[] {
+    const nodes = new Map<string | null, TreeNode[]>();
+    for (const folder of this.folders) {
+      const node: TreeNode = {
+        key: folder.id,
+        label: folder.name,
+        data: folder,
+        icon: 'pi pi-folder',
+        children: [],
+        expanded: true,
+      };
+      const siblings = nodes.get(folder.parentId ?? null) ?? [];
+      siblings.push(node);
+      nodes.set(folder.parentId ?? null, siblings);
+    }
+    const attachChildren = (items: TreeNode[]) => {
+      for (const node of items) {
+        if (node.key !== '__unfiled') {
+          node.children = nodes.get(node.key ?? null) ?? [];
+        }
+        attachChildren(node.children ?? []);
+      }
+    };
+    const roots = nodes.get(null) ?? [];
+    attachChildren(roots);
+    return [
+      {
+        key: '__unfiled',
+        label: this.language.text('unfiledImages'),
+        data: null,
+        icon: 'pi pi-inbox',
+      },
+      ...roots,
+    ];
+  }
+
+  public get moveTargetFolderName(): string {
+    if (!this.moveTargetFolderId) return this.language.text('unfiledImages');
+    const folder = this.folders.find((item) => item.id === this.moveTargetFolderId);
+    return folder ? this.folderPath(folder) : this.language.text('unfiledImages');
+  }
+
+  public get moveSelectionKeys(): Record<string, boolean> {
+    return { [this.moveTargetFolderId ?? '__unfiled']: true };
+  }
+
   public get currentFolderName(): string {
     return this.folders.find((folder) => folder.id === this.selectedFolderId)?.name ?? '';
+  }
+
+  public get parentFolderId(): string | null {
+    return this.folders.find((folder) => folder.id === this.selectedFolderId)?.parentId ?? null;
+  }
+
+  public get folderBreadcrumbs(): MenuItem[] {
+    const items: MenuItem[] = [
+      {
+        label: this.language.text('allImages'),
+        command: () => this.folderChanged(''),
+      },
+    ];
+    const path = this.selectedFolderId ? this.folderAncestors(this.selectedFolderId) : [];
+    path.forEach((folder, index) => {
+      items.push({
+        label: folder.name,
+        disabled: index === path.length - 1,
+        command: () => this.folderChanged(folder.id),
+      });
+    });
+    return items;
+  }
+
+  public folderPath(folder: MediaFolder): string {
+    return this.folderAncestors(folder.id)
+      .map((ancestor) => ancestor.name)
+      .join(' / ');
+  }
+
+  private folderAncestors(folderId: string): MediaFolder[] {
+    const ancestors: MediaFolder[] = [];
+    const visited = new Set<string>();
+    let current: MediaFolder | undefined = this.folders.find((folder) => folder.id === folderId);
+    while (current && !visited.has(current.id)) {
+      ancestors.unshift(current);
+      visited.add(current.id);
+      current = current.parentId
+        ? this.folders.find((candidate) => candidate.id === current?.parentId)
+        : undefined;
+    }
+    return ancestors;
   }
 
   public async createFolder() {
     const name = this.folderName.trim();
     if (!name) return;
     try {
-      await this.storage.createMediaFolder(name);
+      await this.storage.createMediaFolder(name, this.selectedFolderId);
       this.folderName = '';
       this.status = this.language.text('folderCreated');
       await this.load();
@@ -181,9 +288,30 @@ export class MediaPage {
     });
   }
 
-  public async moveAsset(asset: MediaAsset, folderId: string | null) {
+  public openMoveDialog(asset: MediaAsset) {
+    this.movingAsset = asset;
+    this.moveTargetFolderId = asset.folderId ?? null;
+    this.moveDialogVisible = true;
+  }
+
+  public closeMoveDialog() {
+    this.moveDialogVisible = false;
+    this.movingAsset = null;
+    this.moveTargetFolderId = null;
+  }
+
+  public selectMoveTarget(node: TreeNode) {
+    this.moveTargetFolderId = node.key === '__unfiled' ? null : String(node.key);
+  }
+
+  public async confirmMove() {
+    if (!this.movingAsset) return;
+    const asset = this.movingAsset;
+    const folderId = this.moveTargetFolderId;
+    this.closeMoveDialog();
+    if ((asset.folderId ?? null) === folderId) return;
     try {
-      await this.storage.moveMediaAsset(asset.id, folderId || null);
+      await this.storage.moveMediaAsset(asset.id, folderId);
       this.status = this.language.text('mediaMoved');
       await this.load();
     } catch {
@@ -247,27 +375,6 @@ export class MediaPage {
       await this.load();
     } catch {
       this.error = this.language.text('mediaRenameFailed');
-    }
-  }
-
-  public async replace(asset: MediaAsset, input: File[] | FileList | Event) {
-    const file = Array.isArray(input)
-      ? input[0]
-      : 'target' in input
-        ? (input.target as HTMLInputElement | null)?.files?.[0]
-        : (input.item(0) ?? undefined);
-    if (!file) return;
-    this.replacing = asset;
-    this.error = '';
-    try {
-      await this.storage.replaceMediaAsset(asset.id, file);
-      this.status = this.language.text('mediaReplaced');
-      await this.load();
-    } catch (error) {
-      this.error =
-        error instanceof Error ? error.message : this.language.text('mediaReplaceFailed');
-    } finally {
-      this.replacing = null;
     }
   }
 

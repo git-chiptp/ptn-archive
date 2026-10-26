@@ -3,6 +3,35 @@
     key="media-folder-actions"
     [style]="{ width: 'min(28rem, calc(100vw - 2rem))' }"
   />
+  <p-dialog
+    [header]="language.text('moveImage')"
+    [(visible)]="moveDialogVisible"
+    [modal]="true"
+    [draggable]="false"
+    [style]="{ width: 'min(32rem, calc(100vw - 2rem))' }"
+    (onHide)="closeMoveDialog()"
+  >
+    <div class="flex flex-col gap-4">
+      <p-tree
+        [value]="folderTree"
+        selectionMode="single"
+        [selectionKeys]="moveSelectionKeys"
+        (onNodeSelect)="selectMoveTarget($event.node)"
+        [ariaLabel]="language.text('folder')"
+      />
+      <p class="m-0 text-sm text-[var(--p-text-muted-color)]">
+        {{ language.text('moveTo') }}: {{ moveTargetFolderName }}
+      </p>
+      <div class="flex justify-end gap-2">
+        <button pButton type="button" severity="secondary" (click)="closeMoveDialog()">
+          {{ language.text('cancel') }}
+        </button>
+        <button pButton type="button" (click)="confirmMove()">
+          {{ language.text('move') }}
+        </button>
+      </div>
+    </div>
+  </p-dialog>
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
       <h1 class="text-2xl font-semibold">{{ language.text('mediaLibrary') }}</h1>
@@ -68,20 +97,14 @@
       <span>{{ language.text('createFolder') }}</span>
     </button>
   </div>
-  <div class="flex flex-wrap items-center gap-2">
-    @if (selectedFolderId) {
-      <button pButton type="button" severity="secondary" (click)="showRoot()">
-        <i class="pi pi-arrow-left" aria-hidden="true"></i>
-        <span>{{ language.text('allImages') }}</span>
-      </button>
-      <span class="font-medium">/ {{ currentFolderName }}</span>
-    } @else {
-      <span class="font-medium">{{ language.text('unfiledImages') }}</span>
-    }
-  </div>
-  @if (!selectedFolderId && folders.length) {
+  @if (selectedFolderId) {
+    <p-breadcrumb [model]="folderBreadcrumbs" styleClass="!p-0" />
+  } @else {
+    <span class="font-medium">{{ language.text('unfiledImages') }}</span>
+  }
+  @if (visibleFolders.length) {
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-      @for (folder of folders; track folder.id) {
+      @for (folder of visibleFolders; track folder.id) {
         <div
           class="flex min-w-0 items-center gap-2 rounded border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-3"
         >
@@ -195,44 +218,43 @@
               type="button"
               size="small"
               severity="secondary"
+              class="w-full"
               (click)="copyImagePath(asset)"
             >
               <i class="pi pi-copy" aria-hidden="true"></i>
               <span>{{ language.text('copyImagePath') }}</span>
             </button>
-            <p-select
-              [options]="folders"
-              optionLabel="name"
-              optionValue="id"
-              [ngModel]="asset.folderId ?? null"
-              [ngModelOptions]="{ standalone: true }"
-              (ngModelChange)="moveAsset(asset, $event)"
-              [placeholder]="language.text('unfiledImages')"
-              [showClear]="true"
-              [ariaLabel]="language.text('folder')"
-              styleClass="w-full"
-            />
-            <div class="flex flex-wrap gap-2">
+            <button
+              pButton
+              type="button"
+              size="small"
+              severity="secondary"
+              class="w-full"
+              (click)="openMoveDialog(asset)"
+            >
+              <i class="pi pi-folder-open" aria-hidden="true"></i>
+              <span>{{ language.text('moveImage') }}</span>
+            </button>
+            <div class="flex flex-col gap-2">
               <button
                 pButton
                 type="button"
                 size="small"
                 severity="secondary"
+                class="w-full"
                 (click)="startRename(asset)"
               >
                 <i class="pi pi-pencil" aria-hidden="true"></i>
                 <span>{{ language.text('rename') }}</span>
               </button>
-              <p-fileupload
-                mode="basic"
-                name="replace"
-                accept="image/*"
-                [chooseLabel]="language.text('replace')"
-                [auto]="false"
-                [customUpload]="true"
-                (onSelect)="replace(asset, $event.files)"
-              />
-              <button pButton type="button" size="small" severity="danger" (click)="remove(asset)">
+              <button
+                pButton
+                type="button"
+                size="small"
+                severity="danger"
+                class="w-full"
+                (click)="remove(asset)"
+              >
                 <i class="pi pi-trash" aria-hidden="true"></i>
                 <span>{{ language.text('delete') }}</span>
               </button>

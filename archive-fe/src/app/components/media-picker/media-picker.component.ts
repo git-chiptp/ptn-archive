@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { MenuItem } from 'primeng/api';
 import {
   ChangeDetectorRef,
   Component,
@@ -11,6 +12,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
+import { BreadcrumbModule } from 'primeng/breadcrumb';
 import { DialogModule } from 'primeng/dialog';
 import { FileUploadModule } from 'primeng/fileupload';
 import { ImageModule } from 'primeng/image';
@@ -32,6 +34,7 @@ import { LanguageService } from '../../services/language.service';
     CommonModule,
     FormsModule,
     ButtonModule,
+    BreadcrumbModule,
     DialogModule,
     FileUploadModule,
     ImageModule,
@@ -108,8 +111,50 @@ export class MediaPickerComponent implements OnChanges {
     return this.storage.toPublicUrl(mediaReference(asset.id)) ?? mediaReference(asset.id);
   }
 
+  public get visibleFolders(): MediaFolder[] {
+    return this.folders.filter(
+      (folder) => (folder.parentId ?? null) === (this.selectedFolderId ?? null),
+    );
+  }
+
+  public get parentFolderId(): string | null {
+    return this.folders.find((folder) => folder.id === this.selectedFolderId)?.parentId ?? null;
+  }
+
   public get currentFolderName(): string {
     return this.folders.find((folder) => folder.id === this.selectedFolderId)?.name ?? '';
+  }
+
+  public get folderBreadcrumbs(): MenuItem[] {
+    const items: MenuItem[] = [
+      {
+        label: this.language.text('allImages'),
+        command: () => this.folderChanged(''),
+      },
+    ];
+    const path = this.selectedFolderId ? this.folderAncestors(this.selectedFolderId) : [];
+    path.forEach((folder, index) => {
+      items.push({
+        label: folder.name,
+        disabled: index === path.length - 1,
+        command: () => this.folderChanged(folder.id),
+      });
+    });
+    return items;
+  }
+
+  private folderAncestors(folderId: string): MediaFolder[] {
+    const ancestors: MediaFolder[] = [];
+    const visited = new Set<string>();
+    let current: MediaFolder | undefined = this.folders.find((folder) => folder.id === folderId);
+    while (current && !visited.has(current.id)) {
+      ancestors.unshift(current);
+      visited.add(current.id);
+      current = current.parentId
+        ? this.folders.find((candidate) => candidate.id === current?.parentId)
+        : undefined;
+    }
+    return ancestors;
   }
 
   public choose(asset: MediaAsset) {
