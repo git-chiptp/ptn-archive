@@ -190,16 +190,9 @@ export class TranscriptImportService {
     if (!languages.length) {
       throw new Error('Import requires at least one language column.');
     }
-    if (bareMetadata.length) {
-      if (languages.length !== 1) {
-        throw new Error(
-          'Metadata columns named Stage, Name, or Description require a language prefix when multiple languages are present.',
-        );
-      }
-      bareMetadata.forEach((item) =>
-        metadata.push({ languageKey: languages[0].key, field: item.field, index: item.index }),
-      );
-    }
+    bareMetadata.forEach((item) =>
+      metadata.push({ languageKey: '*', field: item.field, index: item.index }),
+    );
     languageSpeakers.forEach((item) => {
       if (!languages.some((language) => language.key === item.languageKey)) {
         throw new Error(
@@ -211,7 +204,7 @@ export class TranscriptImportService {
       }
     });
     metadata.forEach((item) => {
-      if (!languages.some((language) => language.key === item.languageKey)) {
+      if (item.languageKey !== '*' && !languages.some((language) => language.key === item.languageKey)) {
         throw new Error(
           `Metadata column must use a language with a content column: ${item.languageKey}.`,
         );
@@ -245,23 +238,58 @@ export class TranscriptImportService {
   private parseMetadataHeader(
     key: string,
   ): { languageKey: string; field: ImportMetadataField } | undefined {
-    const parts = key.split(' ');
-    const fields: ImportMetadataField[] = ['stage', 'name', 'description'];
-    const endingField = fields.find((field) => parts.at(-1) === field);
-    if (endingField && parts.length > 1) {
-      return { languageKey: parts.slice(0, -1).join(' '), field: endingField };
+    if (this.parseBareMetadataHeader(key) !== undefined) {
+      return undefined;
     }
-    const startingField = fields.find((field) => parts[0] === field);
-    if (startingField && parts.length > 1) {
-      return { languageKey: parts.slice(1).join(' '), field: startingField };
+    const parts = key.split(' ');
+    const aliases: { tokens: string[]; field: ImportMetadataField }[] = [
+      { tokens: ['stage', 'number'], field: 'stage' },
+      { tokens: ['stage', 'no'], field: 'stage' },
+      { tokens: ['stage', 'name'], field: 'name' },
+      { tokens: ['stage'], field: 'stage' },
+      { tokens: ['name'], field: 'name' },
+      { tokens: ['description'], field: 'description' },
+    ];
+    for (const alias of aliases) {
+      const suffix = parts.slice(-alias.tokens.length);
+      if (
+        parts.length > alias.tokens.length &&
+        suffix.every((token, index) => token === alias.tokens[index])
+      ) {
+        return {
+          languageKey: parts.slice(0, -alias.tokens.length).join(' '),
+          field: alias.field,
+        };
+      }
+      const prefix = parts.slice(0, alias.tokens.length);
+      if (
+        parts.length > alias.tokens.length &&
+        prefix.every((token, index) => token === alias.tokens[index])
+      ) {
+        return {
+          languageKey: parts.slice(alias.tokens.length).join(' '),
+          field: alias.field,
+        };
+      }
     }
     return undefined;
   }
 
   private parseBareMetadataHeader(key: string): ImportMetadataField | undefined {
-    return (['stage', 'name', 'description'] as ImportMetadataField[]).find(
-      (field) => key === field,
-    );
+    const parts = key.split(' ');
+    const aliases: { tokens: string[]; field: ImportMetadataField }[] = [
+      { tokens: ['stage', 'number'], field: 'stage' },
+      { tokens: ['stage', 'no'], field: 'stage' },
+      { tokens: ['stage', 'name'], field: 'name' },
+      { tokens: ['stage'], field: 'stage' },
+      { tokens: ['name'], field: 'name' },
+      { tokens: ['description'], field: 'description' },
+    ];
+    return aliases.find(
+      (alias) =>
+        alias.tokens.length === parts.length &&
+        alias.tokens.every((token, index) => token === parts[index]),
+    )?.field;
   }
 
   private readMetadata(
@@ -272,7 +300,7 @@ export class TranscriptImportService {
   ): ImportedTranscriptMetadata {
     const metadata: ImportedTranscriptMetadata = {};
     columns.metadata
-      .filter((item) => item.languageKey === languageKey)
+      .filter((item) => item.languageKey === languageKey || item.languageKey === '*')
       .forEach((item) => {
         for (let rowIndex = 1; rowIndex < rows.length; rowIndex += 1) {
           const value = this.stripTags(
