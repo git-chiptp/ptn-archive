@@ -89,7 +89,9 @@ export class ReaderPage {
     command: () => this.requestBreadcrumbNavigation(['/']),
   };
 
-  public readonly missingBreadcrumbItems: MenuItem[] = [{ label: 'Transcript not found' }];
+  public get missingBreadcrumbItems(): MenuItem[] {
+    return [{ label: this.language.text('transcriptNotFound') }];
+  }
 
   public readonly language = inject(LanguageService);
 
@@ -251,17 +253,17 @@ export class ReaderPage {
 
   public get breadcrumbItems(): MenuItem[] {
     if (!this.transcript) {
-      return [{ label: 'Transcript' }];
+      return [{ label: this.language.text('transcriptNotFound') }];
     }
     const source = this.transcript;
     const localized = this.localizedTranscript ?? source;
     const categoryLabels: Record<string, string> = {
-      'main-story': 'Main story',
+      'main-story': this.language.text('mainStory'),
       'eternal-nightmare': this.language.text('eternalNightmare'),
-      'event-story': 'Event story',
+      'event-story': this.language.text('eventStory'),
       interrogation: this.language.text('interrogation'),
       mirage: this.language.text('mirage'),
-      perspectra: 'Perspectra',
+      perspectra: this.language.text('perspectra'),
     };
     const categoryLink = ['/', source.category];
     const parentLink = ['/', source.category, this.slug(source.parentLabel)];
@@ -280,13 +282,13 @@ export class ReaderPage {
       );
       items.push(this.readerBreadcrumb(localized.title ?? source.title));
       if (this.editMode) {
-        items.push({ label: 'Edit' });
+        items.push({ label: this.language.text('edit') });
       }
       return items;
     }
     items.push(this.readerBreadcrumb(localized.stageLabel ?? source.stageLabel));
     if (this.editMode) {
-      items.push({ label: 'Edit' });
+      items.push({ label: this.language.text('edit') });
     }
     return items;
   }
