@@ -241,7 +241,7 @@ export class AddTranscriptPage {
       return;
     }
     this.confirmation.confirm({
-      key: 'admin-actions',
+      key: 'transcript-actions',
       header: 'Leave editor?',
       message: 'Changes will not be saved. Do you want to exit?',
       icon: 'pi pi-exclamation-triangle',
@@ -327,7 +327,7 @@ export class AddTranscriptPage {
 
   public delete(transcript: Transcript) {
     this.confirmation.confirm({
-      key: 'admin-actions',
+      key: 'transcript-actions',
       header: 'Delete transcript?',
       message: `Delete "${transcript.parentLabel} / ${transcript.stageLabel}"?`,
       icon: 'pi pi-trash',
@@ -439,7 +439,7 @@ export class AddTranscriptPage {
     }
     if (this.editorHasContent()) {
       this.confirmation.confirm({
-        key: 'admin-actions',
+        key: 'transcript-actions',
         header: 'Replace transcript content?',
         message:
           'Importing this file will replace all current transcript lines and choices. Continue?',
@@ -526,7 +526,7 @@ export class AddTranscriptPage {
       return;
     }
     this.confirmation.confirm({
-      key: 'admin-actions',
+      key: 'transcript-actions',
       header: this.editingId ? 'Save transcript?' : 'Publish transcript?',
       message: this.editingId
         ? 'Save this transcript and publish the changes?'

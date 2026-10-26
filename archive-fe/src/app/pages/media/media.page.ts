@@ -15,7 +15,6 @@ import {
   MediaFolder,
   mediaReference,
 } from '../../services/archive-storage.service';
-import { AuthService } from '../../services/auth.service';
 import { LanguageService } from '../../services/language.service';
 
 @Component({
@@ -35,7 +34,6 @@ import { LanguageService } from '../../services/language.service';
 })
 export class MediaPage {
   readonly language = inject(LanguageService);
-  readonly auth = inject(AuthService);
   private readonly confirmation = inject(ConfirmationService);
   private readonly storage = inject(ArchiveStorageService);
   private readonly changeDetector = inject(ChangeDetectorRef);
@@ -109,9 +107,7 @@ export class MediaPage {
   }
 
   public imagePath(asset: MediaAsset): string {
-    const name = asset.displayName
-      .trim()
-      .replace(/\.(?:avif|gif|jpe?g|png|webp)$/i, '');
+    const name = asset.displayName.trim().replace(/\.(?:avif|gif|jpe?g|png|webp)$/i, '');
     const folder = this.folders.find((item) => item.id === asset.folderId)?.name.trim();
     return folder ? `${folder}/${name}` : name;
   }
@@ -129,10 +125,6 @@ export class MediaPage {
 
   public get currentFolderName(): string {
     return this.folders.find((folder) => folder.id === this.selectedFolderId)?.name ?? '';
-  }
-
-  public get isAdmin(): boolean {
-    return this.auth.user()?.authorities.includes('ROLE_ADMIN') ?? false;
   }
 
   public async createFolder() {

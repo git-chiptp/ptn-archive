@@ -115,7 +115,7 @@ export class ReaderPage {
 
   public transcript: Transcript | undefined;
 
-  public editMode = this.route.snapshot.queryParamMap.get('edit') === '1';
+  public editMode = false;
 
   public editLanguage: LanguageCode = 'en';
 
@@ -180,6 +180,8 @@ export class ReaderPage {
   private editSnapshot = '';
 
   private editDirty = false;
+
+  private readonly editRequested = this.route.snapshot.queryParamMap.get('edit') === '1';
 
   public get backLink(): string[] {
     if (!this.transcript) {
@@ -331,9 +333,12 @@ export class ReaderPage {
     });
   }
   constructor() {
-    if (!this.editMode) {
-      this.store.clearStatusMessage();
-    }
+    this.auth.me().subscribe((user) => {
+      if (user && this.editRequested) {
+        this.editMode = true;
+      }
+    });
+    this.store.clearStatusMessage();
     effect(() => {
       const next = this.transcriptFromRoute();
       if (!next) {
@@ -421,12 +426,12 @@ export class ReaderPage {
       this.editDirty ||
       this.editSnapshot !==
         JSON.stringify({
-        parent: this.editParent,
-        stage: this.editStage,
-        name: this.editName,
-        description: this.editDescription,
-        nodes: this.editNodes,
-      })
+          parent: this.editParent,
+          stage: this.editStage,
+          name: this.editName,
+          description: this.editDescription,
+          nodes: this.editNodes,
+        })
     );
   }
   public savePendingLanguageChange() {
@@ -537,7 +542,9 @@ export class ReaderPage {
     const editor = new TranscriptEditorComponent();
     editor.nodes = this.editNodes;
     const nodes = editor.serialize();
-    await this.storage.resolveMediaReferences(this.storage.mediaReferences(nodes)).catch(() => undefined);
+    await this.storage
+      .resolveMediaReferences(this.storage.mediaReferences(nodes))
+      .catch(() => undefined);
     this.previewNodes = this.storage.toPublicNodes(nodes);
     this.previewSelections = {};
     this.previewGender = this.store.gender();

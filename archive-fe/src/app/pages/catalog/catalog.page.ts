@@ -24,10 +24,6 @@ export class CatalogPage {
 
   private router = inject(Router);
 
-  public get isAdmin() {
-    return !!this.auth.user();
-  }
-
   private route = inject(ActivatedRoute);
 
   public query = '';
@@ -58,9 +54,9 @@ export class CatalogPage {
         ? 'mainStory'
         : this.category === 'eternal-nightmare'
           ? 'eternalNightmare'
-        : this.category === 'event-story'
-          ? 'eventStory'
-          : this.category,
+          : this.category === 'event-story'
+            ? 'eventStory'
+            : this.category,
     );
   }
 

@@ -8,7 +8,7 @@
     [placeholder]="language.text('searchArchive')"
     [attr.aria-label]="language.text('searchArchive')"
   />
-  @if (isAdmin && (category === 'main-story' || category === 'eternal-nightmare')) {
+  @if (auth.user() && (category === 'main-story' || category === 'eternal-nightmare')) {
     <a
       pButton
       severity="secondary"
@@ -20,7 +20,7 @@
       <span>{{ language.text('addChapter') }}</span>
     </a>
   }
-  @if (isAdmin && category === 'perspectra') {
+  @if (auth.user() && category === 'perspectra') {
     <a
       pButton
       severity="secondary"
@@ -32,7 +32,7 @@
       <span>{{ language.text('addCharacter') }}</span>
     </a>
   }
-  @if (isAdmin && (category === 'interrogation' || category === 'mirage')) {
+  @if (auth.user() && (category === 'interrogation' || category === 'mirage')) {
     <a
       pButton
       severity="secondary"
@@ -44,7 +44,7 @@
       <span>{{ language.text('addCharacter') }}</span>
     </a>
   }
-  @if (isAdmin && category === 'event-story') {
+  @if (auth.user() && category === 'event-story') {
     <a
       pButton
       severity="secondary"
@@ -77,10 +77,7 @@
               decoding="async"
             />
           } @else {
-            <span
-              class="absolute inset-0 bg-[var(--p-surface-700)]"
-              aria-hidden="true"
-            ></span>
+            <span class="absolute inset-0 bg-[var(--p-surface-700)]" aria-hidden="true"></span>
           }
           <span
             class="absolute inset-0 bg-black/45 transition-colors duration-200 group-hover:bg-black/60"
@@ -97,7 +94,11 @@
                 >{{ collection.label }}</a
               >
             </h2>
-            @if (category !== 'main-story' && category !== 'eternal-nightmare' && category !== 'event-story') {
+            @if (
+              category !== 'main-story' &&
+              category !== 'eternal-nightmare' &&
+              category !== 'event-story'
+            ) {
               <div class="mt-auto flex min-h-0 flex-wrap gap-2 overflow-y-auto pt-4">
                 @for (stage of collection.stages; track stage.id) {
                   <a
@@ -106,7 +107,7 @@
                     size="small"
                     class="!border-white/70 !bg-black/40 !text-white"
                     [routerLink]="['/', category, slug(collection.label), slug(stage.label)]"
-                    [queryParams]="isAdmin ? { edit: 1 } : {}"
+                    [queryParams]="auth.user() ? { edit: 1 } : {}"
                   >
                     {{ stage.label }}
                   </a>

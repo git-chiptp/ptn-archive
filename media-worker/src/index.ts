@@ -335,15 +335,6 @@ async function assertAuthenticated(request: Request, env: Env): Promise<void> {
   await authenticatedUser(request, env);
 }
 
-async function assertAdmin(request: Request, env: Env): Promise<void> {
-  const user = await authenticatedUser(request, env);
-  const roles = Array.isArray(user.app_metadata?.roles)
-    ? user.app_metadata.roles
-    : [];
-  if (user.app_metadata?.role !== "admin" && !roles.includes("admin"))
-    throw new Error("Administrator access required.");
-}
-
 async function supabaseRequest<T>(
   env: Env,
   path: string,
@@ -582,7 +573,7 @@ export default {
         return errorResponse(request, env, "Not found.", 404);
       if (match[1] === "upload" || match[1] === "import")
         await assertAuthenticated(request, env);
-      else await assertAdmin(request, env);
+      else await assertAuthenticated(request, env);
       if (request.method === "POST" && match[1] === "upload")
         return json(request, env, await handleUpload(request, env), 201);
       if (request.method === "POST" && match[1] === "import")
@@ -599,7 +590,7 @@ export default {
         error instanceof Error ? error.message : "Media operation failed.";
       const status = message.includes("Authentication required")
         ? 401
-        : message.includes("Administrator") || message.includes("Origin")
+        : message.includes("Origin")
           ? 403
           : message.includes("not found")
             ? 404

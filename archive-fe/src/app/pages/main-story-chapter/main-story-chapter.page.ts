@@ -4,8 +4,8 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 import { BreadcrumbModule } from 'primeng/breadcrumb';
 import { Category } from '../../models/transcript.models';
-import { ArchiveStore } from '../../services/archive.store';
 import { AuthService } from '../../services/auth.service';
+import { ArchiveStore } from '../../services/archive.store';
 import { LanguageService } from '../../services/language.service';
 import { ButtonModule } from 'primeng/button';
 
@@ -27,15 +27,16 @@ export class MainStoryChapterPage {
     return (this.route.snapshot.data['category'] as Category | undefined) ?? 'main-story';
   }
 
-  public get isAdmin() {
-    return !!this.auth.user();
-  }
-
   public readonly breadcrumbHome: MenuItem = { icon: 'pi pi-home', routerLink: '/' };
 
   public get breadcrumbItems(): MenuItem[] {
     return [
-      { label: this.language.text(this.category === 'main-story' ? 'mainStory' : 'eternalNightmare'), routerLink: '/' + this.category },
+      {
+        label: this.language.text(
+          this.category === 'main-story' ? 'mainStory' : 'eternalNightmare',
+        ),
+        routerLink: '/' + this.category,
+      },
       ...(this.chapter ? [{ label: this.chapter.label }] : []),
     ];
   }

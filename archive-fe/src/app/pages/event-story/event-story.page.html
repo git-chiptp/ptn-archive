@@ -1,12 +1,10 @@
 <section class="catalog">
-  <p-breadcrumb
-    [home]="breadcrumbHome"
-    [model]="breadcrumbItems"
-    styleClass="!p-0 mb-4"
-  />
+  <p-breadcrumb [home]="breadcrumbHome" [model]="breadcrumbItems" styleClass="!p-0 mb-4" />
   @if (event; as collection) {
-    <h1 class="mb-4 break-words text-3xl font-semibold [overflow-wrap:anywhere]">{{ collection.label }}</h1>
-    @if (isAdmin) {
+    <h1 class="mb-4 break-words text-3xl font-semibold [overflow-wrap:anywhere]">
+      {{ collection.label }}
+    </h1>
+    @if (auth.user()) {
       <a
         pButton
         severity="secondary"
@@ -30,6 +28,8 @@
       }
     </div>
   } @else {
-    <h1 class="mb-4 break-words text-3xl font-semibold [overflow-wrap:anywhere]">{{ language.text('eventNotFound') }}</h1>
+    <h1 class="mb-4 break-words text-3xl font-semibold [overflow-wrap:anywhere]">
+      {{ language.text('eventNotFound') }}
+    </h1>
   }
 </section>
