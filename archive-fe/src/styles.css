@@ -8,11 +8,47 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: 'Open Sans';
+  src: url('/font/OpenSans-Medium.ttf') format('truetype');
+  font-display: swap;
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Open Sans';
+  src: url('/font/OpenSans-Bold.ttf') format('truetype');
+  font-display: swap;
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Open Sans';
+  src: url('/font/OpenSans-MediumItalic.ttf') format('truetype');
+  font-display: swap;
+  font-weight: 400;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Open Sans';
+  src: url('/font/OpenSans-BoldItalic.ttf') format('truetype');
+  font-display: swap;
+  font-weight: 700;
+  font-style: italic;
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 .archive-brand,
 .archive-brand .p-button-label {
   font-family: 'Sekuya', sans-serif;
+}
+
+.transcript-reader {
+  font-family: 'Open Sans', sans-serif;
 }
 
 :root {

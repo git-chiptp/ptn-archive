@@ -14,7 +14,7 @@ import {
   imports: [CommonModule, ButtonModule, ImageModule],
   templateUrl: './node-list.component.html',
   host: {
-    class: 'block w-full min-w-0 max-w-full',
+    class: 'transcript-reader block w-full min-w-0 max-w-full',
   },
 })
 export class NodeListComponent {
@@ -36,6 +36,16 @@ export class NodeListComponent {
 
   public displayText(value?: string) {
     return this.replaceChiefName(value || '');
+  }
+
+  public toggleOption(nodeId: string, optionId: string, hasNodes: boolean) {
+    if (!hasNodes) {
+      return;
+    }
+    this.changed.emit({
+      id: nodeId,
+      option: this.selections[nodeId] === optionId ? '' : optionId,
+    });
   }
 
   public image(node: ImageNode) {
