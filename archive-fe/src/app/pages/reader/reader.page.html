@@ -16,7 +16,8 @@
         <input
           pInputText
           id="chief-name"
-          [(ngModel)]="chiefName"
+          [ngModel]="chiefName"
+          (ngModelChange)="chiefNameChanged($event)"
           placeholder="A"
           autocomplete="off"
           maxlength="20"

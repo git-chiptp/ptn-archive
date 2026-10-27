@@ -77,7 +77,7 @@ export class ArchiveStore {
 
   private readonly pendingTranscriptIds = new Set<string>();
 
-  public readonly gender = signal<Gender>('female');
+  public readonly gender = signal<Gender>(this.readStoredGender());
 
   public readonly transcripts = signal<Transcript[]>([]);
 
@@ -99,6 +99,17 @@ export class ArchiveStore {
   }
   public setGender(gender: Gender) {
     this.gender.set(gender);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('archive-gender', gender);
+    }
+  }
+
+  private readStoredGender(): Gender {
+    if (typeof localStorage === 'undefined') {
+      return 'female';
+    }
+    const stored = localStorage.getItem('archive-gender');
+    return stored === 'male' || stored === 'female' ? stored : 'female';
   }
 
   public clearStatusMessage() {

@@ -97,7 +97,7 @@ export class ReaderPage {
 
   public selections: Record<string, string> = {};
 
-  public chiefName = '';
+  public chiefName = this.readStoredChiefName();
 
   public readonly protagonistOptions = [
     {
@@ -491,6 +491,20 @@ export class ReaderPage {
     this.editNodes = this.toEditable(translation.nodes ?? transcript.nodes);
     this.captureEditSnapshot();
   }
+  public chiefNameChanged(value: string) {
+    this.chiefName = value;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('archive-chief-name', value);
+    }
+  }
+
+  private readStoredChiefName(): string {
+    if (typeof localStorage === 'undefined') {
+      return '';
+    }
+    return localStorage.getItem('archive-chief-name') ?? '';
+  }
+
   private captureEditSnapshot() {
     this.editSnapshot = JSON.stringify({
       parent: this.editParent,
