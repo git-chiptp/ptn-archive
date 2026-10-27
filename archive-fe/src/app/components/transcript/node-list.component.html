@@ -1,28 +1,38 @@
-<div class="flex min-w-0 flex-col">
-  @for (node of nodes; track node.id) {
+<div class="flex min-w-0 flex-col gap-6">
+  @for (node of nodes; track node.id; let nodeIndex = $index) {
   @if (node.type === 'line') {
-      <div
-        class="line mb-6 min-w-0 max-w-full break-words last:mb-0 [overflow-wrap:anywhere]"
-      >
-        @if (mediaUrl(node.sprite); as spriteUrl) {
-          <div class="block min-w-0 max-w-full">
-            <p-image
-              [src]="spriteUrl"
-              alt="Narrator sprite"
-              [preview]="true"
-              imageClass="narrator-sprite block h-[100px] w-[100px] object-contain"
-            />
+      <div class="line min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
+        @if (node.speaker) {
+          <div class="flex min-w-0 max-w-full items-start gap-3">
+            @if (mediaUrl(node.sprite); as spriteUrl) {
+              <div class="block shrink-0">
+                <p-image
+                  [src]="spriteUrl"
+                  alt="Narrator sprite"
+                  [preview]="true"
+                  imageClass="narrator-sprite block h-[75px] w-[75px] object-contain"
+                />
+              </div>
+            } @else {
+              <div class="w-[75px] shrink-0" aria-hidden="true"></div>
+            }
+            <div class="min-w-0 flex-1">
+              <span
+                class="speaker block max-w-full break-words text-[18px] font-bold [overflow-wrap:anywhere]"
+                >{{ displayText(node.speaker) }}</span
+              >
+              <span
+                class="block min-w-0 max-w-full break-words [overflow-wrap:anywhere] [&_img]:mx-auto [&_img]:block [&_img]:h-auto [&_img]:max-w-full"
+                [innerHTML]="html(node)"
+              ></span>
+            </div>
           </div>
+        } @else {
+          <span
+            class="block min-w-0 max-w-full break-words [overflow-wrap:anywhere] [&_img]:mx-auto [&_img]:block [&_img]:h-auto [&_img]:max-w-full"
+            [innerHTML]="html(node)"
+          ></span>
         }
-        <span
-          *ngIf="node.speaker"
-          class="speaker block max-w-full break-words text-[20px] font-bold [overflow-wrap:anywhere]"
-          >{{ displayText(node.speaker) }}</span
-        >
-        <span
-          class="block min-w-0 max-w-full break-words [overflow-wrap:anywhere] [&_img]:mx-auto [&_img]:block [&_img]:h-auto [&_img]:max-w-full"
-          [innerHTML]="html(node)"
-        ></span>
         @if (node.options?.length) {
           <div class="transcript-options mt-6 min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
             <div
@@ -55,7 +65,7 @@
                     ></span>
                   </button>
                   @if (selections[node.id] === option.id) {
-                    <div class="branch mt-6 min-w-0 max-w-full">
+                    <div class="branch mt-3 min-w-0 max-w-full">
                       <app-node-list
                         [nodes]="option.nodes"
                         [gender]="gender"
@@ -73,9 +83,7 @@
       </div>
     } @else {
       @if (image(node); as imageUrl) {
-        <div
-          class="line transcript-image mb-6 flex min-w-0 max-w-full justify-center overflow-hidden last:mb-0"
-        >
+        <div class="line transcript-image flex min-w-0 max-w-full justify-center overflow-hidden">
           <p-image
             [src]="imageUrl"
             alt="Transcript image"

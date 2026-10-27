@@ -16,7 +16,8 @@
         <input
           pInputText
           id="chief-name"
-          [(ngModel)]="chiefName"
+          [ngModel]="chiefName"
+          (ngModelChange)="chiefNameChanged($event)"
           placeholder="A"
           autocomplete="off"
           maxlength="20"
@@ -55,7 +56,7 @@
       }
     </div>
     <div
-      class="mb-4 flex min-w-0 flex-col items-center gap-1 border-b border-[var(--p-content-border-color)] pb-4 text-center"
+      class="my-4 flex min-w-0 flex-col items-center border-b border-[var(--p-content-border-color)] pb-4 text-center"
     >
       <p class="m-0 break-words text-lg [overflow-wrap:anywhere]">{{ t.stageLabel }}</p>
       <h1 class="m-0 break-words text-3xl font-semibold [overflow-wrap:anywhere]">
