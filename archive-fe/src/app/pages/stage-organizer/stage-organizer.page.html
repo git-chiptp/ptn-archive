@@ -1,0 +1,140 @@
+<section class="flex flex-col gap-6">
+  <header class="flex flex-wrap items-end justify-between gap-4">
+    <div class="min-w-0">
+      <h1 class="m-0 text-3xl font-semibold tracking-tight text-[var(--p-text-color)]">
+        {{ language.text('stageOrganizer') }}
+      </h1>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <button pButton type="button" severity="secondary" (click)="returnToSelector()">
+        <i class="pi pi-arrow-left" aria-hidden="true"></i>
+        <span>{{ language.text('returnToStageSelector') }}</span>
+      </button>
+      <button pButton type="button" severity="secondary" (click)="showList()">
+        <i class="pi pi-list" aria-hidden="true"></i>
+        <span>{{ language.text('showStageList') }}</span>
+      </button>
+    </div>
+  </header>
+
+  @if (selectedCollection(); as collection) {
+    <section class="flex flex-col gap-4 rounded-xl border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-4">
+      <header>
+        <h2 class="m-0 text-xl font-semibold text-[var(--p-text-color)]">
+          {{ language.text('defaultStageOrder') }}
+        </h2>
+      </header>
+      <p-orderlist
+        [(value)]="orderedStages"
+        [dragdrop]="true"
+        [ariaLabel]="language.text('defaultStageOrder')"
+        styleClass="w-full"
+      >
+        <ng-template #item let-stage>
+          <div class="flex min-w-0 items-center gap-3 py-1">
+            <span class="shrink-0 whitespace-nowrap text-lg font-semibold leading-none">
+              {{ stageNumber(stage) }}
+            </span>
+            @if (stageName(stage)) {
+              <span class="min-w-0 flex-1 break-words leading-snug [overflow-wrap:anywhere]">
+                {{ stageName(stage) }}
+              </span>
+            }
+          </div>
+        </ng-template>
+      </p-orderlist>
+      <button pButton type="button" (click)="saveStageOrder()">
+        <i class="pi pi-save" aria-hidden="true"></i>
+        <span>{{ language.text('saveStageOrder') }}</span>
+      </button>
+      @if (stageOrderStatus) {
+        <p class="m-0 text-sm text-[var(--p-primary-color)]" role="status">
+          {{ stageOrderStatus }}
+        </p>
+      }
+    </section>
+
+    <section class="flex flex-col gap-4 rounded-xl border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-4">
+      <header class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 class="m-0 text-xl font-semibold text-[var(--p-text-color)]">
+            {{ language.text('chartStageOrganizer') }}
+          </h2>
+        </div>
+        <button pButton type="button" severity="secondary" (click)="resetGraph()">
+          <i class="pi pi-refresh" aria-hidden="true"></i>
+          <span>{{ language.text('resetGraph') }}</span>
+        </button>
+      </header>
+
+      <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
+        <app-stage-graph
+          [stages]="stages"
+          [edges]="edges"
+          [title]="collection.label"
+        />
+
+        <aside class="flex flex-col gap-5 border-t border-[var(--p-content-border-color)] pt-4 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
+          <div class="flex flex-col gap-2">
+            <label class="font-medium" for="from-stage">{{ language.text('fromStage') }}</label>
+            <p-select
+              inputId="from-stage"
+              [options]="stageOptions"
+              optionLabel="label"
+              optionValue="value"
+              [(ngModel)]="fromStage"
+              [ngModelOptions]="{ standalone: true }"
+              [placeholder]="language.text('fromStage')"
+              [fluid]="true"
+            />
+            <label class="font-medium" for="to-stage">{{ language.text('toStage') }}</label>
+            <p-select
+              inputId="to-stage"
+              [options]="stageOptions"
+              optionLabel="label"
+              optionValue="value"
+              [(ngModel)]="toStage"
+              [ngModelOptions]="{ standalone: true }"
+              [placeholder]="language.text('toStage')"
+              [fluid]="true"
+            />
+            <button pButton type="button" severity="secondary" (click)="connectStages()">
+              <i class="pi pi-share-alt" aria-hidden="true"></i>
+              <span>{{ language.text('connectStages') }}</span>
+            </button>
+          </div>
+
+          @if (edges.length) {
+            <div class="flex flex-col gap-2">
+              <h3 class="m-0 text-sm font-semibold">{{ language.text('connectStages') }}</h3>
+              @for (edge of edges; track edge.id) {
+                <div class="flex min-w-0 items-center gap-2 text-sm">
+                  <span class="min-w-0 flex-1 break-words">
+                    {{ nodeLabel(edge.from) }} → {{ nodeLabel(edge.to) }}
+                  </span>
+                  <button
+                    pButton
+                    type="button"
+                    text
+                    severity="danger"
+                    size="small"
+                    [attr.aria-label]="language.text('delete')"
+                    (click)="removeEdge(edge.id)"
+                  >
+                    <i class="pi pi-times" aria-hidden="true"></i>
+                  </button>
+                </div>
+              }
+            </div>
+          }
+
+          @if (status) {
+            <p class="m-0 text-sm text-[var(--p-primary-color)]" role="status">{{ status }}</p>
+          }
+        </aside>
+      </div>
+    </section>
+  } @else {
+    <p class="m-0 text-[var(--p-text-muted-color)]">{{ language.text('stageOrganizerNoCollection') }}</p>
+  }
+</section>

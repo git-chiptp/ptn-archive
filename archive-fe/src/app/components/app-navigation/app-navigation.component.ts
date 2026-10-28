@@ -1,5 +1,5 @@
 import { DOCUMENT } from '@angular/common';
-import { Component, HostListener, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MenuItem } from 'primeng/api';
@@ -29,12 +29,14 @@ export class AppNavigationComponent {
 
   public theme: Theme = 'light';
   public drawerOpen = false;
-  public drawerPosition: 'top' | 'left' = 'left';
-  public headerHidden = false;
+  public drawerPosition: 'left' = 'left';
 
-  private lastScrollY = 0;
-
-  public readonly navItems = [
+  public readonly navItems: readonly {
+    icon: string;
+    label: string;
+    path: string;
+    requiresAuth?: boolean;
+  }[] = [
     { icon: 'book', label: 'mainStory', path: '/main-story' },
     { icon: 'calendar', label: 'events', path: '/event-story' },
     { icon: 'moon', label: 'eternalNightmare', path: '/eternal-nightmare' },
@@ -43,13 +45,13 @@ export class AppNavigationComponent {
     { icon: 'chart-line', label: 'perspectra', path: '/perspectra' },
     { icon: 'language', label: 'glossary', path: '/glossary' },
     { icon: 'info-circle', label: 'credits', path: '/credits' },
-    { icon: 'images', label: 'mediaLibrary', path: '/media' },
+    { icon: 'images', label: 'mediaLibrary', path: '/media', requiresAuth: true },
   ] as const;
 
   public get navigationMenu(): MenuItem[] {
     const visibleItems = this.auth.user()
       ? this.navItems
-      : this.navItems.filter((item) => item.path !== '/media');
+      : this.navItems.filter((item) => !item.requiresAuth);
     return visibleItems.map((item) => ({
       label: this.language.text(item.label),
       title: this.language.text(item.label),
@@ -61,7 +63,6 @@ export class AppNavigationComponent {
   }
 
   constructor() {
-    this.updateDrawerPosition();
     if (typeof localStorage !== 'undefined') {
       const storedTheme = localStorage.getItem('archive-theme');
       this.theme =
@@ -72,26 +73,6 @@ export class AppNavigationComponent {
             : 'light';
     }
     this.applyTheme();
-  }
-
-  @HostListener('window:resize')
-  public updateDrawerPosition() {
-    this.drawerPosition = (this.document.defaultView?.innerWidth ?? 1024) < 1024 ? 'top' : 'left';
-    if (this.drawerPosition === 'left') this.headerHidden = false;
-  }
-
-  @HostListener('window:scroll')
-  public updateHeaderVisibility() {
-    const window = this.document.defaultView;
-    if (!window || this.drawerPosition === 'left') {
-      this.headerHidden = false;
-      return;
-    }
-
-    const scrollY = Math.max(window.scrollY, 0);
-    const scrollingDown = scrollY > this.lastScrollY;
-    this.headerHidden = scrollingDown && scrollY > 48;
-    this.lastScrollY = scrollY;
   }
 
   private applyTheme() {

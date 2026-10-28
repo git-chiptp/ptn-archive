@@ -5,28 +5,60 @@
       {{ collection.label }}
     </h1>
     @if (auth.user()) {
-      <a
-        pButton
-        severity="secondary"
-        class="my-4 w-fit"
-        [routerLink]="['/add-transcript']"
-        [queryParams]="{ eventName: collection.label, category: 'event-story' }"
-      >
-        <i class="pi pi-plus" aria-hidden="true"></i>
-        <span>{{ language.text('addStage') }}</span>
-      </a>
-    }
-    <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-      @for (stage of collection.stages; track stage.id) {
+      <div class="my-4 flex flex-wrap gap-2">
         <a
           pButton
-          class="min-h-10 w-full !justify-start !text-left whitespace-normal px-3 py-2"
-          [routerLink]="['/event-story', slug(collection.label), slug(stage.label)]"
+          severity="secondary"
+          [routerLink]="['/add-transcript']"
+          [queryParams]="{ eventName: collection.label, category: 'event-story' }"
         >
-          {{ stage.label }}
+          <i class="pi pi-plus" aria-hidden="true"></i>
+          <span>{{ language.text('addStage') }}</span>
         </a>
-      }
+        <a
+          pButton
+          severity="secondary"
+          [routerLink]="['/stage-organizer']"
+          [queryParams]="{ category: 'event-story', parentId: collection.id, parentLabel: collection.label }"
+        >
+          <i class="pi pi-sitemap" aria-hidden="true"></i>
+          <span>{{ language.text('stageOrganizer') }}</span>
+        </a>
+      </div>
+    }
+    <div class="mb-4 flex justify-end">
+      <p-selectbutton
+        [options]="viewOptions"
+        optionLabel="label"
+        optionValue="value"
+        [ngModel]="selectedView"
+        (ngModelChange)="setView($event)"
+        [ngModelOptions]="{ standalone: true }"
+        [attr.aria-label]="language.text('stageView')"
+      />
     </div>
+    @if (selectedView === 'graph') {
+      <app-stage-graph
+        [stages]="graphStages"
+        [edges]="organization?.edges ?? []"
+        [title]="collection.label"
+      />
+    } @else {
+      <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        @for (stage of orderedStages; track stage.id) {
+          <a
+            pButton
+            class="stage-list-node min-h-10 w-full !items-center !justify-start !gap-3 !text-left whitespace-normal px-3 py-2"
+            [routerLink]="['/event-story', slug(collection.label), slug(stage.label)]"
+          >
+            <span class="stage-list-number shrink-0 whitespace-nowrap text-lg font-semibold leading-none">{{ stageNumber(stage) }}</span>
+            @if (stageName(stage)) {
+              <span class="stage-list-name min-w-0 flex-1 break-words leading-snug [overflow-wrap:anywhere]">{{ stageName(stage) }}</span>
+            }
+          </a>
+        }
+      </div>
+    }
   } @else {
     <h1 class="mb-4 break-words text-3xl font-semibold [overflow-wrap:anywhere]">
       {{ language.text('eventNotFound') }}

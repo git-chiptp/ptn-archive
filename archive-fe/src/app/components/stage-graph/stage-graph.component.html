@@ -1,0 +1,55 @@
+<div class="flex flex-col gap-3">
+  <div
+    class="stage-viewport rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-content-hover-background)] p-2"
+    [class.is-dragging]="isDragging"
+    (pointerdown)="startDragging($event)"
+    (pointermove)="drag($event)"
+    (pointerup)="endDragging($event)"
+    (pointercancel)="endDragging($event)"
+    (pointerleave)="endDragging($event)"
+  >
+    <div class="stage-map" [style.width.px]="mapWidth" [style.height.px]="mapHeight">
+      <svg
+        class="stage-graph"
+        [attr.width]="mapWidth"
+        [attr.height]="mapHeight"
+        [attr.viewBox]="'0 0 ' + mapWidth + ' ' + mapHeight"
+        preserveAspectRatio="none"
+        role="img"
+        [attr.aria-label]="title"
+      >
+        @for (edge of edges; track edge.id) {
+          <path
+            [attr.d]="edgePath(edge)"
+            fill="none"
+            stroke="var(--p-primary-color)"
+            stroke-width="2"
+          />
+        }
+        @for (node of nodes; track node.id) {
+          <foreignObject
+            class="stage-node-object"
+            [attr.x]="nodeX(node) - nodeWidth / 2"
+            [attr.y]="nodeY(node) - nodeHeight / 2"
+            [attr.width]="nodeWidth"
+            [attr.height]="nodeHeight"
+          >
+            <a
+              xmlns="http://www.w3.org/1999/xhtml"
+              class="stage-node flex h-full w-full items-center justify-center p-3 text-center font-semibold shadow-sm"
+              [routerLink]="node.link"
+              (click)="preventClickAfterDrag($event)"
+            >
+              <span class="stage-node-content relative z-10">
+                <span class="stage-number">{{ node.stageNumber }}</span>
+                @if (node.stageName) {
+                  <span class="stage-name">{{ node.stageName }}</span>
+                }
+              </span>
+            </a>
+          </foreignObject>
+        }
+      </svg>
+    </div>
+  </div>
+</div>

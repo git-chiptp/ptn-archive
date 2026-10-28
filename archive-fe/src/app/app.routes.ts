@@ -44,6 +44,14 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/glossary/glossary.page').then((page) => page.GlossaryPage),
   },
   {
+    path: 'stage-organizer',
+    loadComponent: () =>
+      import('./pages/stage-organizer/stage-organizer.page').then(
+        (page) => page.StageOrganizerPage,
+      ),
+    canActivate: [authGuard],
+  },
+  {
     path: 'main-story/:chapterId',
     loadComponent: () =>
       import('./pages/main-story-chapter/main-story-chapter.page').then(
