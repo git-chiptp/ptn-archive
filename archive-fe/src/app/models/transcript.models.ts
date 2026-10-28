@@ -49,7 +49,7 @@ export interface Collection {
   label: string;
   category: Category;
   backgroundImage?: string;
-  stages: { id: string; label: string }[];
+  stages: { id: string; label: string; name?: string }[];
 }
 export interface Chapter {
   id: string;

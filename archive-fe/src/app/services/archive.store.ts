@@ -512,7 +512,7 @@ export class ArchiveStore {
           category: t.category,
           stages: [],
         };
-        group.stages.push({ id: t.id, label: t.stageLabel });
+        group.stages.push({ id: t.id, label: t.stageLabel, name: t.title });
         groups.set(id, group);
       });
     return [...groups.values()];

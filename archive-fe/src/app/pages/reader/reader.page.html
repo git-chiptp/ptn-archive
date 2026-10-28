@@ -359,13 +359,15 @@
       </p-dialog>
     </section>
   } @else {
-    <app-node-list
-      [nodes]="t.nodes"
-      [gender]="store.gender()"
-      [chiefName]="chiefName"
-      [selections]="selections"
-      (changed)="select($event)"
-    />
+    <div class="border-b border-[var(--p-content-border-color)] pb-4">
+      <app-node-list
+        [nodes]="t.nodes"
+        [gender]="store.gender()"
+        [chiefName]="chiefName"
+        [selections]="selections"
+        (changed)="select($event)"
+      />
+    </div>
   }
 </section>
 <ng-template #loadingOrMissing>

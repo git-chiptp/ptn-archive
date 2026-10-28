@@ -1,0 +1,103 @@
+:host {
+  display: block;
+}
+
+.stage-viewport {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  cursor: grab;
+  touch-action: pan-x;
+  scrollbar-width: thin;
+}
+
+.stage-viewport.is-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.stage-map {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.stage-graph {
+  display: block;
+  overflow: visible;
+}
+
+.stage-node-object {
+  overflow: visible;
+}
+
+.stage-node {
+  --stage-cut: 1.25rem;
+  --stage-border: var(--p-primary-color);
+  --stage-background: var(--p-content-background);
+  position: relative;
+  box-sizing: border-box;
+  color: var(--p-text-color);
+  text-decoration: none;
+}
+
+.stage-node::before,
+.stage-node::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--stage-cut)) 0,
+    100% var(--stage-cut),
+    100% 100%,
+    0 100%
+  );
+}
+
+.stage-node::before {
+  background: var(--stage-border);
+}
+
+.stage-node::after {
+  inset: 1px;
+  background: var(--stage-background);
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--stage-cut)) 0,
+    100% var(--stage-cut),
+    100% 100%,
+    0 100%
+  );
+}
+
+.stage-node:hover::after {
+  background: var(--p-content-hover-background);
+}
+
+.stage-node-content {
+  display: grid;
+  grid-template-columns: minmax(3rem, auto) minmax(0, 1fr);
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  gap: 0.75rem;
+  text-align: left;
+}
+
+.stage-number {
+  min-width: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.stage-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.stage-node:hover {
+  background: var(--p-content-hover-background);
+}
