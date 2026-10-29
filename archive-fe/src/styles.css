@@ -58,18 +58,11 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-.archive-brand,
-.archive-brand .p-button-label {
-  font-family: 'Sekuya', sans-serif;
-}
-
-.transcript-reader {
-  font-family: 'Open Sans', sans-serif;
-}
-
-.archive-navigation-menu,
-.archive-navigation-menu .p-menu-list {
-  background-color: var(--p-content-background) !important;
+:root,
+html[data-theme="light"],
+html.dark {
+  --p-breadcrumb-background: transparent;
+  --p-breadcrumb-border-color: transparent;
 }
 
 :root {
@@ -80,11 +73,44 @@
   color-scheme: dark;
 }
 
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
 body {
   background: var(--p-content-background);
   color: var(--p-text-color);
   font-family: 'Inter', sans-serif;
   letter-spacing: normal;
+}
+
+html:not(.dark),
+html:not(.dark) body {
+  color-scheme: light !important;
+  background-color: #ffffff !important; 
+  color: #18181b !important;
+}
+
+html.dark[data-theme="dark"],
+html.dark[data-theme="dark"] body {
+  color-scheme: dark !important;
+  background-color: #0a0a0a !important; 
+  color: #f4f4f5 !important;
+}
+
+html.dark[data-theme="dark-blue"],
+html.dark[data-theme="dark-blue"] body {
+  color-scheme: dark !important;
+  background-color: #020617 !important; 
+  color: #f8fafc !important;
+}
+
+.archive-brand,
+.archive-brand .p-button-label {
+  font-family: 'Sekuya', sans-serif;
 }
 
 .reader,
@@ -96,6 +122,11 @@ body {
 .glossary-page {
   font-family: var(--font-sans), sans-serif;
   letter-spacing: normal;
+}
+
+.archive-navigation-menu,
+.archive-navigation-menu .p-menu-list {
+  background-color: var(--p-content-background) !important;
 }
 
 .p-breadcrumb {
@@ -112,6 +143,34 @@ body {
 .p-breadcrumb-item,
 .p-breadcrumb-item-link {
   min-width: 0;
+}
+
+.p-drawer {
+  background-color: var(--p-content-background) !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+
+  will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  perspective: 1000;
+  -webkit-perspective: 1000;
+}
+
+html:not(.dark) .p-drawer {
+  background-color: #ffffff !important;
+}
+
+html.dark[data-theme="dark"] .p-drawer {
+  background-color: #121212 !important;
+}
+
+html.dark[data-theme="dark-blue"] .p-drawer {
+  background-color: #0f172a !important;
 }
 
 @media (max-width: 639px) {
