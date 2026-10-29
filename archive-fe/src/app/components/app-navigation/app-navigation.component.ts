@@ -1,5 +1,5 @@
 import { DOCUMENT } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MenuItem } from 'primeng/api';
@@ -20,7 +20,7 @@ type Theme = 'light' | 'dark-blue' | 'dark';
   selector: 'app-navigation',
   templateUrl: './app-navigation.component.html',
 })
-export class AppNavigationComponent {
+export class AppNavigationComponent implements OnInit {
   readonly language = inject(LanguageService);
   readonly auth = inject(AuthService);
 
@@ -62,32 +62,33 @@ export class AppNavigationComponent {
     }));
   }
 
-  constructor() {
+  constructor() {}
+
+  ngOnInit() {
     if (typeof localStorage !== 'undefined') {
       const storedTheme = localStorage.getItem('archive-theme');
-      this.theme =
-        storedTheme === 'dark-blue'
-          ? 'dark-blue'
-          : storedTheme === 'dark' || storedTheme === 'dark-grey'
-            ? 'dark'
-            : 'light';
+      if (storedTheme === 'dark-blue' || storedTheme === 'dark' || storedTheme === 'light') {
+        this.theme = storedTheme;
+      } else {
+        this.theme = 'light';
+      }
     }
-    this.applyTheme();
+    setTimeout(() => {
+      this.applyTheme();
+    }, 0);
   }
 
   private applyTheme() {
-    this.document.documentElement.classList.toggle('dark', this.theme !== 'light');
-    this.document.documentElement.setAttribute(
-      'data-theme',
-      this.theme === 'light' ? 'light' : 'dark',
-    );
-    usePreset(
-      this.theme === 'light'
-        ? archiveLightPreset
-        : this.theme === 'dark'
-          ? archiveGreyPreset
-          : archiveBluePreset,
-    );
+    const isLight = this.theme === 'light';
+    this.document.documentElement.classList.toggle('dark', !isLight);
+    this.document.documentElement.setAttribute('data-theme', this.theme);
+    if (this.theme === 'light') {
+      usePreset(archiveLightPreset);
+    } else if (this.theme === 'dark-blue') {
+      usePreset(archiveBluePreset);
+    } else {
+      usePreset(archiveGreyPreset);
+    }
   }
 
   public navigate(path: string) {
