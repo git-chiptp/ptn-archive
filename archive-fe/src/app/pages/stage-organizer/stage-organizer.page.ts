@@ -1,6 +1,8 @@
 import { Component, computed, effect, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { MenuItem } from 'primeng/api';
+import { BreadcrumbModule } from 'primeng/breadcrumb';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { OrderListModule } from 'primeng/orderlist';
@@ -18,7 +20,14 @@ type StageOption = {
 
 @Component({
   standalone: true,
-  imports: [FormsModule, ButtonModule, SelectModule, OrderListModule, StageGraphComponent],
+  imports: [
+    FormsModule,
+    BreadcrumbModule,
+    ButtonModule,
+    SelectModule,
+    OrderListModule,
+    StageGraphComponent,
+  ],
   templateUrl: './stage-organizer.page.html',
 })
 export class StageOrganizerPage {
@@ -45,6 +54,20 @@ export class StageOrganizerPage {
   public toStage = '';
   public status = '';
   public stageOrderStatus = '';
+  public readonly breadcrumbHome: MenuItem = { icon: 'pi pi-home', routerLink: '/' };
+
+  public get breadcrumbItems(): MenuItem[] {
+    const collection = this.selectedCollection();
+    if (!this.category || !collection) return [{ label: this.language.text('stageOrganizer') }];
+    return [
+      {
+        label: this.language.text(this.category === 'event-story' ? 'eventStory' : 'mainStory'),
+        routerLink: ['/', this.category],
+      },
+      { label: collection.label, routerLink: ['/', this.category, this.slug(collection.label)] },
+      { label: this.language.text('stageOrganizer') },
+    ];
+  }
 
   constructor() {
     effect(() => {

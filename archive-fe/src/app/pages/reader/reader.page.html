@@ -5,7 +5,7 @@
   @if (store.statusMessage(); as message) {
     <p class="translation-status">{{ message }}</p>
   }
-  <p-breadcrumb [home]="breadcrumbHome" [model]="breadcrumbItems" />
+  <p-breadcrumb [home]="breadcrumbHome" [model]="breadcrumbItems" styleClass="!p-0" />
   <p-confirmdialog key="transcript-actions" [style]="{ width: 'min(28rem, calc(100vw - 2rem))' }" />
   @if (!editMode) {
     <div class="reader-controls flex w-full flex-wrap items-center gap-x-4 gap-y-3">
@@ -378,6 +378,6 @@
 <ng-template #missing>
   <section class="missing">
     <h1>{{ store.error() || language.text('transcriptNotFound') }}</h1>
-    <p-breadcrumb [home]="breadcrumbHome" [model]="missingBreadcrumbItems" />
+    <p-breadcrumb [home]="breadcrumbHome" [model]="missingBreadcrumbItems" styleClass="!p-0" />
   </section>
 </ng-template>

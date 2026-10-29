@@ -1,4 +1,5 @@
 <section class="flex flex-col gap-6">
+  <p-breadcrumb [home]="breadcrumbHome" [model]="breadcrumbItems" styleClass="!p-0" />
   <p-confirmdialog
     key="media-folder-actions"
     [style]="{ width: 'min(28rem, calc(100vw - 2rem))' }"
@@ -35,9 +36,6 @@
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
       <h1 class="text-2xl font-semibold">{{ language.text('mediaLibrary') }}</h1>
-      <p class="m-0 text-[var(--p-text-muted-color)]">
-        {{ language.text('mediaLibraryDescription') }}
-      </p>
     </div>
     <p-fileupload
       mode="basic"

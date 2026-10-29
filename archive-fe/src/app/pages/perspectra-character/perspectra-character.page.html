@@ -1,5 +1,5 @@
 <section class="catalog">
-  <p-breadcrumb [home]="breadcrumbHome" [model]="breadcrumbItems" />
+  <p-breadcrumb [home]="breadcrumbHome" [model]="breadcrumbItems" styleClass="!p-0" />
   <h1 class="mb-4 break-words text-3xl font-semibold [overflow-wrap:anywhere]">{{ characterName }}</h1>
   @if (auth.user()) {
     <p-confirmdialog key="perspectra-character-actions" [style]="{ width: 'min(28rem, calc(100vw - 2rem))' }" />

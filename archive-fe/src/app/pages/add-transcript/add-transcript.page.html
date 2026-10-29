@@ -1,5 +1,5 @@
 <section class="flex flex-col gap-6">
-  <p-breadcrumb [home]="breadcrumbHome" [model]="breadcrumbItems" styleClass="!p-0 mb-4" />
+  <p-breadcrumb [home]="breadcrumbHome" [model]="breadcrumbItems" styleClass="!p-0" />
   <p-confirmdialog key="transcript-actions" [style]="{ width: 'min(28rem, calc(100vw - 2rem))' }" />
   @if (store.statusMessage(); as message) {
     <p class="translation-status" role="status">{{ message }}</p>

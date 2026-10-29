@@ -1,24 +1,21 @@
 <section class="glossary-page flex flex-col gap-8">
+  <p-breadcrumb [home]="breadcrumbHome" [model]="breadcrumbItems" styleClass="!p-0" />
   <p-confirmdialog key="glossary-actions" [style]="{ width: 'min(28rem, calc(100vw - 2rem))' }" />
   <header class="flex flex-wrap items-end justify-between gap-4">
     <div class="min-w-0">
-      <p
-        class="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--p-primary-color)]"
-      >
-        {{ language.text('archive') }}
-      </p>
       <h1 class="m-0 text-3xl font-semibold tracking-tight text-[var(--p-text-color)]">
         {{ language.text('glossary') }}
       </h1>
-      <p class="mt-2 max-w-2xl text-[var(--p-text-muted-color)]">
-        {{ language.text('glossaryDescription') }}
-      </p>
     </div>
     @if (auth.user()) {
       <div class="flex flex-wrap gap-2">
         <button pButton type="button" (click)="openAdd()">
           <i class="pi pi-plus" aria-hidden="true"></i>
           <span>{{ language.text('addGlossaryTerm') }}</span>
+        </button>
+        <button pButton type="button" severity="secondary" (click)="openTagManager()">
+          <i class="pi pi-tags" aria-hidden="true"></i>
+          <span>{{ language.text('manageGlossaryTags') }}</span>
         </button>
         <button
           pButton
@@ -50,6 +47,19 @@
         [(ngModel)]="search"
         class="w-full"
         [placeholder]="language.text('searchGlossaryPlaceholder')"
+      />
+    </label>
+    <label class="flex min-w-0 flex-col gap-2">
+      <span class="font-medium">{{ language.text('glossaryTagFilter') }}</span>
+      <p-multiselect
+        inputId="glossary-tag-filter"
+        [options]="tagOptions()"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="selectedTagIds"
+        [placeholder]="language.text('selectGlossaryTags')"
+        [display]="'chip'"
+        [fluid]="true"
       />
     </label>
     <fieldset class="flex min-w-0 flex-wrap gap-x-4 gap-y-2 border-0 p-0">
@@ -120,7 +130,7 @@
       </p>
     </div>
   } @else {
-    @if (search.trim() && !filteredEntries.length) {
+    @if ((search.trim() || selectedTagIds.length) && !filteredEntries.length) {
       <div
         class="flex min-h-40 items-center justify-center rounded-2xl border border-dashed border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-8 text-center text-[var(--p-text-muted-color)]"
       >
@@ -153,6 +163,19 @@
             <header
               class="overflow-hidden border-b border-[color-mix(in_srgb,var(--p-primary-contrast-color)_20%,transparent)] bg-[var(--p-primary-950)] p-5 text-white"
             >
+              @if (entry.tags.length) {
+                <div class="mb-4 flex flex-wrap gap-2">
+                  @for (tag of entry.tags; track tag.id) {
+                    <p-tag
+                      [value]="tag.name"
+                      [style]="{
+                        background: 'var(--p-primary-color)',
+                        color: 'var(--p-primary-contrast-color)',
+                      }"
+                    />
+                  }
+                </div>
+              }
               <div class="flex flex-col gap-3">
                 <div class="grid min-w-0 grid-cols-[7rem_minmax(0,1fr)] items-baseline gap-3">
                   <span class="text-xs font-semibold uppercase tracking-[0.14em] opacity-70">
@@ -295,6 +318,33 @@
     </div>
 
     <div class="flex flex-col gap-1">
+      <label class="font-medium" for="glossary-tags">{{ language.text('glossaryTags') }}</label>
+      <p-multiselect
+        inputId="glossary-tags"
+        name="tags"
+        [options]="tagOptions()"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="draft.tagIds"
+        [placeholder]="language.text('selectGlossaryTags')"
+        [display]="'chip'"
+        [fluid]="true"
+      >
+        <ng-template #item let-option>
+          <div class="flex items-center gap-2">
+            <p-tag
+              [value]="option.label"
+              [style]="{
+                background: 'var(--p-primary-color)',
+                color: 'var(--p-primary-contrast-color)',
+              }"
+            />
+          </div>
+        </ng-template>
+      </p-multiselect>
+    </div>
+
+    <div class="flex flex-col gap-1">
       <label class="font-medium" for="glossary-detail">{{ language.text('detail') }}</label>
       <textarea
         pTextarea
@@ -339,4 +389,63 @@
       </button>
     </div>
   </form>
+</p-dialog>
+
+<p-dialog
+  [(visible)]="tagDialogVisible"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [closable]="!saving"
+  [dismissableMask]="!saving"
+  [header]="language.text(editingTag ? 'editGlossaryTag' : 'addGlossaryTag')"
+  [style]="{ width: 'min(32rem, calc(100vw - 2rem))' }"
+>
+  <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-1">
+      <label class="font-medium" for="glossary-tag-name">{{ language.text('glossaryTagName') }}</label>
+      <input
+        pInputText
+        id="glossary-tag-name"
+        [(ngModel)]="tagDraft.name"
+        autocomplete="off"
+      />
+    </div>
+    @if (dialogError) {
+      <p-message severity="error" variant="simple">{{ dialogError }}</p-message>
+    }
+    <div class="flex justify-end gap-2 pt-2">
+      <button pButton type="button" severity="secondary" [text]="true" [disabled]="saving" (click)="tagDialogVisible = false">
+        {{ language.text('cancel') }}
+      </button>
+      <button pButton type="button" [loading]="saving" [disabled]="saving" (click)="saveTag()">
+        <i class="pi pi-check" aria-hidden="true"></i>
+        <span>{{ language.text('save') }}</span>
+      </button>
+    </div>
+  </div>
+
+  @if (tags.length) {
+    <div class="mt-6 flex flex-col gap-2 border-t border-[var(--p-content-border-color)] pt-4">
+      <h3 class="m-0 text-sm font-semibold">{{ language.text('glossaryTags') }}</h3>
+      @for (tag of tags; track tag.id) {
+        <div class="flex items-center gap-2">
+          <p-tag
+            [value]="tag.name"
+            [style]="{
+              background: 'var(--p-primary-color)',
+              color: 'var(--p-primary-contrast-color)',
+            }"
+          />
+          <span class="flex-1"></span>
+          <button pButton type="button" text size="small" [attr.aria-label]="language.text('editGlossaryTag')" (click)="editTag(tag)">
+            <i class="pi pi-pencil" aria-hidden="true"></i>
+          </button>
+          <button pButton type="button" text severity="danger" size="small" [attr.aria-label]="language.text('deleteGlossaryTag')" (click)="deleteTag(tag)">
+            <i class="pi pi-trash" aria-hidden="true"></i>
+          </button>
+        </div>
+      }
+    </div>
+  }
 </p-dialog>

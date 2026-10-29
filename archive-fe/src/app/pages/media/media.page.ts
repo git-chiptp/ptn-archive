@@ -62,6 +62,11 @@ export class MediaPage {
   public moveDialogVisible = false;
   public movingAsset: MediaAsset | null = null;
   public moveTargetFolderId: string | null = null;
+  public readonly breadcrumbHome: MenuItem = { icon: 'pi pi-home', routerLink: '/' };
+
+  public get breadcrumbItems(): MenuItem[] {
+    return [{ label: this.language.text('mediaLibrary') }];
+  }
 
   constructor() {
     void this.load();
