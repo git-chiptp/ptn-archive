@@ -56,11 +56,11 @@
               <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
                 <button pButton type="button" severity="secondary" (click)="editChapter(chapter)">
                   <i class="pi pi-pencil" aria-hidden="true"></i>
-                  <span>Edit</span>
+                  <span>{{ language.text('edit') }}</span>
                 </button>
                 <button pButton type="button" severity="danger" (click)="deleteChapter(chapter)">
                   <i class="pi pi-trash" aria-hidden="true"></i>
-                  <span>Delete</span>
+                  <span>{{ language.text('delete') }}</span>
                 </button>
               </div>
             </article>
@@ -130,13 +130,7 @@
           <span>{{
             chapterEditingId
               ? language.text('save') + ' ' + itemName
-              : language.text(
-                  itemName === 'chapter'
-                    ? 'addChapter'
-                    : itemName === 'event'
-                      ? 'addEvent'
-                      : 'addCharacter'
-                )
+              : language.text('add')
           }}</span>
         </button>
         @if (chapterEditingId) {

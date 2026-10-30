@@ -45,6 +45,10 @@ export class PerspectraCharacterPage {
 
   private route = inject(ActivatedRoute);
 
+  constructor() {
+    void this.store.ensureCollectionLoadedBySlug('perspectra', this.character);
+  }
+
   public get breadcrumbItems(): MenuItem[] {
     return [
       { label: this.language.text('perspectra'), routerLink: '/perspectra' },
@@ -66,6 +70,10 @@ export class PerspectraCharacterPage {
     return this.characterRecord
       ? this.store.localizedChapterName(this.characterRecord)
       : this.rows()[0]?.parentLabel ?? this.character;
+  }
+
+  public get characterFound() {
+    return !!this.characterRecord || this.rows().length > 0;
   }
 
   public get canonicalCharacterName() {

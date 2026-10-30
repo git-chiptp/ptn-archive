@@ -9,7 +9,7 @@ export interface TranscriptTranslation {
   description?: string;
   nodes?: DialogueNode[];
 }
-export type DialogueNode = LineNode | ImageNode;
+export type DialogueNode = LineNode | ImageNode | VideoNode;
 export interface LineNode {
   type: 'line';
   id: string;
@@ -31,6 +31,11 @@ export interface ImageNode {
   id: string;
   src: string;
   variants?: { male?: string; female?: string };
+}
+export interface VideoNode {
+  type: 'video';
+  id: string;
+  videoId: string;
 }
 export interface Transcript {
   id: string;

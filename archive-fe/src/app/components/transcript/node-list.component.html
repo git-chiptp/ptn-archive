@@ -81,7 +81,7 @@
           </div>
         }
       </div>
-    } @else {
+    } @else if (node.type === 'image') {
       @if (image(node); as imageUrl) {
         <div class="line transcript-image flex min-w-0 max-w-full justify-center overflow-hidden">
           <p-image
@@ -90,6 +90,21 @@
             [preview]="true"
             imageClass="block h-auto max-w-full object-contain"
           />
+        </div>
+      }
+    } @else {
+      @if (video(node); as videoUrl) {
+        <div class="line transcript-video flex min-w-0 justify-center overflow-hidden">
+          <div class="aspect-video w-full max-w-4xl">
+            <iframe
+              class="h-full w-full"
+              [src]="videoUrl"
+              [title]="videoTitle()"
+              loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+            ></iframe>
+          </div>
         </div>
       }
     }

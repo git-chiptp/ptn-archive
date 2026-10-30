@@ -42,6 +42,10 @@ export class PerspectraChapterPage {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
+  constructor() {
+    void this.store.ensureCollectionLoadedBySlug('perspectra', this.character);
+  }
+
   public get breadcrumbItems(): MenuItem[] {
     return [
       { label: this.language.text('perspectra'), routerLink: '/perspectra' },
@@ -70,6 +74,10 @@ export class PerspectraChapterPage {
   public get chapterName() {
     const part = this.parts[0];
     return part ? this.store.localizedTranscriptStageName(part) : this.chapter;
+  }
+
+  public get chapterFound() {
+    return this.parts.length > 0;
   }
 
   public editChapter() {

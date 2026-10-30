@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import { defer, from } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { DialogueNode, LineNode, LineOption } from '../models/transcript.models';
+import { parseYoutubeVideoId } from '../utils/youtube';
 
 export interface ImportedLine {
   sprite?: string;
@@ -12,7 +13,7 @@ export interface ImportedLine {
   male?: string;
   female?: string;
   description: string;
-  type: 'line' | 'option' | 'image';
+  type: 'line' | 'option' | 'image' | 'video';
   depth: number;
 }
 
@@ -357,6 +358,21 @@ export class TranscriptImportService {
       };
     }
 
+    if (type === 'video') {
+      const videoValue = this.stripTags(this.decodeEntities(text)).trim();
+      if (!parseYoutubeVideoId(videoValue)) {
+        throw new Error(`Row ${rowIndex + 1}: video rows require a valid YouTube URL or video ID.`);
+      }
+      return {
+        sprite: '',
+        speaker: '',
+        text: videoValue,
+        description: '',
+        type,
+        depth,
+      };
+    }
+
     if (type === 'option') {
       return {
         sprite: '',
@@ -397,10 +413,10 @@ export class TranscriptImportService {
       .trim()
       .toLowerCase()
       .replace(/[\s_]+/g, '-');
-    if (type === 'line' || type === 'option' || type === 'image') {
+    if (type === 'line' || type === 'option' || type === 'image' || type === 'video') {
       return type;
     }
-    throw new Error(`Row ${rowIndex + 1}: Type must be line, option, or image.`);
+    throw new Error(`Row ${rowIndex + 1}: Type must be line, option, image, or video.`);
   }
 
   private parseDepth(value: unknown, rowIndex: number): number {
@@ -746,7 +762,13 @@ export class TranscriptImportService {
                 ? { variants: { male: line.male, female: line.female } }
                 : {}),
             }
-          : {
+          : line.type === 'video'
+            ? {
+                type: 'video',
+                id: `imported-video-${index + 1}`,
+                videoId: parseYoutubeVideoId(line.text) ?? '',
+              }
+            : {
               type: 'line',
               id: `imported-${index + 1}`,
               speaker: line.speaker,

@@ -52,7 +52,7 @@
             ></span>
           }
         </div>
-      } @else {
+      } @else if (treeNode.type === 'image') {
         <div
           class="collapsed-preview-content mt-2 min-w-0 max-w-full break-words whitespace-normal pl-4 [overflow-wrap:anywhere]"
         >
@@ -65,6 +65,20 @@
                 imageClass="block h-20 w-20 max-w-full object-contain"
               />
             }
+          }
+        </div>
+      } @else {
+        <div class="collapsed-preview-content mt-2 pl-4">
+          @if (videoEmbedUrl(treeNode.videoId); as embedUrl) {
+            <iframe
+              class="aspect-video w-full max-w-sm"
+              [src]="embedUrl"
+              [title]="'videoPreview' | ui"
+              loading="lazy"
+              allowfullscreen
+            ></iframe>
+          } @else {
+            <span>{{ 'invalidYoutubeUrl' | ui }}</span>
           }
         </div>
       }
@@ -120,6 +134,16 @@
             <i class="pi pi-image" aria-hidden="true"></i>
             <span>{{ 'image' | ui }}</span>
           </button>
+          <button
+            pButton
+            type="button"
+            severity="secondary"
+            size="small"
+            (click)="insertVideo(index, $event)"
+          >
+            <i class="pi pi-video" aria-hidden="true"></i>
+            <span>{{ 'video' | ui }}</span>
+          </button>
         </div>
       }
     </div>
@@ -154,7 +178,7 @@
         class="collapse-toggle"
         type="button"
         [attr.aria-label]="
-          isCollapsed(node) ? ('expandTranscriptLine' | ui) : ('collapseTranscriptLine' | ui)
+          isCollapsed(node) ? ('expandLine' | ui) : ('collapseLine' | ui)
         "
         [title]="isCollapsed(node) ? ('expandLine' | ui) : ('collapseLine' | ui)"
         (click)="toggleCollapsed(node)"
@@ -197,7 +221,7 @@
               ></span>
             }
           </div>
-        } @else {
+        } @else if (node.type === 'image') {
           <div
             class="collapsed-preview mt-4 min-w-0 max-w-full break-words whitespace-normal [overflow-wrap:anywhere]"
           >
@@ -210,6 +234,20 @@
                   imageClass="mt-2 block h-20 w-20 max-w-full border border-[var(--p-content-border-color)] object-contain"
                 />
               }
+            }
+          </div>
+        } @else {
+          <div class="collapsed-preview mt-4 min-w-0">
+            @if (videoEmbedUrl(node.videoId); as embedUrl) {
+              <iframe
+                class="aspect-video w-full max-w-2xl"
+                [src]="embedUrl"
+                [title]="'videoPreview' | ui"
+                loading="lazy"
+                allowfullscreen
+              ></iframe>
+            } @else {
+              <span>{{ 'invalidYoutubeUrl' | ui }}</span>
             }
           </div>
         }
@@ -320,7 +358,7 @@
             <span>{{ 'deleteLine' | ui }}</span>
           </button>
         </fieldset>
-      } @else {
+      } @else if (node.type === 'image') {
         <fieldset
           class="mt-4 flex min-w-0 flex-col gap-4 border border-[var(--p-content-border-color)] p-4"
         >
@@ -362,8 +400,47 @@
             <span>{{ 'deleteImage' | ui }}</span>
           </button>
         </fieldset>
+      } @else {
+        <fieldset
+          class="mt-4 flex min-w-0 flex-col gap-4 border border-[var(--p-content-border-color)] p-4"
+        >
+          <legend>{{ 'video' | ui }}</legend>
+          <label class="flex min-w-0 flex-col gap-2">
+            <span class="font-medium">{{ 'youtubeUrl' | ui }}</span>
+            <input
+              pInputText
+              class="w-full"
+              [(ngModel)]="node.videoId"
+              [ngModelOptions]="{ standalone: true }"
+              [name]="'video-' + node.id"
+              [placeholder]="'youtubeUrlPlaceholder' | ui"
+            />
+          </label>
+          @if (node.videoId && !videoIsValid(node)) {
+            <p class="m-0 text-sm text-red-600" role="alert">{{ 'invalidYoutubeUrl' | ui }}</p>
+          }
+          @if (videoEmbedUrl(node.videoId); as embedUrl) {
+            <div class="aspect-video w-full max-w-3xl overflow-hidden rounded border border-[var(--p-content-border-color)]">
+              <iframe
+                class="h-full w-full"
+                [src]="embedUrl"
+                [title]="'videoPreview' | ui"
+                loading="lazy"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen
+              ></iframe>
+            </div>
+          }
+          <button pButton type="button" severity="danger" (click)="remove(i)">
+            <i class="pi pi-trash" aria-hidden="true"></i>
+            <span>{{ 'deleteVideo' | ui }}</span>
+          </button>
+        </fieldset>
       }
     </div>
+  }
+  @if (hasInvalidVideo()) {
+    <p class="m-0 text-sm text-red-600" role="alert">{{ 'invalidYoutubeUrl' | ui }}</p>
   }
   <app-media-picker
     [visible]="pickerVisible"

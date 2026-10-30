@@ -25,7 +25,7 @@ import { LanguageService } from '../../services/language.service';
   templateUrl: './catalog.page.html',
 })
 export class CatalogPage {
-  private store = inject(ArchiveStore);
+  readonly store = inject(ArchiveStore);
 
   readonly auth = inject(AuthService);
 
@@ -41,12 +41,24 @@ export class CatalogPage {
 
   public readonly breadcrumbHome: MenuItem = { icon: 'pi pi-home', routerLink: '/' };
 
+  constructor() {
+    void this.store.ensureCategoryLoaded(this.category);
+  }
+
   public get breadcrumbItems(): MenuItem[] {
     return [{ label: this.title }];
   }
 
   public get collectionCardsAreLinks() {
     return true;
+  }
+
+  public get isLoading() {
+    return this.store.loading();
+  }
+
+  public get hasCollections() {
+    return this.store.collections(this.category).length > 0;
   }
 
   public openCollection(label: string, event?: Event) {

@@ -92,7 +92,7 @@ export class ArchiveStore {
 
   public readonly chapters = signal<Chapter[]>([]);
 
-  public readonly loading = signal(true);
+  public readonly loading = signal(false);
 
   public readonly transcriptLoading = signal<string | null>(null);
 
@@ -102,10 +102,6 @@ export class ArchiveStore {
 
   public readonly statusMessage = signal<string | null>(null);
 
-  constructor() {
-    this.load();
-    this.loadChapters();
-  }
   public setGender(gender: Gender) {
     this.gender.set(gender);
     if (typeof localStorage !== 'undefined') {
@@ -124,66 +120,147 @@ export class ArchiveStore {
   public clearStatusMessage() {
     this.statusMessage.set(null);
   }
-  public async load() {
-    this.loading.set(true);
+
+  public async ensureCategoryLoaded(category: Category): Promise<void> {
     this.error.set(null);
-    const rows: ArchiveRow[] = [];
-    const pageSize = 500;
+    this.loading.set(true);
     try {
-      for (let offset = 0; ; offset += pageSize) {
-        const { data, error } = await this.supabase
-          .from('archives')
-          .select(
-            'id,title,description,category,parent_id,parent_label,stage_label,source_language',
-          )
-          .eq('status', 'PUBLISHED')
-          .order('created_at', { ascending: true })
-          .order('id', { ascending: true })
-          .range(offset, offset + pageSize - 1);
-        if (error) throw error;
-        rows.push(...(data as ArchiveRow[]));
-        if (!data || data.length < pageSize) break;
-      }
-      const previous = new Map(this.transcripts().map((item) => [item.id, item]));
-      this.transcripts.set(
-        rows.map((row) => {
-          const cached = previous.get(row.id);
-          return {
-            ...this.fromApi(this.archiveFromRow(row)),
-            nodes: cached?.nodes ?? [],
-            translations: cached?.translations,
-          };
-        }),
-      );
-      await this.loadTranslationMetadata();
+      await this.loadCategoryChapters(category);
     } catch {
-      this.error.set('Could not load transcripts from Supabase.');
+      this.error.set('Could not load archive data from Supabase.');
     } finally {
       this.loading.set(false);
     }
   }
-  public async loadChapters() {
+
+  public async ensureCollectionLoadedBySlug(category: Category, parentSlug: string): Promise<void> {
+    await this.ensureCategoryLoaded(category);
+    const chapter = this.chapters().find(
+      (item) => item.category === category && this.slug(item.name) === parentSlug,
+    );
+    if (!chapter) {
+      return;
+    }
+    await this.loadCollection(category, chapter.id, chapter.name);
+  }
+
+  public async ensureCollectionLoaded(
+    category: Category,
+    parentId: string,
+    parentLabel: string,
+  ): Promise<void> {
+    await this.ensureCategoryLoaded(category);
+    await this.loadCollection(category, parentId, parentLabel);
+  }
+
+  private async loadCollection(
+    category: Category,
+    parentId: string,
+    parentLabel: string,
+  ): Promise<void> {
+    this.error.set(null);
+    this.loading.set(true);
     try {
-      const { data, error } = await this.supabase
-        .from('chapters')
-        .select('id,name,name_translations,background_image,category')
-        .order('created_at', { ascending: true });
-      if (error) throw error;
-      const rows = (data ?? []) as ChapterRow[];
-      this.chapters.set(rows.map((item) => this.chapterFromRow(item)));
-      await this.storage
-        .resolveMediaReferences(rows.map((item) => item.background_image))
-        .then(() => this.chapters.set(rows.map((item) => this.chapterFromRow(item))))
-        .catch(() => this.error.set('Could not load chapter images.'));
+      await this.loadCollectionTranscripts(category, parentId, parentLabel);
     } catch {
-      this.error.set('Could not load chapters from Supabase.');
+      this.error.set('Could not load archive data from Supabase.');
+    } finally {
+      this.loading.set(false);
     }
   }
-  private async loadTranslationMetadata() {
+
+  private async loadCollectionTranscripts(category: Category, parentId: string, parentLabel: string) {
+    const rows: ArchiveRow[] = [];
+    const pageSize = 500;
+    for (let offset = 0; ; offset += pageSize) {
+      let query = this.supabase
+        .from('archives')
+        .select(
+          'id,title,description,category,parent_id,parent_label,stage_label,source_language',
+        )
+        .eq('status', 'PUBLISHED')
+        .eq('category', this.categoryToApi(category));
+      query = parentId ? query.eq('parent_id', parentId) : query.eq('parent_label', parentLabel);
+      const { data, error } = await query
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(offset, offset + pageSize - 1);
+      if (error) throw error;
+      rows.push(...(data as ArchiveRow[]));
+      if (!data || data.length < pageSize) break;
+    }
+
+    const previous = new Map(this.transcripts().map((item) => [item.id, item]));
+    const records = rows.map((row) => {
+      const cached = previous.get(row.id);
+      return {
+        ...this.fromApi(this.archiveFromRow(row)),
+        nodes: cached?.nodes ?? [],
+        translations: cached?.translations,
+      };
+    });
+    this.transcripts.update((items) => [
+      ...items.filter((item) => !this.matchesCollection(item, category, parentId, parentLabel)),
+      ...records,
+    ]);
+    await this.loadTranslationMetadata(rows.map((row) => row.id));
+  }
+
+  private async loadCategoryChapters(category: Category) {
+    const { data, error } = await this.supabase
+      .from('chapters')
+      .select('id,name,name_translations,background_image,category')
+      .eq('category', this.categoryToApi(category))
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+
+    const rows = (data ?? []) as ChapterRow[];
+    this.chapters.update((items) => [
+      ...items.filter((item) => item.category !== category),
+      ...rows.map((item) => this.chapterFromRow(item)),
+    ]);
+    await this.storage
+      .resolveMediaReferences(rows.map((item) => item.background_image))
+      .then(() => {
+        this.chapters.update((items) => [
+          ...items.filter((item) => item.category !== category),
+          ...rows.map((item) => this.chapterFromRow(item)),
+        ]);
+      })
+      .catch(() => this.error.set('Could not load chapter images.'));
+  }
+
+  private matchesCollection(
+    transcript: Transcript,
+    category: Category,
+    parentId: string,
+    parentLabel: string,
+  ): boolean {
+    return (
+      transcript.category === category &&
+      (parentId ? transcript.parentId === parentId : transcript.parentLabel === parentLabel)
+    );
+  }
+
+  private slug(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+  }
+
+  private async loadTranslationMetadata(archiveIds: string[]) {
+    if (!archiveIds.length) {
+      return;
+    }
     const { data, error } = await this.supabase
       .from('archive_translations')
       .select('archive_id,language_code,title,parent_label,stage_label')
-      .eq('translation_status', 'PUBLISHED');
+      .eq('translation_status', 'PUBLISHED')
+      .in('archive_id', archiveIds);
     if (error) {
       return;
     }

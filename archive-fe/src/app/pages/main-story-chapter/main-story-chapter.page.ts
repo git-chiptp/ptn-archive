@@ -44,6 +44,10 @@ export class MainStoryChapterPage {
   public readonly breadcrumbHome: MenuItem = { icon: 'pi pi-home', routerLink: '/' };
 
   constructor() {
+    void this.store.ensureCollectionLoadedBySlug(
+      this.category,
+      this.route.snapshot.paramMap.get('chapterId') ?? '',
+    );
     effect(() => {
       const collection = this.chapter;
       if (!collection) return;
