@@ -14,37 +14,37 @@ export class HomePage {
     {
       path: '/glossary',
       key: 'glossary',
-      image: '/img/menu/glossary.jpg',
+      image: '/img/menu/glossary.webp',
     },
     {
       path: '/main-story',
       key: 'mainStory',
-      image: '/img/menu/main-story.png',
+      image: '/img/menu/main-story.webp',
     },
     {
       path: '/event-story',
       key: 'eventStory',
-      image: '/img/menu/event.png',
+      image: '/img/menu/event.webp',
     },
     {
       path: '/eternal-nightmare',
       key: 'eternalNightmare',
-      image: '/img/menu/en.png',
+      image: '/img/menu/en.webp',
     },
     {
       path: '/interrogation',
       key: 'interrogation',
-      image: '/img/menu/interro.png',
+      image: '/img/menu/interro.webp',
     },
     {
       path: '/mirage',
       key: 'mirage',
-      image: '/img/menu/mirage.png',
+      image: '/img/menu/mirage.webp',
     },
     {
       path: '/perspectra',
       key: 'perspectra',
-      image: '/img/menu/perspectra.png',
+      image: '/img/menu/perspectra.webp',
     },
   ];
 }
