@@ -35,6 +35,10 @@ export class EventStoryPage {
   public readonly breadcrumbHome: MenuItem = { icon: 'pi pi-home', routerLink: '/' };
 
   constructor() {
+    void this.store.ensureCollectionLoadedBySlug(
+      'event-story',
+      this.route.snapshot.paramMap.get('eventId') ?? '',
+    );
     effect(() => {
       const collection = this.event;
       if (!collection) return;

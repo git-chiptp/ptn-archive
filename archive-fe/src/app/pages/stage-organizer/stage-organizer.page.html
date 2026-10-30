@@ -18,7 +18,11 @@
     </div>
   </header>
 
-  @if (selectedCollection(); as collection) {
+  @if (isLoading) {
+    <p role="status">{{ language.text('loading') }}</p>
+  } @else if (store.error(); as error) {
+    <p role="alert">{{ error }}</p>
+  } @else if (selectedCollection(); as collection) {
     <section class="flex flex-col gap-4 rounded-xl border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-4">
       <header>
         <h2 class="m-0 text-xl font-semibold text-[var(--p-text-color)]">

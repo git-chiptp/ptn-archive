@@ -1,16 +1,25 @@
 <section class="catalog">
   <p-breadcrumb [home]="breadcrumbHome" [model]="breadcrumbItems" styleClass="!p-0" />
+  @if (store.loading()) {
+    <p role="status">{{ language.text('loading') }}</p>
+  } @else if (store.error(); as error) {
+    <p role="alert">{{ error }}</p>
+  } @else if (!characterFound) {
+    <h1 class="mb-4 break-words text-3xl font-semibold [overflow-wrap:anywhere]">
+      {{ language.text('notFound') }}
+    </h1>
+  } @else {
   <h1 class="mb-4 break-words text-3xl font-semibold [overflow-wrap:anywhere]">{{ characterName }}</h1>
   @if (auth.user()) {
     <p-confirmdialog key="perspectra-character-actions" [style]="{ width: 'min(28rem, calc(100vw - 2rem))' }" />
     <div class="flex flex-wrap gap-2">
       <button pButton type="button" severity="secondary" (click)="editCharacter()">
         <i class="pi pi-pencil" aria-hidden="true"></i>
-        <span>{{ language.text('editCharacter') }}</span>
+        <span>{{ language.text('edit') }}</span>
       </button>
       <button pButton type="button" severity="danger" (click)="deleteCharacter()">
         <i class="pi pi-trash" aria-hidden="true"></i>
-        <span>{{ language.text('deleteCharacter') }}</span>
+        <span>{{ language.text('delete') }}</span>
       </button>
       <a
         pButton
@@ -19,12 +28,12 @@
         [queryParams]="{ category: 'perspectra', parentLabel: canonicalCharacterName }"
       >
         <i class="pi pi-plus" aria-hidden="true"></i>
-        <span>{{ language.text('addChapter') }}</span>
+        <span>{{ language.text('add') }}</span>
       </a>
     </div>
   }
   <p-dialog
-    [header]="language.text('renameCharacter')"
+    [header]="language.text('rename')"
     [(visible)]="renameDialogVisible"
     [modal]="true"
     [draggable]="false"
@@ -55,7 +64,8 @@
         {{ chapter.label }}
       </a>
     } @empty {
-      <p>{{ language.text('noChapters') }}</p>
+      <p>{{ language.text('notFound') }}</p>
     }
   </div>
+  }
 </section>

@@ -51,7 +51,7 @@
       @if (auth.user()) {
         <button pButton type="button" (click)="openEditor()">
           <i class="pi pi-pencil" aria-hidden="true"></i>
-          <span>{{ language.text('editTranscript') }}</span>
+          <span>{{ language.text('edit') }}</span>
         </button>
       }
     </div>
@@ -72,7 +72,7 @@
   @if (editMode) {
     <section class="editor-page flex w-full min-w-0 flex-col gap-6">
       <h1 class="m-0 break-words text-3xl font-semibold [overflow-wrap:anywhere]">
-        {{ language.text('editTranscript') }}
+        {{ language.text('edit') }}
       </h1>
       <div
         class="flex flex-wrap items-center gap-2 border-b border-[var(--p-content-border-color)] pb-4"
@@ -84,7 +84,7 @@
           [disabled]="saving || deleting || !editNodes.length"
         >
           <i class="pi pi-save" aria-hidden="true"></i>
-          <span>{{ language.text('saveTranscript') }}</span>
+          <span>{{ language.text('save') }}</span>
         </button>
         <button
           pButton
@@ -94,7 +94,7 @@
           [disabled]="saving || deleting"
         >
           <i class="pi pi-trash" aria-hidden="true"></i>
-          <span>{{ language.text('deleteTranscript') }}</span>
+          <span>{{ language.text('delete') }}</span>
         </button>
         <button
           pButton
@@ -104,14 +104,14 @@
           [disabled]="!editNodes.length || saving || deleting"
         >
           <i class="pi pi-eye" aria-hidden="true"></i>
-          <span>{{ language.text('previewTranscript') }}</span>
+          <span>{{ language.text('preview') }}</span>
         </button>
       </div>
       <div class="flex min-w-0 flex-col gap-6">
         <div class="grid min-w-0 gap-4 md:grid-cols-2">
           <div class="flex min-w-0 flex-col gap-2">
             <label class="font-medium" for="edit-language">{{
-              language.text('transcriptLanguage')
+              language.text('language')
             }}</label>
             <p-select
               inputId="edit-language"
@@ -150,7 +150,7 @@
           </div>
           <div class="flex min-w-0 flex-col gap-2">
             <label class="font-medium" for="edit-stage-number">
-              {{ language.text('stageNumber') }}
+              {{ language.text('number') }}
             </label>
             <input
               pInputText
@@ -158,12 +158,12 @@
               class="w-full"
               [(ngModel)]="editStage"
               (ngModelChange)="markEditDirty()"
-              [placeholder]="language.text('stageNumber')"
+              [placeholder]="language.text('number')"
             />
           </div>
           <div class="flex min-w-0 flex-col gap-2">
             <label class="font-medium" for="edit-stage-name">
-              {{ language.text('stageName') }}
+              {{ language.text('name') }}
             </label>
             <input
               pInputText
@@ -171,19 +171,19 @@
               class="w-full"
               [(ngModel)]="editName"
               (ngModelChange)="markEditDirty()"
-              [placeholder]="language.text('stageName')"
+              [placeholder]="language.text('name')"
             />
           </div>
           <div class="flex min-w-0 flex-col gap-2 md:col-span-2">
             <label class="font-medium" for="edit-stage-description">
-              {{ language.text('stageDescription') }}
+              {{ language.text('description') }}
             </label>
             <textarea
               pTextarea
               id="edit-stage-description"
               [(ngModel)]="editDescription"
               (ngModelChange)="markEditDirty()"
-              [placeholder]="language.text('stageDescription')"
+              [placeholder]="language.text('description')"
               rows="3"
               class="w-full"
             ></textarea>
@@ -208,7 +208,7 @@
             @if (importLanguageOptions.length > 1) {
               <div class="flex min-w-0 flex-col gap-2">
                 <label class="font-medium" for="reader-import-language">{{
-                  language.text('importLanguage')
+                  language.text('language')
                 }}</label>
                 <p-select
                   inputId="reader-import-language"
@@ -260,7 +260,7 @@
                   aria-hidden="true"
                 ></i>
                 <span>{{
-                  language.text(importApplying ? 'resolvingImportImages' : 'importIntoEditor')
+                  language.text(importApplying ? 'resolvingImportImages' : 'import')
                 }}</span>
               </button>
             </div>
@@ -276,7 +276,7 @@
         />
       </div>
       <p-dialog
-        [header]="language.text('transcriptPreview')"
+        [header]="language.text('preview')"
         [(visible)]="previewOpen"
         [modal]="true"
         [draggable]="false"
@@ -372,12 +372,12 @@
 </section>
 <ng-template #loadingOrMissing>
   <section class="missing" *ngIf="store.loading() || store.transcriptLoading(); else missing">
-    <p>{{ language.text('loadingTranscript') }}</p>
+    <p>{{ language.text('loading') }}</p>
   </section>
 </ng-template>
 <ng-template #missing>
   <section class="missing">
-    <h1>{{ store.error() || language.text('transcriptNotFound') }}</h1>
+    <h1>{{ store.error() || language.text('notFound') }}</h1>
     <p-breadcrumb [home]="breadcrumbHome" [model]="missingBreadcrumbItems" styleClass="!p-0" />
   </section>
 </ng-template>

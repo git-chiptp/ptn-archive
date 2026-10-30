@@ -49,6 +49,10 @@ export class InterrogationCharacterPage {
     return `${this.category}-actions`;
   }
 
+  constructor() {
+    void this.store.ensureCollectionLoadedBySlug(this.category, this.character);
+  }
+
   public get breadcrumbItems(): MenuItem[] {
     return [
       { label: this.language.text(this.category), routerLink: '/' + this.category },
@@ -70,6 +74,10 @@ export class InterrogationCharacterPage {
     return this.characterRecord
       ? this.store.localizedChapterName(this.characterRecord)
       : this.parts[0]?.parentLabel ?? this.character;
+  }
+
+  public get characterFound() {
+    return !!this.characterRecord || this.parts.length > 0;
   }
 
   public get canonicalCharacterName() {

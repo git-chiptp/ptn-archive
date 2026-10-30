@@ -35,7 +35,7 @@ export class StageOrganizerPage {
 
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly store = inject(ArchiveStore);
+  public readonly store = inject(ArchiveStore);
   private readonly organizations = inject(StageOrganizationService);
   private readonly category = this.route.snapshot.queryParamMap.get('category') as Category | null;
   private readonly parentId = this.route.snapshot.queryParamMap.get('parentId') ?? '';
@@ -56,6 +56,10 @@ export class StageOrganizerPage {
   public stageOrderStatus = '';
   public readonly breadcrumbHome: MenuItem = { icon: 'pi pi-home', routerLink: '/' };
 
+  public get isLoading() {
+    return this.store.loading();
+  }
+
   public get breadcrumbItems(): MenuItem[] {
     const collection = this.selectedCollection();
     if (!this.category || !collection) return [{ label: this.language.text('stageOrganizer') }];
@@ -70,6 +74,9 @@ export class StageOrganizerPage {
   }
 
   constructor() {
+    if (this.category) {
+      void this.store.ensureCollectionLoaded(this.category, this.parentId, this.parentLabel);
+    }
     effect(() => {
       const collection = this.selectedCollection();
       if (!this.category || !collection) return;

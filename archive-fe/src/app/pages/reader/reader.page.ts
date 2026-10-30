@@ -18,6 +18,7 @@ import { ProgressBarModule } from 'primeng/progressbar';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import {
+  Category,
   DialogueNode,
   Gender,
   ImageNode,
@@ -90,7 +91,7 @@ export class ReaderPage {
   };
 
   public get missingBreadcrumbItems(): MenuItem[] {
-    return [{ label: this.language.text('transcriptNotFound') }];
+    return [{ label: this.language.text('notFound') }];
   }
 
   public readonly language = inject(LanguageService);
@@ -261,7 +262,7 @@ export class ReaderPage {
 
   public get breadcrumbItems(): MenuItem[] {
     if (!this.transcript) {
-      return [{ label: this.language.text('transcriptNotFound') }];
+      return [{ label: this.language.text('notFound') }];
     }
     const source = this.transcript;
     const localized = this.localizedTranscript ?? source;
@@ -334,11 +335,11 @@ export class ReaderPage {
     }
     this.confirmation.confirm({
       key: 'transcript-actions',
-      header: 'Leave editor?',
-      message: 'Changes will not be saved. Do you want to exit?',
+      header: this.language.text('leaveEditor'),
+      message: this.language.text('leaveEditorMessage'),
       icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Exit',
-      rejectLabel: 'Keep editing',
+      acceptLabel: this.language.text('exit'),
+      rejectLabel: this.language.text('keepEditing'),
       accept: () => {
         this.editMode = false;
         if (link) {
@@ -350,6 +351,7 @@ export class ReaderPage {
     });
   }
   constructor() {
+    void this.store.ensureCollectionLoadedBySlug(this.routeCategory(), this.routeParentSlug());
     this.auth.me().subscribe((user) => {
       if (user && this.editRequested) {
         this.editMode = true;
@@ -375,6 +377,29 @@ export class ReaderPage {
       }
     });
   }
+  private routeParentSlug(): string {
+    const params = this.route.snapshot.paramMap;
+    if (this.routeCategory() === 'perspectra') {
+      return params.get('characterId') ?? '';
+    }
+    return params.get('chapterId') ?? params.get('eventId') ?? params.get('characterId') ?? '';
+  }
+
+  private routeCategory(): Category {
+    const routePath = this.route.snapshot.routeConfig?.path ?? '';
+    return routePath.startsWith('event-story')
+      ? 'event-story'
+      : routePath.startsWith('eternal-nightmare')
+        ? 'eternal-nightmare'
+        : routePath.startsWith('main-story')
+          ? 'main-story'
+          : routePath.startsWith('perspectra')
+            ? 'perspectra'
+            : routePath.startsWith('mirage')
+              ? 'mirage'
+              : 'interrogation';
+  }
+
   private transcriptFromRoute(): Transcript | undefined {
     const params: ParamMap = this.routeParams();
     const stageSlug = params.get('stageId');
@@ -592,13 +617,13 @@ export class ReaderPage {
     }
     this.confirmation.confirm({
       key: 'transcript-actions',
-      header: 'Read transcript?',
+      header: this.language.text('readTranscriptPrompt'),
       message: this.isEditDirty
-        ? 'Unsaved changes will be discarded. Open the reader?'
-        : 'Open the transcript in reader mode?',
+        ? this.language.text('discardAndRead')
+        : this.language.text('readTranscriptMessage'),
       icon: 'pi pi-book',
-      acceptLabel: 'Read transcript',
-      rejectLabel: 'Keep editing',
+      acceptLabel: this.language.text('read'),
+      rejectLabel: this.language.text('keepEditing'),
       accept: () => this.closeEditor(),
     });
   }
@@ -623,17 +648,17 @@ export class ReaderPage {
     this.importProgress = 0;
     if (!/\.xlsx$/i.test(file.name)) {
       this.importError = true;
-      this.importMessage = 'Import failed: choose an XLSX file exported from Excel.';
+      this.importMessage = this.language.text('importWrongType');
       return;
     }
     if (!file.size) {
       this.importError = true;
-      this.importMessage = 'Import failed: the XLSX file is empty.';
+      this.importMessage = this.language.text('importEmpty');
       return;
     }
     if (file.size > this.maxImportFileSize) {
       this.importError = true;
-      this.importMessage = 'Import failed: the XLSX file must be 100 MB or smaller.';
+      this.importMessage = this.language.text('importTooLarge');
       return;
     }
     this.parseImportFile(file);
@@ -651,7 +676,7 @@ export class ReaderPage {
     this.importLoading = true;
     this.importError = false;
     this.importProgress = 5;
-    this.importMessage = 'Reading XLSX file in the browser...';
+    this.importMessage = this.language.text('loadingXlsx');
     this.importer
       .parseXlsx(file, this.importLanguage || undefined, (progress) => {
         this.importProgress = progress;
@@ -674,8 +699,10 @@ export class ReaderPage {
           this.pendingImportReady = this.pendingImportNodes.length > 0;
           this.importError = this.pendingImportNodes.length === 0;
           this.importMessage = this.pendingImportNodes.length
-            ? this.pendingImportNodes.length + ' lines ready to import.'
-            : 'Import failed: no transcript rows found.';
+            ? this.language.text('readyToImport', {
+                count: String(this.pendingImportNodes.length),
+              })
+            : this.language.text('importNoRows');
           this.cdr.markForCheck();
         },
         error: (error: unknown) => {
@@ -687,7 +714,7 @@ export class ReaderPage {
           this.importMessage =
             error instanceof Error
               ? error.message
-              : 'Import failed: the browser could not parse the XLSX file.';
+              : this.language.text('importBackendFailed');
           this.cdr.markForCheck();
         },
       });
@@ -698,7 +725,7 @@ export class ReaderPage {
     }
     if (
       this.isEditDirty &&
-      !confirm('Importing this file will replace the current transcript edits. Continue?')
+      !confirm(this.language.text('replaceEditsMessage'))
     ) {
       return;
     }
@@ -731,13 +758,13 @@ export class ReaderPage {
           ? this.language.text('importedWithUnresolvedImages', {
               count: String(result.unresolved),
             })
-          : this.language.text('importedTranscript');
+          : this.language.text('importedLines', { count: String(this.editNodes.length) });
     } catch (error: unknown) {
       this.importError = true;
       this.importMessage =
         error instanceof Error
           ? error.message
-          : 'Import failed: the image references could not be resolved.';
+          : this.language.text('importImagesFailed');
     } finally {
       this.importApplying = false;
       this.cdr.markForCheck();
@@ -749,11 +776,11 @@ export class ReaderPage {
     }
     this.confirmation.confirm({
       key: 'transcript-actions',
-      header: 'Save transcript?',
-      message: 'Save the current transcript and return to the reader?',
+      header: this.language.text('saveTranscriptPrompt'),
+      message: this.language.text('saveTranscriptMessage'),
       icon: 'pi pi-save',
-      acceptLabel: 'Save transcript',
-      rejectLabel: 'Cancel',
+      acceptLabel: this.language.text('save'),
+      rejectLabel: this.language.text('cancel'),
       accept: () => this.persist(() => this.returnToReader()),
     });
   }
@@ -838,11 +865,11 @@ export class ReaderPage {
     }
     this.confirmation.confirm({
       key: 'transcript-actions',
-      header: 'Delete transcript?',
-      message: 'This transcript and its translations will be permanently deleted.',
+      header: this.language.text('deleteTranscriptPrompt'),
+      message: this.language.text('deleteTranscriptMessage'),
       icon: 'pi pi-trash',
-      acceptLabel: 'Delete transcript',
-      rejectLabel: 'Cancel',
+      acceptLabel: this.language.text('delete'),
+      rejectLabel: this.language.text('cancel'),
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
         if (!this.transcript) {

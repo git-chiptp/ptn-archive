@@ -5,7 +5,7 @@
     <p class="translation-status" role="status">{{ message }}</p>
   }
   <h1 class="m-0 text-2xl font-semibold">
-    {{ languages.text(editingId ? 'editTranscript' : 'addTranscript') }}
+    {{ languages.text(editingId ? 'edit' : 'add') }}
   </h1>
   <form #formRef="ngForm" (ngSubmit)="submit(formRef)" class="flex min-w-0 flex-col gap-6">
     <div
@@ -13,7 +13,7 @@
     >
       <button pButton type="submit" [disabled]="formRef.invalid || !nodes.length">
         <i class="pi pi-save" aria-hidden="true"></i>
-        <span>{{ languages.text(editingId ? 'saveTranscript' : 'publishTranscript') }}</span>
+        <span>{{ languages.text(editingId ? 'save' : 'publish') }}</span>
       </button>
       @if (editingId) {
         <button pButton type="button" severity="secondary" (click)="cancelEdit()">
@@ -29,13 +29,13 @@
         [disabled]="!nodes.length || importLoading"
       >
         <i class="pi pi-eye" aria-hidden="true"></i>
-        <span>{{ languages.text('previewTranscript') }}</span>
+        <span>{{ languages.text('preview') }}</span>
       </button>
     </div>
     <div class="grid min-w-0 gap-4 md:grid-cols-2">
       <div class="flex min-w-0 flex-col gap-2">
         <label class="font-medium" for="transcript-language">{{
-          languages.text('transcriptLanguage')
+          languages.text('language')
         }}</label>
         <p-select
           inputId="transcript-language"
@@ -49,7 +49,7 @@
       </div>
       <div class="flex min-w-0 flex-col gap-2">
         <label class="font-medium" for="transcript-category">{{
-          languages.text('transcriptType')
+          languages.text('type')
         }}</label>
         <p-select
           inputId="transcript-category"
@@ -58,6 +58,7 @@
           optionLabel="label"
           optionValue="value"
           [(ngModel)]="form.category"
+          (ngModelChange)="categoryChanged($event)"
           [fluid]="true"
         />
       </div>
@@ -95,7 +96,7 @@
       </div>
       <div class="flex min-w-0 flex-col gap-2">
         <label class="font-medium" for="transcript-stage-number">
-          {{ languages.text('stageNumber') }}
+          {{ languages.text('number') }}
         </label>
         <input
           pInputText
@@ -103,33 +104,33 @@
           name="stageLabel"
           [(ngModel)]="form.stageLabel"
           required
-          [placeholder]="languages.text('stageNumber')"
+          [placeholder]="languages.text('number')"
           class="w-full"
         />
       </div>
       <div class="flex min-w-0 flex-col gap-2">
         <label class="font-medium" for="transcript-stage-name">
-          {{ languages.text('stageName') }}
+          {{ languages.text('name') }}
         </label>
         <input
           pInputText
           id="transcript-stage-name"
           name="title"
           [(ngModel)]="form.title"
-          [placeholder]="languages.text('stageName')"
+          [placeholder]="languages.text('name')"
           class="w-full"
         />
       </div>
       <div class="flex min-w-0 flex-col gap-2 md:col-span-2">
         <label class="font-medium" for="transcript-stage-description">
-          {{ languages.text('stageDescription') }}
+          {{ languages.text('description') }}
         </label>
         <textarea
           pTextarea
           id="transcript-stage-description"
           name="description"
           [(ngModel)]="form.description"
-          [placeholder]="languages.text('stageDescription')"
+          [placeholder]="languages.text('description')"
           rows="3"
           class="w-full"
         ></textarea>
@@ -160,7 +161,7 @@
       @if (importLanguageOptions.length > 1) {
         <div class="flex min-w-0 flex-col gap-2">
           <label class="font-medium" for="import-language">{{
-            languages.text('importLanguage')
+            languages.text('language')
           }}</label>
           <p-select
             inputId="import-language"
@@ -209,7 +210,7 @@
     <app-transcript-editor [nodes]="nodes" [assetOwnerId]="assetOwnerId" />
   </form>
   <p-dialog
-    [header]="languages.text('transcriptPreview')"
+    [header]="languages.text('preview')"
     [(visible)]="previewOpen"
     [modal]="true"
     [draggable]="false"

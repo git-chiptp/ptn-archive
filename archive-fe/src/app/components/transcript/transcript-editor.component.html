@@ -154,7 +154,7 @@
         class="collapse-toggle"
         type="button"
         [attr.aria-label]="
-          isCollapsed(node) ? ('expandTranscriptLine' | ui) : ('collapseTranscriptLine' | ui)
+          isCollapsed(node) ? ('expandLine' | ui) : ('collapseLine' | ui)
         "
         [title]="isCollapsed(node) ? ('expandLine' | ui) : ('collapseLine' | ui)"
         (click)="toggleCollapsed(node)"

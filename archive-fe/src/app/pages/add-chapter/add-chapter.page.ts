@@ -151,6 +151,7 @@ export class AddChapterPage {
 
   constructor() {
     this.chapterForm.category = this.category;
+    void this.store.ensureCategoryLoaded(this.category);
   }
 
   public editChapter(chapter: Chapter) {

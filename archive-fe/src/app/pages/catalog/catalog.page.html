@@ -17,7 +17,7 @@
       [queryParams]="category === 'eternal-nightmare' ? { category } : null"
     >
       <i class="pi pi-plus" aria-hidden="true"></i>
-      <span>{{ language.text('addChapter') }}</span>
+      <span>{{ language.text('add') }}</span>
     </a>
   }
   @if (auth.user() && category === 'perspectra') {
@@ -29,7 +29,7 @@
       [queryParams]="{ category: 'perspectra' }"
     >
       <i class="pi pi-plus" aria-hidden="true"></i>
-      <span>{{ language.text('addCharacter') }}</span>
+      <span>{{ language.text('add') }}</span>
     </a>
   }
   @if (auth.user() && (category === 'interrogation' || category === 'mirage')) {
@@ -41,7 +41,7 @@
       [queryParams]="{ category }"
     >
       <i class="pi pi-plus" aria-hidden="true"></i>
-      <span>{{ language.text('addCharacter') }}</span>
+      <span>{{ language.text('add') }}</span>
     </a>
   }
   @if (auth.user() && category === 'event-story') {
@@ -53,11 +53,17 @@
       [queryParams]="{ category: 'event-story' }"
     >
       <i class="pi pi-plus" aria-hidden="true"></i>
-      <span>{{ language.text('addEvent') }}</span>
+      <span>{{ language.text('add') }}</span>
     </a>
   }
 
-  @if (filteredCollections.length) {
+  @if (isLoading) {
+    <p role="status">{{ language.text('loading') }}</p>
+  } @else if (store.error(); as error) {
+    <p role="alert">{{ error }}</p>
+  } @else if (!hasCollections) {
+    <p>{{ language.text('notFound') }}</p>
+  } @else if (filteredCollections.length) {
     <div class="grid gap-4 sm:grid-cols-2">
       @for (collection of filteredCollections; track collection.id; let collectionIndex = $index) {
         <article
@@ -91,26 +97,6 @@
                 >{{ collection.localizedLabel }}</a
               >
             </h2>
-            @if (
-              category !== 'main-story' &&
-              category !== 'eternal-nightmare' &&
-              category !== 'event-story'
-            ) {
-              <div class="mt-auto flex min-h-0 flex-wrap gap-2 overflow-y-auto pt-4">
-                @for (stage of collection.stages; track stage.id) {
-                  <a
-                    pButton
-                    severity="contrast"
-                    size="small"
-                    class="!border-white/70 !bg-black/40 !text-white"
-                    [routerLink]="['/', category, slug(collection.label), slug(stage.canonicalLabel)]"
-                    [queryParams]="auth.user() ? { edit: 1 } : {}"
-                  >
-                    {{ stage.label }}
-                  </a>
-                }
-              </div>
-            }
           </div>
         </article>
       }

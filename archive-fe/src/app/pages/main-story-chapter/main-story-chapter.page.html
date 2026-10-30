@@ -1,6 +1,10 @@
 <section class="catalog">
   <p-breadcrumb [home]="breadcrumbHome" [model]="breadcrumbItems" styleClass="!p-0" />
-  @if (chapter; as collection) {
+  @if (store.loading()) {
+    <p role="status">{{ language.text('loading') }}</p>
+  } @else if (store.error(); as error) {
+    <p role="alert">{{ error }}</p>
+  } @else if (chapter; as collection) {
     <h1 class="mb-4 break-words text-3xl font-semibold [overflow-wrap:anywhere]">
       {{ collection.localizedLabel }}
     </h1>
@@ -13,7 +17,7 @@
           [queryParams]="{ chapterName: collection.label, category: category }"
         >
           <i class="pi pi-plus" aria-hidden="true"></i>
-          <span>{{ language.text('addStage') }}</span>
+          <span>{{ language.text('add') }}</span>
         </a>
         @if (category === 'main-story') {
           <a
@@ -46,24 +50,28 @@
         [title]="collection.localizedLabel"
       />
     } @else {
-      <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        @for (stage of orderedStages; track stage.id) {
-          <a
-            pButton
-            class="stage-list-node min-h-10 w-full !items-center !justify-start !gap-3 !text-left whitespace-normal px-3 py-2"
-            [routerLink]="['/', category, slug(collection.label), slug(stage.canonicalLabel)]"
-          >
-            <span class="stage-list-number shrink-0 whitespace-nowrap text-lg font-semibold leading-none">{{ stageNumber(stage) }}</span>
-            @if (stageName(stage)) {
-              <span class="stage-list-name min-w-0 flex-1 break-words leading-snug [overflow-wrap:anywhere]">{{ stageName(stage) }}</span>
-            }
-          </a>
-        }
-      </div>
+      @if (orderedStages.length) {
+        <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          @for (stage of orderedStages; track stage.id) {
+            <a
+              pButton
+              class="stage-list-node min-h-10 w-full !items-center !justify-start !gap-3 !text-left whitespace-normal px-3 py-2"
+              [routerLink]="['/', category, slug(collection.label), slug(stage.canonicalLabel)]"
+            >
+              <span class="stage-list-number shrink-0 whitespace-nowrap text-lg font-semibold leading-none">{{ stageNumber(stage) }}</span>
+              @if (stageName(stage)) {
+                <span class="stage-list-name min-w-0 flex-1 break-words leading-snug [overflow-wrap:anywhere]">{{ stageName(stage) }}</span>
+              }
+            </a>
+          }
+        </div>
+      } @else {
+        <p>{{ language.text('notFound') }}</p>
+      }
     }
   } @else {
     <h1 class="mb-4 break-words text-3xl font-semibold [overflow-wrap:anywhere]">
-      {{ language.text('chapterNotFound') }}
+      {{ language.text('notFound') }}
     </h1>
   }
 </section>

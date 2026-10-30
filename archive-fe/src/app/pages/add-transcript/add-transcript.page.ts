@@ -202,7 +202,12 @@ export class AddTranscriptPage {
       this.form.category = category;
     }
 
+    void this.store.ensureCategoryLoaded(this.form.category);
     this.captureSnapshot();
+  }
+
+  public categoryChanged(category: Category) {
+    void this.store.ensureCategoryLoaded(category);
   }
 
   public get transcripts() {
@@ -226,7 +231,7 @@ export class AddTranscriptPage {
         ]),
       );
     }
-    items.push({ label: this.editingId ? 'Edit' : 'Add stage' });
+    items.push({ label: this.languages.text(this.editingId ? 'edit' : 'add') });
     return items;
   }
 
@@ -252,11 +257,11 @@ export class AddTranscriptPage {
     }
     this.confirmation.confirm({
       key: 'transcript-actions',
-      header: 'Leave editor?',
-      message: 'Changes will not be saved. Do you want to exit?',
+      header: this.languages.text('leaveEditor'),
+      message: this.languages.text('leaveEditorMessage'),
       icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Exit',
-      rejectLabel: 'Keep editing',
+      acceptLabel: this.languages.text('exit'),
+      rejectLabel: this.languages.text('keepEditing'),
       accept: () => this.router.navigate(link),
     });
   }
@@ -339,11 +344,13 @@ export class AddTranscriptPage {
   public delete(transcript: Transcript) {
     this.confirmation.confirm({
       key: 'transcript-actions',
-      header: 'Delete transcript?',
-      message: `Delete "${transcript.parentLabel} / ${transcript.stageLabel}"?`,
+      header: this.languages.text('deleteTranscriptPrompt'),
+      message: this.languages.text('deleteNamed', {
+        name: `${transcript.parentLabel} / ${transcript.stageLabel}`,
+      }),
       icon: 'pi pi-trash',
-      acceptLabel: 'Delete transcript',
-      rejectLabel: 'Cancel',
+      acceptLabel: this.languages.text('delete'),
+      rejectLabel: this.languages.text('cancel'),
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
         this.store.remove(transcript.id);
@@ -375,17 +382,17 @@ export class AddTranscriptPage {
     this.importProgress = 0;
     if (!/\.xlsx$/i.test(file.name)) {
       this.importError = true;
-      this.importMessage = 'Import failed: choose an XLSX file exported from Excel.';
+      this.importMessage = this.languages.text('importWrongType');
       return;
     }
     if (!file.size) {
       this.importError = true;
-      this.importMessage = 'Import failed: the XLSX file is empty.';
+      this.importMessage = this.languages.text('importEmpty');
       return;
     }
     if (file.size > this.maxImportFileSize) {
       this.importError = true;
-      this.importMessage = 'Import failed: the XLSX file must be 100 MB or smaller.';
+      this.importMessage = this.languages.text('importTooLarge');
       return;
     }
     this.parseImportFile(file);
@@ -403,7 +410,7 @@ export class AddTranscriptPage {
     this.importLoading = true;
     this.importError = false;
     this.importProgress = 5;
-    this.importMessage = 'Reading XLSX file in the browser...';
+    this.importMessage = this.languages.text('loadingXlsx');
     this.importer
       .parseXlsx(file, this.importLanguage || undefined, (progress) => {
         this.importProgress = progress;
@@ -426,8 +433,10 @@ export class AddTranscriptPage {
           this.pendingImportReady = this.pendingImportNodes.length > 0;
           this.importError = this.pendingImportNodes.length === 0;
           this.importMessage = this.pendingImportNodes.length
-            ? this.pendingImportNodes.length + ' lines ready to import.'
-            : 'Import failed: no transcript rows found.';
+            ? this.languages.text('readyToImport', {
+                count: String(this.pendingImportNodes.length),
+              })
+            : this.languages.text('importNoRows');
           this.cdr.markForCheck();
         },
         error: (error: unknown) => {
@@ -439,7 +448,7 @@ export class AddTranscriptPage {
           this.importMessage =
             error instanceof Error
               ? error.message
-              : 'Import failed: the browser could not parse the XLSX file.';
+              : this.languages.text('importBackendFailed');
           this.cdr.markForCheck();
         },
       });
@@ -451,12 +460,11 @@ export class AddTranscriptPage {
     if (this.editorHasContent()) {
       this.confirmation.confirm({
         key: 'transcript-actions',
-        header: 'Replace transcript content?',
-        message:
-          'Importing this file will replace all current transcript content. Continue?',
+        header: this.languages.text('replaceContentPrompt'),
+        message: this.languages.text('replaceContentMessage'),
         icon: 'pi pi-upload',
-        acceptLabel: 'Import file',
-        rejectLabel: 'Cancel',
+        acceptLabel: this.languages.text('importFile'),
+        rejectLabel: this.languages.text('cancel'),
         accept: () => this.applyPendingImport(),
       });
       return;
@@ -498,7 +506,7 @@ export class AddTranscriptPage {
       this.importMessage =
         error instanceof Error
           ? error.message
-          : 'Import failed: the image references could not be resolved.';
+          : this.languages.text('importImagesFailed');
     } finally {
       this.importApplying = false;
       this.cdr.markForCheck();
@@ -544,13 +552,15 @@ export class AddTranscriptPage {
     }
     this.confirmation.confirm({
       key: 'transcript-actions',
-      header: this.editingId ? 'Save transcript?' : 'Publish transcript?',
-      message: this.editingId
-        ? 'Save this transcript and publish the changes?'
-        : 'Publish this transcript?',
+      header: this.languages.text(
+        this.editingId ? 'saveTranscriptPrompt' : 'publishTranscriptPrompt',
+      ),
+      message: this.languages.text(
+        this.editingId ? 'publishChangesMessage' : 'publishTranscriptMessage',
+      ),
       icon: 'pi pi-save',
-      acceptLabel: this.editingId ? 'Save transcript' : 'Publish transcript',
-      rejectLabel: 'Cancel',
+      acceptLabel: this.languages.text(this.editingId ? 'save' : 'publish'),
+      rejectLabel: this.languages.text('cancel'),
       accept: () => this.persistTranscript(),
     });
   }
