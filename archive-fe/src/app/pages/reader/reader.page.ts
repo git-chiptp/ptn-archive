@@ -360,22 +360,30 @@ export class ReaderPage {
       }
     });
     this.store.clearStatusMessage();
+    let previousLanguage = this.language.current().trim().toLowerCase();
     effect(() => {
+      const selectedLanguage = this.language.current().trim().toLowerCase();
       const next = this.transcriptFromRoute();
       if (!next) {
         this.transcript = undefined;
+        previousLanguage = selectedLanguage;
         return;
       }
       if (next.id !== this.transcript?.id) {
         this.transcript = next;
         this.selections = {};
         this.store.loadTranscript(next.id);
-        this.store.loadTranslations(next.id);
         this.editLanguage = next.sourceLanguage ?? 'en';
         this.applyEditLanguage(next);
       } else if (next !== this.transcript) {
         this.transcript = next;
         if (this.editMode && !this.isEditDirty) this.applyEditLanguage(next);
+      }
+      if (selectedLanguage !== previousLanguage) {
+        previousLanguage = selectedLanguage;
+        if (selectedLanguage !== (next.sourceLanguage ?? 'en').trim().toLowerCase()) {
+          this.store.loadTranslations(next.id);
+        }
       }
     });
   }
@@ -505,6 +513,10 @@ export class ReaderPage {
     this.editLanguage = next;
     this.activeEditLanguage = next;
     if (!this.transcript) {
+      return;
+    }
+    if (next.trim().toLowerCase() === (this.transcript.sourceLanguage ?? 'en').trim().toLowerCase()) {
+      this.applyEditLanguage(this.transcript);
       return;
     }
     this.store.loadTranslations(this.transcript.id, () => {
