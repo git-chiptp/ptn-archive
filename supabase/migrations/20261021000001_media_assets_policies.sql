@@ -12,10 +12,8 @@ AS $$
         false
     );
 $$;
-
 GRANT SELECT ON public.media_assets TO anon, authenticated;
 GRANT INSERT, UPDATE, DELETE ON public.media_assets TO authenticated;
-
 CREATE POLICY "Published media is readable"
 ON public.media_assets FOR SELECT TO anon, authenticated
 USING (
@@ -45,20 +43,16 @@ USING (
           )
     )
 );
-
 CREATE POLICY "Admins can read all media"
 ON public.media_assets FOR SELECT TO authenticated
 USING (public.is_archive_admin());
-
 CREATE POLICY "Admins can insert media"
 ON public.media_assets FOR INSERT TO authenticated
 WITH CHECK (public.is_archive_admin());
-
 CREATE POLICY "Admins can update media"
 ON public.media_assets FOR UPDATE TO authenticated
 USING (public.is_archive_admin())
 WITH CHECK (public.is_archive_admin());
-
 CREATE POLICY "Admins can delete media"
 ON public.media_assets FOR DELETE TO authenticated
 USING (public.is_archive_admin());

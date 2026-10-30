@@ -31,7 +31,6 @@ EXCEPTION WHEN others THEN
     );
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.transcript_search_text(document jsonb)
 RETURNS text
 LANGUAGE sql
@@ -76,7 +75,6 @@ AS $$
     SELECT coalesce(string_agg(regexp_replace(value, '<[^>]*>', ' ', 'g'), ' '), '')
     FROM searchable_text;
 $$;
-
 CREATE OR REPLACE FUNCTION public.transcript_search_vector(document jsonb)
 RETURNS tsvector
 LANGUAGE sql
@@ -85,49 +83,36 @@ PARALLEL SAFE
 AS $$
     SELECT to_tsvector('simple'::regconfig, public.transcript_search_text(document));
 $$;
-
 DROP INDEX IF EXISTS public.idx_archives_search;
-
 ALTER TABLE public.archives
     ALTER COLUMN transcript_text TYPE jsonb
     USING public.transcript_text_to_jsonb(transcript_text);
-
 ALTER TABLE public.archive_translations
     ALTER COLUMN transcript_text TYPE jsonb
     USING public.transcript_text_to_jsonb(transcript_text);
-
 UPDATE public.archives
 SET transcript_text = '[]'::jsonb
 WHERE transcript_text IS NULL;
-
 UPDATE public.archive_translations
 SET transcript_text = '[]'::jsonb
 WHERE transcript_text IS NULL;
-
 ALTER TABLE public.archives
     ALTER COLUMN transcript_text SET DEFAULT '[]'::jsonb,
     ALTER COLUMN transcript_text SET NOT NULL;
-
 ALTER TABLE public.archive_translations
     ALTER COLUMN transcript_text SET DEFAULT '[]'::jsonb,
     ALTER COLUMN transcript_text SET NOT NULL;
-
 ALTER TABLE public.archives
     ADD COLUMN transcript_search tsvector
     GENERATED ALWAYS AS (public.transcript_search_vector(transcript_text)) STORED;
-
 ALTER TABLE public.archive_translations
     ADD COLUMN transcript_search tsvector
     GENERATED ALWAYS AS (public.transcript_search_vector(transcript_text)) STORED;
-
 CREATE INDEX idx_archives_transcript_search
 ON public.archives USING gin (transcript_search);
-
 CREATE INDEX idx_archive_translations_transcript_search
 ON public.archive_translations USING gin (transcript_search);
-
 DROP FUNCTION public.transcript_text_to_jsonb(text);
-
 CREATE OR REPLACE FUNCTION public.search_transcripts(query text, result_limit integer DEFAULT 50)
 RETURNS TABLE (
     archive_id uuid,
@@ -191,5 +176,4 @@ AS $$
     ORDER BY rank DESC, candidate.title, candidate.language_code NULLS FIRST
     LIMIT greatest(result_limit, 1);
 $$;
-
 GRANT EXECUTE ON FUNCTION public.search_transcripts(text, integer) TO anon, authenticated;

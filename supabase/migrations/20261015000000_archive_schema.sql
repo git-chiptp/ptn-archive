@@ -1,5 +1,4 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
 CREATE TABLE public.archives (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     title varchar(255) NOT NULL,
@@ -17,13 +16,11 @@ CREATE TABLE public.archives (
     parent_label varchar(255),
     stage_label varchar(255)
 );
-
 CREATE INDEX idx_archives_status ON public.archives(status);
 CREATE INDEX idx_archives_recorded_at ON public.archives(recorded_at DESC);
 CREATE INDEX idx_archives_search ON public.archives USING gin (
     to_tsvector('simple', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(transcript_text, ''))
 );
-
 CREATE TABLE public.archive_translations (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     archive_id uuid NOT NULL REFERENCES public.archives(id) ON DELETE CASCADE,
@@ -40,10 +37,8 @@ CREATE TABLE public.archive_translations (
     stage_label varchar(255),
     CONSTRAINT archive_translation_language_unique UNIQUE (archive_id, language_code)
 );
-
 CREATE INDEX idx_archive_translations_language ON public.archive_translations(language_code);
 CREATE INDEX idx_archive_translations_archive ON public.archive_translations(archive_id);
-
 CREATE TABLE public.chapters (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     name varchar(255) NOT NULL,
@@ -52,15 +47,12 @@ CREATE TABLE public.chapters (
     updated_at timestamptz NOT NULL DEFAULT now(),
     category varchar(30) NOT NULL DEFAULT 'MAIN_STORY'
 );
-
 ALTER TABLE public.archives ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.archive_translations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chapters ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "Published archives are readable"
 ON public.archives FOR SELECT TO anon, authenticated
 USING (status = 'PUBLISHED');
-
 CREATE POLICY "Published translations are readable"
 ON public.archive_translations FOR SELECT TO anon, authenticated
 USING (
@@ -70,9 +62,7 @@ USING (
         WHERE archives.id = archive_id AND archives.status = 'PUBLISHED'
     )
 );
-
 CREATE POLICY "Chapters are readable"
 ON public.chapters FOR SELECT TO anon, authenticated
 USING (true);
-
--- No client write policies yet. The Auth/admin migration must add them explicitly.
+-- No client write policies yet. The Auth/admin migration must add them explicitly.;

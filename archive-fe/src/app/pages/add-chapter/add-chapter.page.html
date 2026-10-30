@@ -44,7 +44,7 @@
                 @if (chapter.backgroundImage) {
                   <p-image
                     [src]="chapter.backgroundImage"
-                    [alt]="chapter.name + ' background'"
+                    [alt]="localizedName(chapter) + ' background'"
                     [preview]="true"
                     imageClass="h-full w-full object-cover"
                   />
@@ -52,7 +52,7 @@
                   <i class="pi pi-image" aria-hidden="true"></i>
                 }
               </div>
-              <span class="min-w-0 flex-1 break-words font-medium">{{ chapter.name }}</span>
+              <span class="min-w-0 flex-1 break-words font-medium">{{ localizedName(chapter) }}</span>
               <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
                 <button pButton type="button" severity="secondary" (click)="editChapter(chapter)">
                   <i class="pi pi-pencil" aria-hidden="true"></i>
@@ -80,16 +80,38 @@
       </ng-template>
     </p-dataview>
     <form class="mt-8 flex flex-col gap-6" (ngSubmit)="submitChapter()">
-      <input
-        pInputText
-        class="w-full"
-        name="chapterName"
-        [(ngModel)]="chapterForm.name"
-        required
-        [placeholder]="
-          language.text(isCharacter ? 'characterName' : isEvent ? 'event' : 'chapterName')
-        "
-      />
+      <div class="flex flex-col gap-2">
+        <label class="font-medium" for="chapter-name">
+          {{ language.text(isCharacter ? 'characterName' : isEvent ? 'event' : 'chapterName') }}
+        </label>
+        <input
+          pInputText
+          id="chapter-name"
+          class="w-full"
+          name="chapterName"
+          [(ngModel)]="chapterForm.name"
+          required
+          [placeholder]="
+            language.text(isCharacter ? 'characterName' : isEvent ? 'event' : 'chapterName')
+          "
+        />
+      </div>
+      @for (translationLanguage of translationLanguages; track translationLanguage.code) {
+        <div class="flex flex-col gap-2">
+          <label class="font-medium" [for]="'chapter-name-' + translationLanguage.code">
+            {{ translationLanguage.nativeLabel }}
+          </label>
+          <input
+            pInputText
+            [id]="'chapter-name-' + translationLanguage.code"
+            class="w-full"
+            [name]="'chapterName-' + translationLanguage.code"
+            [ngModel]="chapterForm.nameTranslations?.[translationLanguage.code] ?? ''"
+            (ngModelChange)="setTranslation(translationLanguage.code, $event)"
+            [placeholder]="translationLanguage.nativeLabel"
+          />
+        </div>
+      }
       <button pButton type="button" severity="secondary" (click)="openMediaPicker()">
         <i class="pi pi-images" aria-hidden="true"></i>
         <span>{{ language.text('chooseFromLibrary') }}</span>

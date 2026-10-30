@@ -8,7 +8,7 @@ import {
   DialogueNode,
   TranscriptTranslation,
 } from '../models/transcript.models';
-import { LanguageCode } from './language.service';
+import { LanguageCode, LanguageService } from './language.service';
 import { SUPABASE_CLIENT } from './supabase.client';
 import { ArchiveStorageService } from './archive-storage.service';
 
@@ -31,7 +31,6 @@ type ApiTranslation = {
   parentLabel?: string;
   stageLabel?: string;
 };
-type ApiChapter = { id: string; name: string; backgroundImage?: string; category?: string };
 export type TranscriptSearchResult = {
   archive_id: string;
   language_code: string | null;
@@ -44,6 +43,7 @@ export type TranscriptSearchResult = {
 type ChapterRow = {
   id: string;
   name: string;
+  name_translations: Record<string, string> | null;
   background_image: string | null;
   category: string;
 };
@@ -66,12 +66,21 @@ type TranslationRow = {
   parent_label: string | null;
   stage_label: string | null;
 };
+type TranslationMetadataRow = {
+  archive_id: string;
+  language_code: string;
+  title: string;
+  parent_label: string | null;
+  stage_label: string | null;
+};
 
 @Injectable({ providedIn: 'root' })
 export class ArchiveStore {
   private readonly supabase = inject(SUPABASE_CLIENT);
 
   private readonly storage = inject(ArchiveStorageService);
+
+  private readonly language = inject(LanguageService);
 
   private readonly loadedTranscriptIds = new Set<string>();
 
@@ -146,6 +155,7 @@ export class ArchiveStore {
           };
         }),
       );
+      await this.loadTranslationMetadata();
     } catch {
       this.error.set('Could not load transcripts from Supabase.');
     } finally {
@@ -156,7 +166,7 @@ export class ArchiveStore {
     try {
       const { data, error } = await this.supabase
         .from('chapters')
-        .select('id,name,background_image,category')
+        .select('id,name,name_translations,background_image,category')
         .order('created_at', { ascending: true });
       if (error) throw error;
       const rows = (data ?? []) as ChapterRow[];
@@ -168,6 +178,45 @@ export class ArchiveStore {
     } catch {
       this.error.set('Could not load chapters from Supabase.');
     }
+  }
+  private async loadTranslationMetadata() {
+    const { data, error } = await this.supabase
+      .from('archive_translations')
+      .select('archive_id,language_code,title,parent_label,stage_label')
+      .eq('translation_status', 'PUBLISHED');
+    if (error) {
+      return;
+    }
+    const rows = (data ?? []) as TranslationMetadataRow[];
+    const metadataByTranscript = new Map<string, TranslationMetadataRow[]>();
+    rows.forEach((row) => {
+      const translations = metadataByTranscript.get(row.archive_id) ?? [];
+      translations.push(row);
+      metadataByTranscript.set(row.archive_id, translations);
+    });
+    this.transcripts.update((records) =>
+      records.map((record) => {
+        const translations = metadataByTranscript.get(record.id);
+        if (!translations) return record;
+        return {
+          ...record,
+          translations: {
+            ...record.translations,
+            ...Object.fromEntries(
+              translations.map((row) => [
+                row.language_code.trim().toLowerCase(),
+                {
+                  ...record.translations?.[row.language_code.trim().toLowerCase()],
+                  title: row.title,
+                  parentLabel: row.parent_label ?? undefined,
+                  stageLabel: row.stage_label ?? undefined,
+                },
+              ]),
+            ),
+          },
+        };
+      }),
+    );
   }
   public async loadTranscript(id: string) {
     if (this.loadedTranscriptIds.has(id) || this.pendingTranscriptIds.has(id)) return;
@@ -209,10 +258,11 @@ export class ArchiveStore {
         .insert({
           id: chapterId,
           name: chapter.name,
+          name_translations: chapter.nameTranslations ?? {},
           background_image: backgroundPath ?? chapter.backgroundImage ?? null,
           category: this.categoryToApi(chapter.category),
         })
-        .select('id,name,background_image,category')
+        .select('id,name,name_translations,background_image,category')
         .single();
       if (error) throw error;
       const saved = data as ChapterRow;
@@ -234,11 +284,12 @@ export class ArchiveStore {
         .from('chapters')
         .update({
           name: chapter.name,
+          name_translations: chapter.nameTranslations ?? {},
           background_image: backgroundPath ?? chapter.backgroundImage ?? null,
           category: this.categoryToApi(chapter.category),
         })
         .eq('id', chapter.id)
-        .select('id,name,background_image,category')
+        .select('id,name,name_translations,background_image,category')
         .single();
       if (error) throw error;
       const saved = data as ChapterRow;
@@ -308,7 +359,7 @@ export class ArchiveStore {
               ...record,
               translations: Object.fromEntries(
                 rows.map((item) => [
-                  item.language_code,
+                  item.language_code.trim().toLowerCase(),
                   this.translationFromApi({
                     languageCode: item.language_code,
                     title: item.title,
@@ -494,6 +545,8 @@ export class ArchiveStore {
         groups.set(chapter.id, {
           id: chapter.id,
           label: chapter.name,
+          localizedLabel:
+            category === 'interrogation' ? chapter.name : this.localizedChapterName(chapter),
           category: category as Category,
           backgroundImage: chapter.backgroundImage,
           stages: [],
@@ -509,10 +562,17 @@ export class ArchiveStore {
         const group = groups.get(id) ?? {
           id,
           label: t.parentLabel,
+          localizedLabel:
+            category === 'interrogation' ? t.parentLabel : this.localizedTranscriptParentName(t),
           category: t.category,
           stages: [],
         };
-        group.stages.push({ id: t.id, label: t.stageLabel, name: t.title });
+        group.stages.push({
+          id: t.id,
+          label: this.localizedTranscriptStageName(t),
+          canonicalLabel: t.stageLabel,
+          name: this.localizedTranscriptTitle(t),
+        });
         groups.set(id, group);
       });
     return [...groups.values()];
@@ -553,10 +613,51 @@ export class ArchiveStore {
     return {
       id: item.id,
       name: item.name,
+      nameTranslations: item.name_translations ?? {},
       backgroundImage: this.storage.toPublicUrl(item.background_image),
       category: this.categoryFromApi(item.category),
     };
   }
+
+  public localizedChapterName(chapter: Chapter): string {
+    if (chapter.category === 'interrogation') {
+      return chapter.name;
+    }
+    const selectedLanguage = this.language.current().trim().toLowerCase();
+    if (selectedLanguage === 'en') {
+      return chapter.name;
+    }
+    const translatedName = Object.entries(chapter.nameTranslations ?? {}).find(
+      ([language]) => language.trim().toLowerCase() === selectedLanguage,
+    )?.[1];
+    return translatedName?.trim() || chapter.name;
+  }
+
+  private localizedTranscriptTranslation(transcript: Transcript): TranscriptTranslation | undefined {
+    const selectedLanguage = this.language.current().trim().toLowerCase();
+    return Object.entries(transcript.translations ?? {}).find(
+      ([language]) => language.trim().toLowerCase() === selectedLanguage,
+    )?.[1];
+  }
+
+  private localizedTranscriptParentName(transcript: Transcript): string {
+    return this.localizedTranscriptTranslation(transcript)?.parentLabel?.trim() || transcript.parentLabel;
+  }
+
+  public localizedTranscriptStageName(transcript: Transcript): string {
+    if (transcript.category === 'interrogation') {
+      return transcript.stageLabel;
+    }
+    return this.localizedTranscriptTranslation(transcript)?.stageLabel?.trim() || transcript.stageLabel;
+  }
+
+  public localizedTranscriptTitle(transcript: Transcript): string {
+    if (transcript.category === 'interrogation') {
+      return transcript.title;
+    }
+    return this.localizedTranscriptTranslation(transcript)?.title?.trim() || transcript.title;
+  }
+
   private translationFromApi(item: ApiTranslation): TranscriptTranslation {
     return {
       title: item.title,

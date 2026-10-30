@@ -105,6 +105,7 @@ export class AddChapterPage {
   public chapterForm: Chapter = {
     id: '',
     name: '',
+    nameTranslations: {},
     backgroundImage: '',
     category: 'main-story',
   };
@@ -122,8 +123,30 @@ export class AddChapterPage {
   public get filteredChapters(): Chapter[] {
     const query = this.chapterSearch.trim().toLocaleLowerCase();
     return query
-      ? this.managedChapters.filter((chapter) => chapter.name.toLocaleLowerCase().includes(query))
+      ? this.managedChapters.filter((chapter) =>
+          [chapter.name, ...Object.values(chapter.nameTranslations ?? {})].some((name) =>
+            name.toLocaleLowerCase().includes(query),
+          ),
+        )
       : this.managedChapters;
+  }
+
+  public localizedName(chapter: Chapter): string {
+    return this.store.localizedChapterName(chapter);
+  }
+
+  public setTranslation(languageCode: string, value: string) {
+    this.chapterForm.nameTranslations = {
+      ...(this.chapterForm.nameTranslations ?? {}),
+      [languageCode]: value,
+    };
+  }
+
+  public get translationLanguages() {
+    if (this.category === 'interrogation') {
+      return [];
+    }
+    return this.language.supportedLanguages.filter(({ code }) => code !== 'en');
   }
 
   constructor() {
@@ -133,7 +156,10 @@ export class AddChapterPage {
   public editChapter(chapter: Chapter) {
     this.chapterError = '';
     this.chapterEditingId = chapter.id;
-    this.chapterForm = { ...chapter };
+    this.chapterForm = {
+      ...chapter,
+      nameTranslations: { ...chapter.nameTranslations },
+    };
   }
 
   public cancelChapterEdit() {
@@ -142,6 +168,7 @@ export class AddChapterPage {
     this.chapterForm = {
       id: '',
       name: '',
+      nameTranslations: {},
       backgroundImage: '',
       category: this.category,
     };
@@ -165,6 +192,14 @@ export class AddChapterPage {
     const chapter = {
       ...this.chapterForm,
       name: this.chapterForm.name.trim(),
+      nameTranslations:
+        this.category === 'interrogation'
+          ? {}
+          : Object.fromEntries(
+              Object.entries(this.chapterForm.nameTranslations ?? {})
+                .map(([language, name]) => [language, name.trim()])
+                .filter(([, name]) => name),
+            ),
     };
     const done = () => {
       this.chapterSaving = false;
@@ -200,7 +235,7 @@ export class AddChapterPage {
         this.language.text(
           'delete' + this.itemName.charAt(0).toUpperCase() + this.itemName.slice(1),
         ) + '?',
-      message: this.language.text('deleteNamed', { name: chapter.name }),
+      message: this.language.text('deleteNamed', { name: this.localizedName(chapter) }),
       icon: 'pi pi-trash',
       acceptLabel: this.language.text(
         'delete' + this.itemName.charAt(0).toUpperCase() + this.itemName.slice(1),

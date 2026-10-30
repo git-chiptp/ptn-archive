@@ -80,7 +80,7 @@ export class EventStoryPage {
   public get breadcrumbItems(): MenuItem[] {
     return [
       { label: this.language.text('eventStory'), routerLink: '/event-story' },
-      ...(this.event ? [{ label: this.event.label }] : []),
+      ...(this.event ? [{ label: this.event.localizedLabel }] : []),
     ];
   }
 
@@ -105,7 +105,7 @@ export class EventStoryPage {
       id: stage.id,
       label: stage.label,
       name: stage.name,
-      link: ['/event-story', this.slug(collection.label), this.slug(stage.label)],
+      link: ['/event-story', this.slug(collection.label), this.slug(stage.canonicalLabel)],
     }));
   }
 

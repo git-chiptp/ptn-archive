@@ -1,5 +1,5 @@
-import { Component, Input } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, inject, Input } from '@angular/core';
+import { Router } from '@angular/router';
 import { StageOrganizationEdge } from '../../models/stage-organization.models';
 
 export interface StageGraphStage {
@@ -19,11 +19,12 @@ type StageNode = StageGraphStage & {
 @Component({
   standalone: true,
   selector: 'app-stage-graph',
-  imports: [RouterLink],
   templateUrl: './stage-graph.component.html',
   styleUrl: './stage-graph.component.css',
 })
 export class StageGraphComponent {
+  private readonly router = inject(Router);
+
   @Input() stages: StageGraphStage[] = [];
   @Input() edges: StageOrganizationEdge[] = [];
   @Input() title = '';
@@ -208,10 +209,13 @@ export class StageGraphComponent {
     this.suppressClick = this.dragMoved;
   }
 
-  public preventClickAfterDrag(event: MouseEvent) {
-    if (!this.suppressClick) return;
+  public openStage(event: MouseEvent, link: string[]) {
     event.preventDefault();
-    event.stopPropagation();
-    this.suppressClick = false;
+    if (this.suppressClick) {
+      event.stopPropagation();
+      this.suppressClick = false;
+      return;
+    }
+    void this.router.navigate(link);
   }
 }

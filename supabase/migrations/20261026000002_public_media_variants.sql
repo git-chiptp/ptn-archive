@@ -1,5 +1,4 @@
 DROP POLICY IF EXISTS "Published media is readable" ON public.media_assets;
-
 CREATE POLICY "Published media is readable"
 ON public.media_assets FOR SELECT TO anon, authenticated
 USING (
@@ -31,7 +30,6 @@ USING (
           )
     )
 );
-
 CREATE OR REPLACE FUNCTION public.media_asset_is_referenced(asset_id uuid)
 RETURNS boolean
 LANGUAGE sql

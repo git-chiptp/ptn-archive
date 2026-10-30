@@ -71,7 +71,7 @@
           @if (collection.backgroundImage) {
             <p-image
               [src]="collection.backgroundImage"
-              [alt]="collection.label"
+              [alt]="collection.localizedLabel"
               [preview]="false"
               [loading]="collectionIndex === 0 ? 'eager' : 'lazy'"
               imageClass="absolute inset-0 h-full w-full object-cover object-center"
@@ -88,7 +88,7 @@
               <a
                 class="absolute inset-0 z-10 flex h-full w-full items-center justify-center p-4 text-center text-2xl font-semibold uppercase leading-tight tracking-wide text-white no-underline drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]"
                 [routerLink]="['/', category, slug(collection.label)]"
-                >{{ collection.label }}</a
+                >{{ collection.localizedLabel }}</a
               >
             </h2>
             @if (
@@ -103,7 +103,7 @@
                     severity="contrast"
                     size="small"
                     class="!border-white/70 !bg-black/40 !text-white"
-                    [routerLink]="['/', category, slug(collection.label), slug(stage.label)]"
+                    [routerLink]="['/', category, slug(collection.label), slug(stage.canonicalLabel)]"
                     [queryParams]="auth.user() ? { edit: 1 } : {}"
                   >
                     {{ stage.label }}
