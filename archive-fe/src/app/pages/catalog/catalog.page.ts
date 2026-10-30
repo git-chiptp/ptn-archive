@@ -66,6 +66,7 @@ export class CatalogPage {
     if (target instanceof HTMLElement && target.closest('a, button')) {
       return;
     }
+    this.store.selectChapter(this.category, label);
     this.router.navigate(['/', this.category, this.slug(label)]);
   }
 

@@ -86,11 +86,25 @@ export class ArchiveStore {
 
   private readonly pendingTranscriptIds = new Set<string>();
 
+  private readonly loadedTranslationIds = new Set<string>();
+
+  private readonly pendingTranslationLoads = new Map<string, Promise<boolean>>();
+
+  private readonly loadedCategories = new Set<Category>();
+
+  private readonly pendingCategoryLoads = new Map<Category, Promise<void>>();
+
+  private readonly loadedCollections = new Set<string>();
+
+  private readonly pendingCollectionLoads = new Map<string, Promise<void>>();
+
   public readonly gender = signal<Gender>(this.readStoredGender());
 
   public readonly transcripts = signal<Transcript[]>([]);
 
   public readonly chapters = signal<Chapter[]>([]);
+
+  public readonly selectedChapter = signal<Chapter | null>(null);
 
   public readonly loading = signal(false);
 
@@ -122,26 +136,45 @@ export class ArchiveStore {
   }
 
   public async ensureCategoryLoaded(category: Category): Promise<void> {
+    if (this.loadedCategories.has(category)) return;
+    const pending = this.pendingCategoryLoads.get(category);
+    if (pending) return pending;
+
     this.error.set(null);
     this.loading.set(true);
-    try {
-      await this.loadCategoryChapters(category);
-    } catch {
-      this.error.set('Could not load archive data from Supabase.');
-    } finally {
-      this.loading.set(false);
-    }
+    const request = this.loadCategoryChapters(category)
+      .then(() => {
+        this.loadedCategories.add(category);
+      })
+      .catch(() => this.error.set('Could not load archive data from Supabase.'))
+      .finally(() => {
+        this.loading.set(false);
+        this.pendingCategoryLoads.delete(category);
+      });
+    this.pendingCategoryLoads.set(category, request);
+    return request;
   }
 
   public async ensureCollectionLoadedBySlug(category: Category, parentSlug: string): Promise<void> {
     await this.ensureCategoryLoaded(category);
-    const chapter = this.chapters().find(
-      (item) => item.category === category && this.slug(item.name) === parentSlug,
-    );
+    const selected = this.selectedChapter();
+    const chapter = selected?.category === category && this.slug(selected.name) === parentSlug
+      ? selected
+      : this.chapters().find(
+          (item) => item.category === category && this.slug(item.name) === parentSlug,
+        );
     if (!chapter) {
       return;
     }
+    this.selectedChapter.set(chapter);
     await this.loadCollection(category, chapter.id, chapter.name);
+  }
+
+  public selectChapter(category: Category, label: string) {
+    const chapter = this.chapters().find(
+      (item) => item.category === category && item.name === label,
+    );
+    if (chapter) this.selectedChapter.set(chapter);
   }
 
   public async ensureCollectionLoaded(
@@ -150,6 +183,7 @@ export class ArchiveStore {
     parentLabel: string,
   ): Promise<void> {
     await this.ensureCategoryLoaded(category);
+    this.selectedChapter.set(this.chapters().find((chapter) => chapter.id === parentId) ?? null);
     await this.loadCollection(category, parentId, parentLabel);
   }
 
@@ -158,15 +192,24 @@ export class ArchiveStore {
     parentId: string,
     parentLabel: string,
   ): Promise<void> {
+    const key = `${category}:${parentId || parentLabel}`;
+    if (this.loadedCollections.has(key)) return;
+    const pending = this.pendingCollectionLoads.get(key);
+    if (pending) return pending;
+
     this.error.set(null);
     this.loading.set(true);
-    try {
-      await this.loadCollectionTranscripts(category, parentId, parentLabel);
-    } catch {
-      this.error.set('Could not load archive data from Supabase.');
-    } finally {
-      this.loading.set(false);
-    }
+    const request = this.loadCollectionTranscripts(category, parentId, parentLabel)
+      .then(() => {
+        this.loadedCollections.add(key);
+      })
+      .catch(() => this.error.set('Could not load archive data from Supabase.'))
+      .finally(() => {
+        this.loading.set(false);
+        this.pendingCollectionLoads.delete(key);
+      });
+    this.pendingCollectionLoads.set(key, request);
+    return request;
   }
 
   private async loadCollectionTranscripts(category: Category, parentId: string, parentLabel: string) {
@@ -414,44 +457,64 @@ export class ArchiveStore {
   }
 
   public async loadTranslations(id: string, onLoaded?: () => void) {
-    const { data, error } = await this.supabase
-      .from('archive_translations')
-      .select('language_code,title,description,transcript_text,parent_label,stage_label')
-      .eq('archive_id', id)
-      .eq('translation_status', 'PUBLISHED');
-    if (error) {
-      this.error.set('Could not load translations from Supabase.');
+    if (this.loadedTranslationIds.has(id)) {
+      onLoaded?.();
       return;
     }
-    const rows = (data ?? []) as TranslationRow[];
-    await this.storage
-      .resolveMediaReferences(
-        rows.flatMap((item) => this.storage.mediaReferences(this.parseNodes(item.transcript_text))),
-      )
-      .catch(() => this.error.set('Could not load translation images.'));
-    this.transcripts.update((records) =>
-      records.map((record) =>
-        record.id === id
-          ? {
-              ...record,
-              translations: Object.fromEntries(
-                rows.map((item) => [
-                  item.language_code.trim().toLowerCase(),
-                  this.translationFromApi({
-                    languageCode: item.language_code,
-                    title: item.title,
-                    description: item.description ?? undefined,
-                    transcriptText: item.transcript_text ?? undefined,
-                    parentLabel: item.parent_label ?? undefined,
-                    stageLabel: item.stage_label ?? undefined,
-                  }),
-                ]),
-              ),
-            }
-          : record,
-      ),
-    );
-    onLoaded?.();
+
+    let request = this.pendingTranslationLoads.get(id);
+    if (!request) {
+      request = (async () => {
+        const { data, error } = await this.supabase
+          .from('archive_translations')
+          .select('language_code,title,description,transcript_text,parent_label,stage_label')
+          .eq('archive_id', id)
+          .eq('translation_status', 'PUBLISHED');
+        if (error) {
+          this.error.set('Could not load translations from Supabase.');
+          return false;
+        }
+        const rows = (data ?? []) as TranslationRow[];
+        await this.storage
+          .resolveMediaReferences(
+            rows.flatMap((item) =>
+              this.storage.mediaReferences(this.parseNodes(item.transcript_text)),
+            ),
+          )
+          .catch(() => this.error.set('Could not load translation images.'));
+        this.transcripts.update((records) =>
+          records.map((record) =>
+            record.id === id
+              ? {
+                  ...record,
+                  translations: Object.fromEntries(
+                    rows.map((item) => [
+                      item.language_code.trim().toLowerCase(),
+                      this.translationFromApi({
+                        languageCode: item.language_code,
+                        title: item.title,
+                        description: item.description ?? undefined,
+                        transcriptText: item.transcript_text ?? undefined,
+                        parentLabel: item.parent_label ?? undefined,
+                        stageLabel: item.stage_label ?? undefined,
+                      }),
+                    ]),
+                  ),
+                }
+              : record,
+          ),
+        );
+        this.loadedTranslationIds.add(id);
+        return true;
+      })();
+      this.pendingTranslationLoads.set(id, request);
+    }
+
+    const loaded = await request;
+    if (this.pendingTranslationLoads.get(id) === request) {
+      this.pendingTranslationLoads.delete(id);
+    }
+    if (loaded) onLoaded?.();
   }
   public saveTranslation(
     id: string,
