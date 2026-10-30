@@ -214,13 +214,19 @@ export class ReaderPage {
   }
 
   public get localizedTranscript(): Transcript | undefined {
-    if (!this.transcript || this.store.transcriptUnavailable() === this.transcript.id) {
+    const transcript = this.transcript
+      ? this.store.transcripts().find((item) => item.id === this.transcript?.id) ?? this.transcript
+      : undefined;
+    if (!transcript || this.store.transcriptUnavailable() === transcript.id) {
       return undefined;
     }
-    const translation = this.transcript.translations?.[this.language.current()];
+    const selectedLanguage = this.language.current().trim().toLowerCase();
+    const translation = Object.entries(transcript.translations ?? {}).find(
+      ([language]) => language.trim().toLowerCase() === selectedLanguage,
+    )?.[1];
     return translation
-      ? { ...this.transcript, ...translation, nodes: translation.nodes ?? this.transcript.nodes }
-      : this.transcript;
+      ? { ...transcript, ...translation, nodes: translation.nodes ?? transcript.nodes }
+      : transcript;
   }
 
   public get editParentLabel() {
@@ -240,15 +246,17 @@ export class ReaderPage {
       return [];
     }
 
-    const labels = this.store.collections(category).map((collection) => collection.label);
+    const choices = this.store.collections(category).map((collection) => ({
+      label: collection.localizedLabel,
+      value: collection.label,
+    }));
     const current = this.editParent.trim();
-    const uniqueLabels = [...new Set(labels.map((label) => label.trim()).filter(Boolean))];
 
-    if (current && !uniqueLabels.includes(current)) {
-      uniqueLabels.unshift(current);
+    if (current && !choices.some((choice) => choice.value === current)) {
+      choices.unshift({ label: current, value: current });
     }
 
-    return uniqueLabels.map((label) => ({ label, value: label }));
+    return choices;
   }
 
   public get breadcrumbItems(): MenuItem[] {
@@ -267,9 +275,10 @@ export class ReaderPage {
     };
     const categoryLink = ['/', source.category];
     const parentLink = ['/', source.category, this.slug(source.parentLabel)];
+    const parentLabel = this.localizedParentLabel(source, localized);
     const items: MenuItem[] = [
       this.breadcrumbItem(categoryLabels[source.category] ?? source.category, categoryLink),
-      this.breadcrumbItem(localized.parentLabel ?? source.parentLabel, parentLink),
+      this.breadcrumbItem(parentLabel, parentLink),
     ];
     if (source.category === 'perspectra' && this.route.snapshot.paramMap.get('partId')) {
       const chapterLabel = source.stageLabel || source.title;
@@ -291,6 +300,13 @@ export class ReaderPage {
       items.push({ label: this.language.text('edit') });
     }
     return items;
+  }
+
+  private localizedParentLabel(source: Transcript, localized: Transcript): string {
+    const collection = this.store.collections(source.category).find(
+      (item) => item.id === source.parentId || item.label === source.parentLabel,
+    );
+    return collection?.localizedLabel ?? localized.parentLabel ?? source.parentLabel;
   }
 
   private breadcrumbItem(label: string, link: string[]): MenuItem {

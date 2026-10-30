@@ -75,7 +75,7 @@ export class CatalogPage {
       .collections(this.category)
       .map((c) => ({
         ...c,
-        stages: c.stages.filter((s) => !q || `${c.label} ${s.label}`.toLowerCase().includes(q)),
+        stages: c.stages.filter((s) => !q || `${c.label} ${c.localizedLabel} ${s.label} ${s.canonicalLabel}`.toLowerCase().includes(q)),
       }))
       .filter(
         (c) =>

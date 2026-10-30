@@ -47,13 +47,15 @@ export interface Transcript {
 export interface Collection {
   id: string;
   label: string;
+  localizedLabel: string;
   category: Category;
   backgroundImage?: string;
-  stages: { id: string; label: string; name?: string }[];
+  stages: { id: string; label: string; canonicalLabel: string; name?: string }[];
 }
 export interface Chapter {
   id: string;
   category?: Category;
   name: string;
+  nameTranslations?: Record<string, string>;
   backgroundImage?: string;
 }

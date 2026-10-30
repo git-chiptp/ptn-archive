@@ -27,18 +27,23 @@
   overflow: visible;
 }
 
-.stage-node-object {
-  overflow: visible;
+.stage-node-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 .stage-node {
   --stage-cut: 1.25rem;
   --stage-border: var(--p-primary-color);
   --stage-background: var(--p-content-background);
-  position: relative;
+  position: absolute;
   box-sizing: border-box;
+  border: 0;
   color: var(--p-text-color);
-  text-decoration: none;
+  font: inherit;
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 .stage-node::before,

@@ -1,23 +1,17 @@
 ALTER TABLE public.media_folders
 ADD COLUMN parent_id uuid REFERENCES public.media_folders(id) ON DELETE SET NULL;
-
 CREATE INDEX media_folders_parent_id_name_idx
 ON public.media_folders (parent_id, lower(btrim(name)));
-
 DROP INDEX IF EXISTS media_folders_name_unique_idx;
-
 CREATE UNIQUE INDEX media_folders_root_name_unique_idx
 ON public.media_folders (lower(btrim(name)))
 WHERE parent_id IS NULL;
-
 CREATE UNIQUE INDEX media_folders_sibling_name_unique_idx
 ON public.media_folders (parent_id, lower(btrim(name)))
 WHERE parent_id IS NOT NULL;
-
 UPDATE public.media_folders
 SET parent_id = NULL
 WHERE parent_id = id;
-
 CREATE OR REPLACE FUNCTION public.prevent_media_folder_cycle()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -50,7 +44,6 @@ BEGIN
     RETURN NEW;
 END;
 $$;
-
 CREATE TRIGGER media_folders_prevent_cycle
 BEFORE INSERT OR UPDATE OF parent_id ON public.media_folders
 FOR EACH ROW

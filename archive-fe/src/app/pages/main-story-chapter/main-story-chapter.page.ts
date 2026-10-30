@@ -94,7 +94,7 @@ export class MainStoryChapterPage {
         ),
         routerLink: '/' + this.category,
       },
-      ...(this.chapter ? [{ label: this.chapter.label }] : []),
+      ...(this.chapter ? [{ label: this.chapter.localizedLabel }] : []),
     ];
   }
 
@@ -117,7 +117,7 @@ export class MainStoryChapterPage {
       id: stage.id,
       label: stage.label,
       name: stage.name,
-      link: ['/', this.category, this.slug(collection.label), this.slug(stage.label)],
+      link: ['/', this.category, this.slug(collection.label), this.slug(stage.canonicalLabel)],
     }));
   }
 

@@ -28,7 +28,6 @@ AS $$
         )
     );
 $$;
-
 CREATE OR REPLACE FUNCTION public.prevent_referenced_media_delete()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -42,7 +41,6 @@ BEGIN
     RETURN OLD;
 END;
 $$;
-
 CREATE TRIGGER media_assets_reference_guard
 BEFORE DELETE ON public.media_assets
 FOR EACH ROW

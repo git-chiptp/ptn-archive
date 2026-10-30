@@ -59,13 +59,17 @@ export class PerspectraChapterPage {
   }
 
   public get characterName() {
-    return this.store.chapters().find(
+    const record = this.store.chapters().find(
       (item) => item.category === 'perspectra' && this.slug(item.name) === this.character,
-    )?.name ?? this.parts[0]?.parentLabel ?? this.character;
+    );
+    return record
+      ? this.store.localizedChapterName(record)
+      : this.parts[0]?.parentLabel ?? this.character;
   }
 
   public get chapterName() {
-    return this.parts[0]?.stageLabel || this.parts[0]?.title || this.chapter;
+    const part = this.parts[0];
+    return part ? this.store.localizedTranscriptStageName(part) : this.chapter;
   }
 
   public editChapter() {

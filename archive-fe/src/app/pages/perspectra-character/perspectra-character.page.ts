@@ -63,6 +63,12 @@ export class PerspectraCharacterPage {
   }
 
   public get characterName() {
+    return this.characterRecord
+      ? this.store.localizedChapterName(this.characterRecord)
+      : this.rows()[0]?.parentLabel ?? this.character;
+  }
+
+  public get canonicalCharacterName() {
     return this.characterRecord?.name ?? this.rows()[0]?.parentLabel ?? this.character;
   }
 
@@ -72,10 +78,10 @@ export class PerspectraCharacterPage {
       .filter((t) => t.category === 'perspectra' && this.slug(t.parentLabel) === this.character);
     const map = new Map<string, { id: string; label: string }>();
     rows.forEach((t) => {
-      const label = t.stageLabel || t.title;
-      map.set(this.slug(label), {
-        id: this.slug(label),
-        label,
+      const canonicalLabel = t.stageLabel || t.title;
+      map.set(this.slug(canonicalLabel), {
+        id: this.slug(canonicalLabel),
+        label: this.store.localizedTranscriptStageName(t),
       });
     });
     return [...map.values()];
@@ -97,15 +103,29 @@ export class PerspectraCharacterPage {
       return;
     }
     const parts = this.rows();
-    const renameParts = () => {
-      parts.forEach((t) => this.store.update({ ...t, parentLabel: next }));
-      this.router.navigate(['/perspectra', this.slug(next)]);
-    };
     if (this.characterRecord) {
-      this.store.updateChapter({ ...this.characterRecord, name: next }, renameParts);
-    } else {
-      renameParts();
+      const selectedLanguage = this.language.current().trim().toLowerCase();
+      const chapter =
+        selectedLanguage === 'en'
+          ? { ...this.characterRecord, name: next }
+          : {
+              ...this.characterRecord,
+              nameTranslations: {
+                ...(this.characterRecord.nameTranslations ?? {}),
+                [selectedLanguage]: next,
+              },
+            };
+      this.store.updateChapter(chapter, () => {
+        if (selectedLanguage === 'en') {
+          parts.forEach((t) => this.store.update({ ...t, parentLabel: next }));
+          void this.router.navigate(['/perspectra', this.slug(next)]);
+        }
+        this.renameDialogVisible = false;
+      });
+      return;
     }
+    parts.forEach((t) => this.store.update({ ...t, parentLabel: next }));
+    this.router.navigate(['/perspectra', this.slug(next)]);
     this.renameDialogVisible = false;
   }
 

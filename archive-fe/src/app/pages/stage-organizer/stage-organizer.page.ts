@@ -64,7 +64,7 @@ export class StageOrganizerPage {
         label: this.language.text(this.category === 'event-story' ? 'eventStory' : 'mainStory'),
         routerLink: ['/', this.category],
       },
-      { label: collection.label, routerLink: ['/', this.category, this.slug(collection.label)] },
+      { label: collection.localizedLabel, routerLink: ['/', this.category, this.slug(collection.label)] },
       { label: this.language.text('stageOrganizer') },
     ];
   }
@@ -96,7 +96,7 @@ export class StageOrganizerPage {
       id: stage.id,
       label: stage.label,
       name: stage.name,
-      link: ['/', category, this.slug(collection.label), this.slug(stage.label)],
+      link: ['/', category, this.slug(collection.label), this.slug(stage.canonicalLabel)],
     }));
   }
 

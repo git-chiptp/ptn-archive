@@ -26,30 +26,28 @@
             stroke-width="2"
           />
         }
-        @for (node of nodes; track node.id) {
-          <foreignObject
-            class="stage-node-object"
-            [attr.x]="nodeX(node) - nodeWidth / 2"
-            [attr.y]="nodeY(node) - nodeHeight / 2"
-            [attr.width]="nodeWidth"
-            [attr.height]="nodeHeight"
-          >
-            <a
-              xmlns="http://www.w3.org/1999/xhtml"
-              class="stage-node flex h-full w-full items-center justify-center p-3 text-center font-semibold shadow-sm"
-              [routerLink]="node.link"
-              (click)="preventClickAfterDrag($event)"
-            >
-              <span class="stage-node-content relative z-10">
-                <span class="stage-number">{{ node.stageNumber }}</span>
-                @if (node.stageName) {
-                  <span class="stage-name">{{ node.stageName }}</span>
-                }
-              </span>
-            </a>
-          </foreignObject>
-        }
       </svg>
+      <div class="stage-node-layer">
+        @for (node of nodes; track node.id) {
+          <button
+            type="button"
+            class="stage-node flex items-center justify-center p-3 text-center font-semibold shadow-sm"
+            [style.left.px]="nodeX(node) - nodeWidth / 2"
+            [style.top.px]="nodeY(node) - nodeHeight / 2"
+            [style.width.px]="nodeWidth"
+            [style.height.px]="nodeHeight"
+            (pointerdown)="$event.stopPropagation()"
+            (click)="openStage($event, node.link)"
+          >
+            <span class="stage-node-content relative z-10">
+              <span class="stage-number">{{ node.stageNumber }}</span>
+              @if (node.stageName) {
+                <span class="stage-name">{{ node.stageName }}</span>
+              }
+            </span>
+          </button>
+        }
+      </div>
     </div>
   </div>
 </div>

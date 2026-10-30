@@ -67,6 +67,12 @@ export class InterrogationCharacterPage {
   }
 
   public get characterName() {
+    return this.characterRecord
+      ? this.store.localizedChapterName(this.characterRecord)
+      : this.parts[0]?.parentLabel ?? this.character;
+  }
+
+  public get canonicalCharacterName() {
     return this.characterRecord?.name ?? this.parts[0]?.parentLabel ?? this.character;
   }
 
@@ -78,7 +84,7 @@ export class InterrogationCharacterPage {
 
   public addPart() {
     this.router.navigate(['/add-transcript'], {
-      queryParams: { category: this.category, parentLabel: this.characterName },
+      queryParams: { category: this.category, parentLabel: this.canonicalCharacterName },
     });
   }
 
@@ -98,15 +104,17 @@ export class InterrogationCharacterPage {
       return;
     }
     const parts = this.parts;
-    const renameParts = () => {
-      parts.forEach((t) => this.store.update({ ...t, parentLabel: next }));
-      this.router.navigate(['/', this.category, this.slug(next)]);
-    };
     if (this.characterRecord) {
-      this.store.updateChapter({ ...this.characterRecord, name: next }, renameParts);
-    } else {
-      renameParts();
+      const chapter = { ...this.characterRecord, name: next, nameTranslations: {} };
+      this.store.updateChapter(chapter, () => {
+        parts.forEach((t) => this.store.update({ ...t, parentLabel: next }));
+        void this.router.navigate(['/', this.category, this.slug(next)]);
+        this.renameDialogVisible = false;
+      });
+      return;
     }
+    parts.forEach((t) => this.store.update({ ...t, parentLabel: next }));
+    this.router.navigate(['/', this.category, this.slug(next)]);
     this.renameDialogVisible = false;
   }
 

@@ -48,7 +48,7 @@
           class="min-h-10 w-full !justify-start !text-left whitespace-normal px-3 py-2"
           [routerLink]="['/', category, character, slug(part.title || part.stageLabel)]"
         >
-          {{ part.title || part.stageLabel }}
+          {{ store.localizedTranscriptTitle(part) }}
         </a>
         @if (auth.user()) {
           <button pButton type="button" severity="danger" size="small" (click)="deletePart(part.id)">

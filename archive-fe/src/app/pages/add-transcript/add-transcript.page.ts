@@ -219,11 +219,22 @@ export class AddTranscriptPage {
     ];
     if (parentLabel) {
       items.push(
-        this.breadcrumbItem(parentLabel, ['/', this.form.category, this.slug(parentLabel)]),
+        this.breadcrumbItem(this.localizedParentLabel(parentLabel), [
+          '/',
+          this.form.category,
+          this.slug(parentLabel),
+        ]),
       );
     }
     items.push({ label: this.editingId ? 'Edit' : 'Add stage' });
     return items;
+  }
+
+  public localizedParentLabel(parentLabel: string): string {
+    return (
+      this.store.collections(this.form.category).find((item) => item.label === parentLabel)
+        ?.localizedLabel ?? parentLabel
+    );
   }
 
   private breadcrumbItem(label: string, link: string[]): MenuItem {
@@ -276,9 +287,9 @@ export class AddTranscriptPage {
     const category = this.form.category;
     const choices = this.store
       .collections(category)
-      .map((item) => ({ id: item.id, name: item.label }));
-    if (this.form.parentLabel && !choices.some((item) => item.name === this.form.parentLabel)) {
-      choices.unshift({ id: '', name: this.form.parentLabel });
+      .map((item) => ({ id: item.id, name: item.localizedLabel, value: item.label }));
+    if (this.form.parentLabel && !choices.some((item) => item.value === this.form.parentLabel)) {
+      choices.unshift({ id: '', name: this.form.parentLabel, value: this.form.parentLabel });
     }
     return choices;
   }
@@ -552,7 +563,7 @@ export class AddTranscriptPage {
       title: this.form.title.trim() || this.form.stageLabel,
       category: this.form.category,
       parentId:
-        this.parentChoices.find((item) => item.name === this.form.parentLabel)?.id ??
+        this.parentChoices.find((item) => item.value === this.form.parentLabel)?.id ??
         this.slug(this.form.parentLabel),
       parentLabel: this.form.parentLabel,
       stageLabel: this.form.stageLabel,
