@@ -17,7 +17,8 @@ import { ButtonModule } from 'primeng/button';
 import { MediaPickerComponent } from '../media-picker/media-picker.component';
 import { InputTextModule } from 'primeng/inputtext';
 import { ImageModule } from 'primeng/image';
-import { DialogueNode, ImageNode, LineNode } from '../../models/transcript.models';
+import { DialogueNode, ImageNode, LineNode, VideoNode } from '../../models/transcript.models';
+import { parseYoutubeVideoId, youtubeEmbedUrl } from '../../utils/youtube';
 import { LanguageService } from '../../services/language.service';
 import {
   ArchiveStorageService,
@@ -25,7 +26,7 @@ import {
 } from '../../services/archive-storage.service';
 import { UiTextPipe } from '../../i18n/ui-text.pipe';
 
-type EditableNode = EditableLine | EditableImage;
+type EditableNode = EditableLine | EditableImage | EditableVideo;
 interface EditableLine {
   type: 'line';
   id: string;
@@ -47,6 +48,11 @@ interface EditableImage {
   src: string;
   male: string;
   female: string;
+}
+interface EditableVideo {
+  type: 'video';
+  id: string;
+  videoId: string;
 }
 
 @Component({
@@ -144,6 +150,25 @@ export class TranscriptEditorComponent implements OnChanges {
 
   public imagePreviewUrl(value?: string): string | undefined {
     return value ? this.storage?.toPublicUrl(value) : undefined;
+  }
+
+  public videoEmbedUrl(value?: string) {
+    const embedUrl = youtubeEmbedUrl(value ?? '');
+    return embedUrl && this.sanitizer?.bypassSecurityTrustResourceUrl(embedUrl);
+  }
+
+  public videoIsValid(node: EditableVideo) {
+    return !!parseYoutubeVideoId(node.videoId);
+  }
+
+  public hasInvalidVideo(nodes: EditableNode[] = this.nodes): boolean {
+    return nodes.some((node) =>
+      node.type === 'video'
+        ? !this.videoIsValid(node)
+        : node.type === 'line'
+          ? node.options.some((option) => this.hasInvalidVideo(option.nodes))
+          : false,
+    );
   }
 
   public openMediaPicker(
@@ -265,6 +290,15 @@ export class TranscriptEditorComponent implements OnChanges {
     (event?.currentTarget as HTMLElement | null)?.blur();
   }
 
+  public insertVideo(index: number, event?: MouseEvent) {
+    this.insert(index, {
+      type: 'video',
+      id: crypto.randomUUID(),
+      videoId: '',
+    });
+    (event?.currentTarget as HTMLElement | null)?.blur();
+  }
+
   private insert(index: number, node: EditableNode) {
     this.nodes.splice(index, 0, node);
     this.openInsertIndex = null;
@@ -332,7 +366,17 @@ export class TranscriptEditorComponent implements OnChanges {
     return this.serializeNodes(this.nodes);
   }
   private serializeNodes(nodes: EditableNode[]): DialogueNode[] {
-    return nodes.map((node) => (node.type === 'line' ? this.line(node) : this.image(node)));
+    return nodes.map((node) =>
+      node.type === 'line' ? this.line(node) : node.type === 'image' ? this.image(node) : this.video(node),
+    );
+  }
+
+  private video(video: EditableVideo): VideoNode {
+    return {
+      type: 'video',
+      id: video.id,
+      videoId: parseYoutubeVideoId(video.videoId) ?? '',
+    };
   }
 
   private image(image: EditableImage): ImageNode {

@@ -23,6 +23,7 @@ import {
   LineNode,
   ImageNode,
   Transcript,
+  VideoNode,
 } from '../../models/transcript.models';
 import {
   TranscriptEditorComponent,
@@ -37,6 +38,7 @@ import {
   ImportedTranscriptMetadata,
   TranscriptImportService,
 } from '../../services/transcript-import.service';
+import { parseYoutubeVideoId } from '../../utils/youtube';
 
 @Component({
   standalone: true,
@@ -523,7 +525,9 @@ export class AddTranscriptPage {
               node.female ||
               node.options.some((option) => option.label || hasContent(option.nodes))
             )
-          : !!(node.src || node.male || node.female),
+          : node.type === 'image'
+            ? !!(node.src || node.male || node.female)
+            : !!node.videoId,
       );
     return hasContent(this.nodes);
   }
@@ -547,7 +551,7 @@ export class AddTranscriptPage {
   }
 
   public submit(formRef: NgForm) {
-    if (formRef.invalid || !this.nodes.length) {
+    if (formRef.invalid || !this.nodes.length || this.hasInvalidVideo(this.nodes)) {
       return;
     }
     this.confirmation.confirm({
@@ -609,8 +613,28 @@ export class AddTranscriptPage {
     this.router.navigate(['/', transcript.category, this.slug(transcript.parentLabel)]);
   }
 
+  public hasInvalidVideo(nodes: EditableNode[]): boolean {
+    return nodes.some((node) =>
+      node.type === 'video'
+        ? !parseYoutubeVideoId(node.videoId)
+        : node.type === 'line'
+          ? node.options.some((option) => this.hasInvalidVideo(option.nodes))
+          : false,
+    );
+  }
+
   private toEditable(nodes: DialogueNode[]): EditableNode[] {
-    return nodes.map((node) => (node.type === 'line' ? this.line(node) : this.image(node)));
+    return nodes.map((node) =>
+      node.type === 'line' ? this.line(node) : node.type === 'image' ? this.image(node) : this.video(node),
+    );
+  }
+
+  private video(node: VideoNode): EditableNode {
+    return {
+      type: 'video',
+      id: node.id,
+      videoId: node.videoId,
+    };
   }
 
   private image(node: ImageNode): EditableNode {

@@ -583,6 +583,9 @@ export class ArchiveStorageService {
                 : {}),
             };
           }
+          if (node.type === 'video') {
+            return node;
+          }
           const [src, male, female] = await Promise.all([
             resolveImage(node.src),
             resolveImage(node.variants?.male),
@@ -750,7 +753,8 @@ export class ArchiveStorageService {
                 }
               : {}),
           }
-        : {
+        : node.type === 'image'
+          ? {
               ...node,
               src: this.toStoredValue(node.src) ?? node.src,
               ...(node.variants
@@ -761,7 +765,8 @@ export class ArchiveStorageService {
                     },
                   }
                 : {}),
-            },
+            }
+          : node,
     );
   }
 
@@ -781,6 +786,10 @@ export class ArchiveStorageService {
               }
             : {}),
         });
+        continue;
+      }
+      if (node.type === 'video') {
+        publicNodes.push(node);
         continue;
       }
       const src = this.toPublicUrl(node.src);
@@ -811,7 +820,7 @@ export class ArchiveStorageService {
           const path = this.toStoragePath(node.sprite);
           if (path && !MEDIA_OBJECT_PATH_PATTERN.test(path)) paths.push(path);
           node.options?.forEach((option) => collect(option.nodes));
-        } else {
+        } else if (node.type === 'image') {
           for (const value of [node.src, node.variants?.male, node.variants?.female]) {
             const path = this.toStoragePath(value);
             if (path && !MEDIA_OBJECT_PATH_PATTERN.test(path)) paths.push(path);

@@ -24,6 +24,7 @@ import {
   ImageNode,
   LineNode,
   Transcript,
+  VideoNode,
 } from '../../models/transcript.models';
 import {
   TranscriptEditorComponent,
@@ -40,6 +41,7 @@ import {
   TranscriptImportService,
 } from '../../services/transcript-import.service';
 import { finalize } from 'rxjs/operators';
+import { parseYoutubeVideoId } from '../../utils/youtube';
 
 @Component({
   standalone: true,
@@ -771,7 +773,12 @@ export class ReaderPage {
     }
   }
   public save() {
-    if (!this.transcript || !this.editNodes.length || this.saving) {
+    if (
+      !this.transcript ||
+      !this.editNodes.length ||
+      this.saving ||
+      this.hasInvalidVideo(this.editNodes)
+    ) {
       return;
     }
     this.confirmation.confirm({
@@ -902,7 +909,27 @@ export class ReaderPage {
               nodes: this.toEditable(option.nodes),
             })),
           }
-        : this.image(node),
+        : node.type === 'image'
+          ? this.image(node)
+          : this.video(node),
+    );
+  }
+
+  private video(node: VideoNode): EditableNode {
+    return {
+      type: 'video',
+      id: node.id,
+      videoId: node.videoId,
+    };
+  }
+
+  public hasInvalidVideo(nodes: EditableNode[]): boolean {
+    return nodes.some((node) =>
+      node.type === 'video'
+        ? !parseYoutubeVideoId(node.videoId)
+        : node.type === 'line'
+          ? node.options.some((option) => this.hasInvalidVideo(option.nodes))
+          : false,
     );
   }
 

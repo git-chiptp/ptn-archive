@@ -3,7 +3,9 @@ import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { ButtonModule } from 'primeng/button';
 import { ImageModule } from 'primeng/image';
-import { DialogueNode, Gender, ImageNode, LineNode } from '../../models/transcript.models';
+import { DialogueNode, Gender, ImageNode, LineNode, VideoNode } from '../../models/transcript.models';
+import { youtubeEmbedUrl } from '../../utils/youtube';
+import { LanguageService } from '../../services/language.service';
 import {
   ArchiveStorageService,
   isRenderableImageSource,
@@ -20,6 +22,7 @@ import {
 export class NodeListComponent {
   private sanitizer = inject(DomSanitizer);
   private readonly storage = inject(ArchiveStorageService);
+  private readonly language = inject(LanguageService);
   @Input() nodes: DialogueNode[] = [];
   @Input() gender: Gender = 'female';
   @Input() chiefName = 'A';
@@ -52,6 +55,15 @@ export class NodeListComponent {
     const value =
       node.variants?.[this.gender] || node.variants?.male || node.variants?.female || node.src;
     return this.mediaUrl(value);
+  }
+
+  public video(node: VideoNode) {
+    const embedUrl = youtubeEmbedUrl(node.videoId);
+    return embedUrl ? this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl) : undefined;
+  }
+
+  public videoTitle() {
+    return this.language.text('videoPreview');
   }
 
   public mediaUrl(value?: string) {
