@@ -223,24 +223,19 @@
               }
               <p-accordion
                 [multiple]="true"
-                [value]="['detail', 'note']"
                 styleClass="min-w-0"
               >
-                <p-accordion-panel value="detail">
+                <p-accordion-panel value="detail" [disabled]="!entry.detail">
                   <p-accordion-header>{{ language.text('detail') }}</p-accordion-header>
                   <p-accordion-content>
                     @if (entry.detail) {
                       <p class="whitespace-pre-line break-words leading-6 text-[var(--p-text-color)]">
                         {{ entry.detail }}
                       </p>
-                    } @else {
-                      <p class="text-sm italic text-[var(--p-text-muted-color)]">
-                        {{ language.text('glossaryNoDetail') }}
-                      </p>
                     }
                   </p-accordion-content>
                 </p-accordion-panel>
-                <p-accordion-panel value="note">
+                <p-accordion-panel value="note" [disabled]="!entry.note">
                   <p-accordion-header>{{ language.text('note') }}</p-accordion-header>
                   <p-accordion-content>
                     @if (entry.note) {
@@ -248,10 +243,6 @@
                         class="whitespace-pre-line break-words leading-6 text-[var(--p-text-muted-color)]"
                       >
                         {{ entry.note }}
-                      </p>
-                    } @else {
-                      <p class="text-sm italic text-[var(--p-text-muted-color)]">
-                        {{ language.text('glossaryNoNote') }}
                       </p>
                     }
                   </p-accordion-content>

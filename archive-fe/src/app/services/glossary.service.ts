@@ -64,6 +64,7 @@ export class GlossaryService {
       this.supabase
         .from('glossary_terms')
         .select(GLOSSARY_COLUMNS)
+        .order('vietnamese', { ascending: true })
         .order('english', { ascending: true })
         .order('created_at', { ascending: true }),
       this.supabase.from('glossary_tags').select(TAG_COLUMNS).order('name', { ascending: true }),
