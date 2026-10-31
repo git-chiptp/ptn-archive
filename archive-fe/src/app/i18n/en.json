@@ -241,8 +241,6 @@
   "glossaryDeleteFailed": "Could not delete the glossary term(s).",
   "glossaryDeleted": "Glossary term(s) deleted.",
   "glossarySaved": "Glossary term added.",
-  "glossaryNoDetail": "No detail provided.",
-  "glossaryNoNote": "No note provided.",
   "manageGlossaryTags": "Manage tags",
   "glossaryTags": "Tags",
   "selectGlossaryTags": "Select tags",
