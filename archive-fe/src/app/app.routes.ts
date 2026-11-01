@@ -44,6 +44,11 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/glossary/glossary.page').then((page) => page.GlossaryPage),
   },
   {
+    path: 'mirror-system',
+    loadComponent: () =>
+      import('./pages/mirror-system/mirror-system').then((page) => page.MirrorSystem),
+  },
+  {
     path: 'stage-organizer',
     loadComponent: () =>
       import('./pages/stage-organizer/stage-organizer.page').then(

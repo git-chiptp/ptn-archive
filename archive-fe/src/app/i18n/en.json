@@ -210,6 +210,7 @@
   "importedWithUnresolvedImages": "Imported content, but {count} image reference(s) could not be loaded and the corresponding image node(s) were removed.",
   "importImagesFailed": "Import failed: the image references could not be resolved.",
   "glossary": "Glossary",
+  "mirrorSystem": "Mirror System",
   "searchGlossary": "Search glossary",
   "searchGlossaryPlaceholder": "Search selected fields...",
   "glossarySearchFields": "Search through",

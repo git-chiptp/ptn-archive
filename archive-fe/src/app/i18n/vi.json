@@ -210,6 +210,7 @@
   "importedWithUnresolvedImages": "Đã nhập nội dung, nhưng không thể tải {count} tham chiếu ảnh nên các mục ảnh tương ứng đã bị xóa.",
   "importImagesFailed": "Nhập thất bại: không thể xử lý các tham chiếu ảnh.",
   "glossary": "Từ điển",
+  "mirrorSystem": "Mirror System",
   "searchGlossary": "Tìm kiếm từ điển",
   "searchGlossaryPlaceholder": "Tìm trong các trường đã chọn...",
   "glossarySearchFields": "Tìm qua",

@@ -3,8 +3,8 @@
     <a
       [routerLink]="x.path"
       class="group relative block w-full overflow-hidden rounded-lg bg-[var(--p-content-background)] outline-none transition-transform duration-200 hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-[var(--p-primary-color)] group-hover:shadow-lg group-focus-visible:shadow-lg"
-      [class.col-span-full]="x.key === 'glossary'"
-      [style.aspect-ratio]="x.key === 'glossary' ? '5 / 1' : '16 / 9'"
+      [class.col-span-full]="x.key === 'glossary' || x.key === 'mirrorSystem'"
+      [style.aspect-ratio]="x.key === 'glossary' || x.key === 'mirrorSystem' ? '5 / 1' : '16 / 9'"
     >
       @if (x.image) {
         <p-image

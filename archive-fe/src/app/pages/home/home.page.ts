@@ -17,6 +17,10 @@ export class HomePage {
       image: '/img/menu/glossary.webp',
     },
     {
+      path: '/mirror-system',
+      key: 'mirrorSystem',
+    },
+    {
       path: '/main-story',
       key: 'mainStory',
       image: '/img/menu/main-story.webp',

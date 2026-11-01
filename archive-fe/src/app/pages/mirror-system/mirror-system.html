@@ -1,0 +1,30 @@
+<section class="cards grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  @for (x of links; track x.path) {
+    <a
+      [routerLink]="x.path"
+      class="group relative block w-full overflow-hidden rounded-lg bg-[var(--p-content-background)] outline-none transition-transform duration-200 hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-[var(--p-primary-color)] group-hover:shadow-lg group-focus-visible:shadow-lg"
+      [class.col-span-full]="x.key === 'glossary'"
+      [style.aspect-ratio]="x.key === 'glossary' ? '5 / 1' : '16 / 9'"
+    >
+      @if (x.image) {
+        <p-image
+          [src]="x.image"
+          [alt]="language.text(x.key)"
+          [preview]="false"
+          styleClass="block h-full w-full"
+          imageClass="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+        />
+      } @else {
+        <span class="absolute inset-0 bg-[var(--p-primary-color)]"></span>
+      }
+      <span
+        class="absolute inset-0 transition-colors duration-200 group-hover:bg-black/25 group-focus-visible:bg-black/25"
+        aria-hidden="true"
+      ></span>
+      <span
+        class="absolute inset-0 z-10 flex items-center justify-center text-center text-2xl font-semibold uppercase tracking-wide text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]"
+        >{{ language.text(x.key) }}</span
+      >
+    </a>
+  }
+</section>
