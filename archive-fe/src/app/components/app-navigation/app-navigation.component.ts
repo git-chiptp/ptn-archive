@@ -44,7 +44,7 @@ export class AppNavigationComponent implements OnInit {
     { icon: 'eye', label: 'mirage', path: '/mirage' },
     { icon: 'chart-line', label: 'perspectra', path: '/perspectra' },
     { icon: 'language', label: 'glossary', path: '/glossary' },
-    { icon: 'info-circle', label: 'credits', path: '/credits' },
+    { icon: 'info-circle', label: 'contributors', path: '/contributors' },
     { icon: 'images', label: 'mediaLibrary', path: '/media', requiresAuth: true },
   ] as const;
 

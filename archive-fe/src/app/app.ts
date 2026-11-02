@@ -1,12 +1,13 @@
 import { DOCUMENT } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { ScrollTopModule } from 'primeng/scrolltop';
 import { AppNavigationComponent } from './components/app-navigation/app-navigation.component';
 import { AuthService } from './services/auth.service';
 
 @Component({
   standalone: true,
-  imports: [RouterOutlet, AppNavigationComponent],
+  imports: [RouterOutlet, ScrollTopModule, AppNavigationComponent],
   selector: 'app-root',
   templateUrl: './app.html',
   host: {

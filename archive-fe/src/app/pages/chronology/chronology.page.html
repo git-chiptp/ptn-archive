@@ -1,0 +1,234 @@
+<section class="block">
+  <p-breadcrumb [home]="breadcrumbHome" [model]="breadcrumbItems" styleClass="!p-0" />
+  <p-confirmdialog key="chronology-actions" [style]="{ width: 'min(28rem, calc(100vw - 2rem))' }" />
+
+  <div class="flex flex-col items-stretch gap-8 lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-[clamp(2rem,7vw,7rem)]">
+    <nav
+      class="order-0 px-1 py-3 lg:sticky lg:top-20 lg:col-start-1 lg:row-start-1 lg:self-start lg:overflow-visible lg:py-2"
+      [attr.aria-label]="language.text('chronologyNavigation')"
+    >
+      @if (chronologyItems.length) {
+        <p class="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--p-text-muted-color)]">
+          {{ language.text('onThisPage') }}
+        </p>
+        <ol class="flex w-full flex-col gap-1 border-b border-[var(--p-content-border-color)] lg:w-auto lg:border-b-0 lg:border-l">
+          @for (item of chronologyItems; track item.id; let index = $index) {
+            <li>
+              <a
+                [href]="'#' + item.id"
+                class="flex items-baseline gap-[0.65rem] border-b-2 border-transparent px-[0.65rem] py-[0.45rem] text-sm leading-[1.35] text-[var(--p-text-muted-color)] no-underline outline-none transition-[color,border-color,padding] duration-150 hover:border-b-[var(--p-primary-color)] hover:text-[var(--p-primary-color)] focus-visible:outline-none lg:-ml-px lg:border-b-0 lg:border-l-2 lg:px-1 lg:py-[0.55rem] lg:pl-4 lg:hover:border-b-transparent lg:hover:border-l-[var(--p-primary-color)] lg:hover:pl-[1.2rem]"
+                [attr.aria-label]="language.text('jumpToChronologyItem', { name: item.title })"
+                (click)="scrollToItem($event, item.id)"
+              >
+                <span class="shrink-0 text-[0.7rem] tabular-nums opacity-70">{{ (index + 1).toString().padStart(2, '0') }}</span>
+                <span>{{ item.title }}</span>
+              </a>
+            </li>
+          }
+        </ol>
+      }
+    </nav>
+
+    <div class="min-w-0 lg:col-start-2">
+      <header class="mb-10 flex flex-wrap items-end justify-between gap-4">
+        <h1 class="m-0 text-4xl font-semibold tracking-tight sm:text-5xl">
+          {{ language.text('chronology') }}
+        </h1>
+        @if (auth.user()) {
+          <div class="flex flex-wrap gap-2">
+            <button pButton type="button" (click)="openAdd()">
+              <i class="pi pi-plus" aria-hidden="true"></i>
+              <span>{{ language.text('add') }}</span>
+            </button>
+            @if (chronologyItems.length > 1) {
+              <button pButton type="button" severity="secondary" (click)="openOrganizer()">
+                <i class="pi pi-sort-alt" aria-hidden="true"></i>
+                <span>{{ language.text('organizeChronology') }}</span>
+              </button>
+            }
+          </div>
+        }
+      </header>
+
+      @if (status) {
+        <p-message class="mb-6 block" severity="success" variant="simple">{{ status }}</p-message>
+      }
+      @if (error) {
+        <p-message class="mb-6 block" severity="error" variant="simple">{{ error }}</p-message>
+      }
+
+      @if (loading) {
+        <div class="flex min-h-40 items-center justify-center rounded-2xl border border-dashed border-[var(--p-content-border-color)] text-[var(--p-text-muted-color)]" role="status">
+          {{ language.text('chronologyLoading') }}
+        </div>
+      } @else if (!chronologyItems.length) {
+        <div class="flex min-h-56 flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-[var(--p-content-border-color)] p-8 text-center">
+          <p class="m-0 text-[var(--p-text-muted-color)]">{{ language.text('chronologyEmpty') }}</p>
+          @if (auth.user()) {
+            <button pButton type="button" (click)="openAdd()">
+              <i class="pi pi-plus" aria-hidden="true"></i>
+              <span>{{ language.text('add') }}</span>
+            </button>
+          }
+        </div>
+      } @else {
+        <p-timeline [value]="chronologyItems" align="left" styleClass="chronology-timeline">
+          <ng-template #marker let-item>
+            <span class="grid size-9 place-items-center rounded-full border border-[color-mix(in_srgb,var(--p-primary-color)_45%,var(--p-content-border-color))] bg-[var(--p-content-background)] text-[var(--p-primary-color)] shadow-[0_0_0_0.35rem_var(--p-content-background)]">
+              <i [class]="item.icon" aria-hidden="true"></i>
+            </span>
+          </ng-template>
+          <ng-template #content let-item>
+            <article [id]="item.id" class="w-full scroll-mt-24 pb-8 sm:pb-12">
+              <div class="mb-2 flex min-h-7 items-center justify-between gap-3">
+                <p class="m-0 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--p-text-muted-color)] sm:hidden">
+                  {{ item.date }}
+                </p>
+                @if (auth.user()) {
+                  <div class="ml-auto flex gap-1">
+                    <button
+                      pButton
+                      type="button"
+                      text
+                      size="small"
+                      [attr.aria-label]="language.text('editChronologyEntry', { name: item.title })"
+                      [title]="language.text('editChronologyEntry', { name: item.title })"
+                      (click)="openEdit(item)"
+                    >
+                      <i class="pi pi-pencil" aria-hidden="true"></i>
+                    </button>
+                    <button
+                      pButton
+                      type="button"
+                      text
+                      severity="danger"
+                      size="small"
+                      [attr.aria-label]="language.text('deleteChronologyEntry', { name: item.title })"
+                      [title]="language.text('deleteChronologyEntry', { name: item.title })"
+                      (click)="deleteItem(item)"
+                    >
+                      <i class="pi pi-trash" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                }
+              </div>
+              <button
+                type="button"
+                class="flex min-h-[7.5rem] w-full items-end justify-between rounded-xl border border-[var(--p-content-border-color)] bg-[color-mix(in_srgb,var(--p-content-background)_92%,var(--p-primary-color))] p-4 text-left text-[var(--p-text-muted-color)] outline-none transition-[border-color,box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:border-[var(--p-primary-color)] hover:shadow-[0_0.75rem_2rem_color-mix(in_srgb,var(--p-primary-color)_15%,transparent)] focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--p-primary-color)]"
+                [attr.aria-label]="language.text('openChronologyItem', { name: item.title })"
+                (click)="openItem(item)"
+              >
+                <span class="text-xs font-semibold uppercase tracking-[0.08em]">{{ language.text('openDetails') }}</span>
+                <i class="pi pi-arrow-up-right" aria-hidden="true"></i>
+              </button>
+            </article>
+          </ng-template>
+        </p-timeline>
+      }
+    </div>
+  </div>
+</section>
+
+<p-dialog
+  [(visible)]="dialogVisible"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [dismissableMask]="true"
+  [header]="selectedItem?.title ?? ''"
+  [style]="{ width: 'min(42rem, calc(100vw - 2rem))' }"
+  (onHide)="closeDialog()"
+>
+  @if (selectedItem; as item) {
+    <div class="flex flex-col gap-5">
+      <div class="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.16em] text-[var(--p-primary-color)]">
+        <i [class]="item.icon" aria-hidden="true"></i>
+        <span>{{ item.date }}</span>
+      </div>
+      <p class="m-0 whitespace-pre-line text-base leading-8 text-[var(--p-text-color)]">{{ item.detail }}</p>
+      <div class="flex justify-end">
+        <button pButton type="button" severity="secondary" [text]="true" (click)="closeDialog()">
+          {{ language.text('close') }}
+        </button>
+      </div>
+    </div>
+  }
+</p-dialog>
+
+<p-dialog
+  [(visible)]="editorVisible"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [closable]="!saving"
+  [dismissableMask]="!saving"
+  [header]="language.text(editingItem ? 'editChronologyEntryTitle' : 'addChronologyEntry')"
+  [style]="{ width: 'min(42rem, calc(100vw - 2rem))' }"
+>
+  <form #form="ngForm" class="flex flex-col gap-4" (ngSubmit)="submit()" novalidate>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div class="flex min-w-0 flex-col gap-1">
+        <label class="font-medium" for="chronology-date">{{ language.text('chronologyDate') }}</label>
+        <input pInputText id="chronology-date" name="date" [(ngModel)]="draft.date" autocomplete="off" />
+      </div>
+      <div class="flex min-w-0 flex-col gap-1">
+        <label class="font-medium" for="chronology-icon">{{ language.text('chronologyIcon') }}</label>
+        <input pInputText id="chronology-icon" name="icon" [(ngModel)]="draft.icon" autocomplete="off" />
+      </div>
+    </div>
+    <div class="flex flex-col gap-1">
+      <label class="font-medium" for="chronology-title">{{ language.text('chronologyTitle') }}</label>
+      <input pInputText id="chronology-title" name="title" [(ngModel)]="draft.title" required autocomplete="off" />
+    </div>
+    <div class="flex flex-col gap-1">
+      <label class="font-medium" for="chronology-detail">{{ language.text('detail') }}</label>
+      <textarea pTextarea id="chronology-detail" name="detail" [(ngModel)]="draft.detail" rows="6" class="w-full"></textarea>
+    </div>
+    @if (dialogError) {
+      <p-message severity="error" variant="simple">{{ dialogError }}</p-message>
+    }
+    <div class="flex flex-wrap justify-end gap-2 pt-2">
+      <button pButton type="button" severity="secondary" [text]="true" [disabled]="saving" (click)="closeEditor()">
+        {{ language.text('cancel') }}
+      </button>
+      <button pButton type="submit" [loading]="saving" [disabled]="saving">
+        <i class="pi pi-check" aria-hidden="true"></i>
+        <span>{{ language.text('save') }}</span>
+      </button>
+    </div>
+  </form>
+</p-dialog>
+
+<p-dialog
+  [(visible)]="organizerVisible"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [closable]="!orderSaving"
+  [dismissableMask]="!orderSaving"
+  [header]="language.text('organizeChronology')"
+  [style]="{ width: 'min(36rem, calc(100vw - 2rem))' }"
+>
+  <div class="flex flex-col gap-4">
+    <p-orderlist [(value)]="orderedItems" [dragdrop]="true" [ariaLabel]="language.text('organizeChronology')" styleClass="w-full">
+      <ng-template #item let-item>
+        <div class="flex min-w-0 items-center gap-3 py-1">
+          <span class="min-w-0 flex-1 break-words leading-snug [overflow-wrap:anywhere]">{{ item.title }}</span>
+          <span class="shrink-0 text-xs text-[var(--p-text-muted-color)]">{{ item.date }}</span>
+        </div>
+      </ng-template>
+    </p-orderlist>
+    @if (error) {
+      <p-message severity="error" variant="simple">{{ error }}</p-message>
+    }
+    <div class="flex justify-end gap-2 pt-2">
+      <button pButton type="button" severity="secondary" [text]="true" [disabled]="orderSaving" (click)="closeOrganizer()">
+        {{ language.text('cancel') }}
+      </button>
+      <button pButton type="button" [loading]="orderSaving" [disabled]="orderSaving" (click)="saveOrder()">
+        <i class="pi pi-save" aria-hidden="true"></i>
+        <span>{{ language.text('saveOrder') }}</span>
+      </button>
+    </div>
+  </div>
+</p-dialog>

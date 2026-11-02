@@ -11,6 +11,10 @@ export const routes: Routes = [
     data: { category: 'main-story' },
   },
   {
+    path: 'mirror-system/chronology',
+    loadComponent: () => import('./pages/chronology/chronology.page').then((page) => page.ChronologyPage),
+  },
+  {
     path: 'event-story',
     loadComponent: () => import('./pages/catalog/catalog.page').then((page) => page.CatalogPage),
     data: { category: 'event-story' },
@@ -36,7 +40,7 @@ export const routes: Routes = [
     data: { category: 'perspectra' },
   },
   {
-    path: 'credits',
+    path: 'contributors',
     loadComponent: () => import('./pages/credits/credits.page').then((page) => page.CreditsPage),
   },
   {

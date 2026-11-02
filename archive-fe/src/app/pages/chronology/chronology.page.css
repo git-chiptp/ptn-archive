@@ -1,0 +1,17 @@
+:host ::ng-deep .chronology-timeline .p-timeline-event-separator {
+  flex: 0 0 3rem;
+}
+
+:host ::ng-deep .chronology-timeline .p-timeline-event-connector {
+  background: color-mix(in srgb, var(--p-primary-color) 35%, transparent);
+}
+
+@media (max-width: 767px) {
+  :host ::ng-deep .chronology-timeline .p-timeline-event-separator {
+    flex: 0 0 2.5rem;
+  }
+}
+
+::ng-deep .p-timeline-event-opposite {
+    display: none;
+}

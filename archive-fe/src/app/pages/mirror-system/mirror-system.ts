@@ -14,7 +14,7 @@ export class MirrorSystem {
 
   links = [
     {
-      path: '/chronology',
+      path: '/mirror-system/chronology',
       key: 'chronology',
       image: '/img/menu/chronology.webp',
     },

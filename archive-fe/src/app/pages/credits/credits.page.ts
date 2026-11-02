@@ -13,6 +13,6 @@ export class CreditsPage {
   public readonly breadcrumbHome: MenuItem = { icon: 'pi pi-home', routerLink: '/' };
 
   public get breadcrumbItems(): MenuItem[] {
-    return [{ label: this.language.text('credits') }];
+    return [{ label: this.language.text('contributors') }];
   }
 }
